@@ -7,6 +7,7 @@ import { ExecutionStatus, NodeExecutionStatus, LogLevel } from '../enums/executi
 import { NodeRegistryService } from './node-registry.service';
 import { NodeInput, WorkflowExecutionOptions } from '../interfaces/execution-context.interface';
 import { ClientInfo } from '../../common/utils/client-info.util';
+import { ExpressionEvaluatorService, NodeData, ExpressionContext } from './expression-evaluator.service';
 
 interface NodeOutputMap {
     [nodeId: string]: any;
@@ -18,6 +19,26 @@ interface ActiveExecution {
     timeoutId?: NodeJS.Timeout;
 }
 
+/**
+ * Internal structure to track node data during execution
+ * Used for expression evaluation context
+ */
+interface ExecutionNodeData {
+    input?: {
+        sources: Array<{
+            nodeId: string;
+            nodeName: string;
+            value: any;
+        }>;
+        rawValues: any[];
+    };
+    output?: {
+        value: any;
+        type: string;
+        timestamp: Date;
+    };
+}
+
 @Injectable()
 export class WorkflowExecutorService {
     private readonly logger = new Logger(WorkflowExecutorService.name);
@@ -26,6 +47,7 @@ export class WorkflowExecutorService {
     constructor(
         @InjectModel(WorkflowHistory.name) private historyModel: Model<WorkflowHistoryDocument>,
         private nodeRegistry: NodeRegistryService,
+        private expressionEvaluator: ExpressionEvaluatorService,
     ) {}
 
     async startExecution(
@@ -136,6 +158,14 @@ export class WorkflowExecutorService {
         const nodeMap = new Map(workflow.nodes.map(n => [n.id, n]));
         const incomingEdges = this.buildIncomingEdgesMap(workflow.edges);
 
+        // Build expression context maps for dynamic input/output referencing
+        const nodeDataMap = new Map<string, ExecutionNodeData>();
+        const nodeNameMap = new Map<string, string>();
+        workflow.nodes.forEach(node => {
+            nodeNameMap.set(node.nodeName, node.id);
+            nodeDataMap.set(node.id, {}); // Initialize empty data for each node
+        });
+
         let pendingNodes = [...workflow.nodes];
         let iteration = 0;
         const maxIterations = workflow.nodes.length * 2;
@@ -185,11 +215,15 @@ export class WorkflowExecutorService {
 
                 const success = await this.executeNode(
                     executionId,
+                    workflow._id.toString(),
                     node,
                     nodeMap,
                     workflow.edges,
                     nodeOutputs,
+                    nodeDataMap,
+                    nodeNameMap,
                     options,
+                    workflow.variables,
                 );
 
                 if (success) {
@@ -242,11 +276,15 @@ export class WorkflowExecutorService {
 
     private async executeNode(
         executionId: string,
+        workflowId: string,
         node: SchemaWorkflowNode,
         nodeMap: Map<string, SchemaWorkflowNode>,
         edges: WorkflowEdge[],
         nodeOutputs: NodeOutputMap,
+        nodeDataMap: Map<string, ExecutionNodeData>,
+        nodeNameMap: Map<string, string>,
         options: WorkflowExecutionOptions,
+        workflowVariables?: Record<string, any>,
     ): Promise<boolean> {
         const nodeStrategy = this.nodeRegistry.getNode(node.type);
 
@@ -279,6 +317,60 @@ export class WorkflowExecutorService {
         });
         const rawValues = inputSources.map(s => s.value);
 
+        // Update current node's input data in the nodeDataMap for expression context
+        const currentNodeData = nodeDataMap.get(node.id) || {};
+        currentNodeData.input = { sources: inputSources, rawValues };
+        nodeDataMap.set(node.id, currentNodeData);
+
+        // Build expression context for this node
+        const expressionContext: ExpressionContext = {
+            executionId,
+            workflowId,
+            currentNodeId: node.id,
+            currentNodeName: node.nodeName,
+            nodeDataMap: nodeDataMap as Map<string, NodeData>,
+            nodeNameMap,
+            triggerData: workflowVariables, // Workflow variables available as trigger data
+        };
+
+        // Evaluate expressions in node data (inputMappings, config, etc.)
+        let evaluatedData = node.data || {};
+        if (node.data) {
+            try {
+                evaluatedData = this.expressionEvaluator.evaluate(node.data, expressionContext);
+                await this.addLog(
+                    executionId,
+                    LogLevel.DEBUG,
+                    `Evaluated expressions for node ${node.nodeName}`,
+                    node.id,
+                    node.nodeName,
+                );
+            } catch (evalError) {
+                const errorMessage = evalError instanceof Error ? evalError.message : String(evalError);
+                await this.addLog(
+                    executionId,
+                    LogLevel.WARN,
+                    `Expression evaluation warning: ${errorMessage}`,
+                    node.id,
+                    node.nodeName,
+                );
+                // Continue with original data if evaluation fails partially
+            }
+
+            // If inputMappings exist, resolve them and merge into inputs
+            if (node.data.inputMappings) {
+                const resolvedMappings = this.expressionEvaluator.evaluate(
+                    node.data.inputMappings,
+                    expressionContext,
+                );
+                // Merge resolved mappings into the evaluatedData.config
+                evaluatedData.config = {
+                    ...evaluatedData.config,
+                    ...resolvedMappings,
+                };
+            }
+        }
+
         const inputs: NodeInput[] = inputEdges.map(edge => ({
             sourceNodeId: edge.source,
             sourceNodeName: nodeMap.get(edge.source)?.nodeName || edge.source,
@@ -297,12 +389,12 @@ export class WorkflowExecutorService {
             try {
                 const result = await nodeStrategy.executeWithContext({
                     executionId,
-                    workflowId: '',
+                    workflowId,
                     nodeId: node.id,
                     nodeName: node.nodeName,
                     nodeType: node.type,
                     inputs,
-                    data: node.data || {},
+                    data: evaluatedData, // Use evaluated data with resolved expressions
                     retryCount,
                     maxRetries,
                 });
@@ -323,6 +415,11 @@ export class WorkflowExecutorService {
                         type: typeof result.output,
                         timestamp: endTime,
                     };
+
+                    // Update nodeDataMap with output for expression referencing by subsequent nodes
+                    const nodeData = nodeDataMap.get(node.id) || {};
+                    nodeData.output = outputInfo;
+                    nodeDataMap.set(node.id, nodeData);
 
                     await this.updateNodeStatus(executionId, node.id, NodeExecutionStatus.SUCCESS, {
                         endTime,

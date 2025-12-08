@@ -5,6 +5,7 @@ import { SampleWorkflow, SampleWorkflowSchema } from './schemas/sample-workflow.
 import { WorkflowExecutorService } from './services/workflow-executor.service';
 import { WorkflowValidatorService } from './services/workflow-validator.service';
 import { NodeRegistryService } from './services/node-registry.service';
+import { ExpressionEvaluatorService } from './services/expression-evaluator.service';
 import { SampleWorkflowService } from './sample-workflow.service';
 import { WorkflowHistory, WorkflowHistorySchema } from './schemas/workflow-history.schema';
 
@@ -21,7 +22,8 @@ import { WorkflowHistory, WorkflowHistorySchema } from './schemas/workflow-histo
         WorkflowExecutorService,
         WorkflowValidatorService,
         NodeRegistryService,
+        ExpressionEvaluatorService,
     ],
-    exports: [SampleWorkflowService, NodeRegistryService],
+    exports: [SampleWorkflowService, NodeRegistryService, ExpressionEvaluatorService],
 })
 export class SampleWorkflowModule { }
