@@ -1,7 +1,7 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
-import { Model, Types } from 'mongoose';
-import { WorkflowHistory, WorkflowHistoryDocument } from '../schemas/workflow-history.schema';
+import { Model } from 'mongoose';
+import { WorkflowHistory, WorkflowHistoryDocument, ErrorDetail } from '../schemas/workflow-history.schema';
 import { SampleWorkflowDocument, WorkflowNode as SchemaWorkflowNode, WorkflowEdge } from '../schemas/sample-workflow.schema';
 import { ExecutionStatus, NodeExecutionStatus, LogLevel } from '../enums/execution-status.enum';
 import { NodeRegistryService } from './node-registry.service';
@@ -53,7 +53,14 @@ export class WorkflowExecutorService {
                 retryCount: 0,
                 logs: [],
             })),
+            nodeOutputs: [],
             logs: [],
+            errors: {
+                workflowErrors: [],
+                executionErrors: [],
+                nodeErrors: [],
+                totalErrors: 0,
+            },
             metrics: {
                 totalNodes: workflow.nodes.length,
                 completedNodes: 0,
@@ -62,7 +69,7 @@ export class WorkflowExecutorService {
             },
             triggerData,
             options: {
-                timeout: options.timeout || 300000, // 5 minutes default
+                timeout: options.timeout || 300000,
                 maxRetries: options.maxRetries || 3,
                 continueOnError: options.continueOnError || false,
             },
@@ -83,16 +90,32 @@ export class WorkflowExecutorService {
         // Set timeout if specified
         if (options.timeout) {
             activeExecution.timeoutId = setTimeout(() => {
-                this.cancelExecution(executionId, 'system', 'Execution timeout');
+                this.handleTimeout(executionId);
             }, options.timeout);
         }
 
         // Start execution asynchronously
-        this.executeWorkflow(workflow, executionId, options).catch(error => {
+        this.executeWorkflow(workflow, executionId, options).catch(async error => {
             this.logger.error(`Workflow execution failed: ${error.message}`, error.stack);
+            await this.addExecutionError(executionId, {
+                code: 'SYSTEM_ERROR',
+                message: error.message,
+                stack: error.stack,
+                timestamp: new Date(),
+            });
+            await this.finalizeExecution(executionId, ExecutionStatus.FAILED, new Date());
         });
 
         return executionId;
+    }
+
+    private async handleTimeout(executionId: string): Promise<void> {
+        await this.addExecutionError(executionId, {
+            code: 'EXECUTION_TIMEOUT',
+            message: 'Workflow execution timed out',
+            timestamp: new Date(),
+        });
+        await this.cancelExecution(executionId, 'system', 'Execution timeout');
     }
 
     private async executeWorkflow(
@@ -109,7 +132,7 @@ export class WorkflowExecutorService {
         const processedNodes = new Set<string>();
         const failedNodes = new Set<string>();
 
-        // Build dependency graph
+        // Build node map for quick lookup
         const nodeMap = new Map(workflow.nodes.map(n => [n.id, n]));
         const incomingEdges = this.buildIncomingEdgesMap(workflow.edges);
 
@@ -128,7 +151,7 @@ export class WorkflowExecutorService {
                 return;
             }
 
-            // Find nodes ready to execute (all dependencies met)
+            // Find nodes ready to execute
             const readyNodes = pendingNodes.filter(node => {
                 const deps = incomingEdges.get(node.id) || [];
                 return deps.every(edge =>
@@ -137,21 +160,25 @@ export class WorkflowExecutorService {
             });
 
             if (readyNodes.length === 0) {
-                await this.addLog(executionId, LogLevel.ERROR, 'Workflow stuck: circular dependency or missing inputs detected');
-                await this.finalizeExecution(executionId, ExecutionStatus.FAILED, startTime, null, 'Circular dependency detected');
+                const error: ErrorDetail = {
+                    code: 'CIRCULAR_DEPENDENCY',
+                    message: 'Workflow stuck: circular dependency or missing inputs detected',
+                    timestamp: new Date(),
+                };
+                await this.addWorkflowError(executionId, error);
+                await this.addLog(executionId, LogLevel.ERROR, error.message);
+                await this.finalizeExecution(executionId, ExecutionStatus.FAILED, startTime);
                 return;
             }
 
-            // Execute ready nodes (can be parallelized in future)
+            // Execute ready nodes
             for (const node of readyNodes) {
-                // Check if any dependency failed
                 const deps = incomingEdges.get(node.id) || [];
                 const hasFailedDep = deps.some(edge => failedNodes.has(edge.source));
 
                 if (hasFailedDep && !options.continueOnError) {
-                    await this.updateNodeStatus(executionId, node.id, NodeExecutionStatus.SKIPPED);
+                    await this.skipNode(executionId, node, 'Dependency failed');
                     failedNodes.add(node.id);
-                    await this.addLog(executionId, LogLevel.WARN, `Skipping node ${node.nodeName} due to failed dependency`);
                     processedNodes.add(node.id);
                     continue;
                 }
@@ -159,6 +186,7 @@ export class WorkflowExecutorService {
                 const success = await this.executeNode(
                     executionId,
                     node,
+                    nodeMap,
                     workflow.edges,
                     nodeOutputs,
                     options,
@@ -172,14 +200,7 @@ export class WorkflowExecutorService {
 
                     if (!options.continueOnError) {
                         await this.addLog(executionId, LogLevel.ERROR, `Stopping execution due to node failure: ${node.nodeName}`);
-                        await this.finalizeExecution(
-                            executionId,
-                            ExecutionStatus.FAILED,
-                            startTime,
-                            null,
-                            `Node ${node.nodeName} failed`,
-                            node.id,
-                        );
+                        await this.finalizeExecution(executionId, ExecutionStatus.FAILED, startTime);
                         return;
                     }
                 }
@@ -188,26 +209,41 @@ export class WorkflowExecutorService {
             pendingNodes = pendingNodes.filter(n => !processedNodes.has(n.id));
         }
 
-        // Determine final result - output of terminal nodes (nodes with no outgoing edges)
+        // Determine final result
         const terminalNodes = workflow.nodes.filter(node =>
             !workflow.edges.some(edge => edge.source === node.id)
         );
 
-        const finalResult = terminalNodes.length === 1
-            ? nodeOutputs[terminalNodes[0].id]
-            : terminalNodes.reduce((acc, node) => {
-                acc[node.nodeName] = nodeOutputs[node.id];
-                return acc;
-            }, {} as Record<string, any>);
+        let finalResult: any;
+        if (terminalNodes.length === 1) {
+            const terminalNode = terminalNodes[0];
+            finalResult = {
+                value: nodeOutputs[terminalNode.id],
+                fromNodeId: terminalNode.id,
+                fromNodeName: terminalNode.nodeName,
+                timestamp: new Date(),
+            };
+        } else if (terminalNodes.length > 1) {
+            finalResult = {
+                value: terminalNodes.reduce((acc, node) => {
+                    acc[node.nodeName] = nodeOutputs[node.id];
+                    return acc;
+                }, {} as Record<string, any>),
+                fromNodeId: 'multiple',
+                fromNodeName: terminalNodes.map(n => n.nodeName).join(', '),
+                timestamp: new Date(),
+            };
+        }
 
         const status = failedNodes.size === 0 ? ExecutionStatus.COMPLETED : ExecutionStatus.COMPLETED;
-        await this.addLog(executionId, LogLevel.INFO, `Workflow execution completed. Final result: ${JSON.stringify(finalResult)}`);
+        await this.addLog(executionId, LogLevel.INFO, `Workflow execution completed`);
         await this.finalizeExecution(executionId, status, startTime, finalResult);
     }
 
     private async executeNode(
         executionId: string,
         node: SchemaWorkflowNode,
+        nodeMap: Map<string, SchemaWorkflowNode>,
         edges: WorkflowEdge[],
         nodeOutputs: NodeOutputMap,
         options: WorkflowExecutionOptions,
@@ -215,10 +251,15 @@ export class WorkflowExecutorService {
         const nodeStrategy = this.nodeRegistry.getNode(node.type);
 
         if (!nodeStrategy) {
-            await this.addLog(executionId, LogLevel.ERROR, `Unknown node type: ${node.type}`, node.id, node.nodeName);
-            await this.updateNodeStatus(executionId, node.id, NodeExecutionStatus.FAILED, {
-                error: `Unknown node type: ${node.type}`,
-            });
+            const error: ErrorDetail = {
+                code: 'UNKNOWN_NODE_TYPE',
+                message: `Unknown node type: ${node.type}`,
+                timestamp: new Date(),
+                nodeId: node.id,
+                nodeName: node.nodeName,
+            };
+            await this.addNodeError(executionId, node.id, error);
+            await this.updateNodeStatus(executionId, node.id, NodeExecutionStatus.FAILED, { error });
             return false;
         }
 
@@ -226,18 +267,31 @@ export class WorkflowExecutorService {
         await this.updateNodeStatus(executionId, node.id, NodeExecutionStatus.RUNNING, { startTime });
         await this.addLog(executionId, LogLevel.INFO, `Executing node: ${node.nodeName}`, node.id, node.nodeName);
 
-        // Gather inputs
+        // Gather inputs with source info
         const inputEdges = edges.filter(e => e.target === node.id);
+        const inputSources = inputEdges.map(edge => {
+            const sourceNode = nodeMap.get(edge.source);
+            return {
+                nodeId: edge.source,
+                nodeName: sourceNode?.nodeName || edge.source,
+                value: nodeOutputs[edge.source],
+            };
+        });
+        const rawValues = inputSources.map(s => s.value);
+
         const inputs: NodeInput[] = inputEdges.map(edge => ({
             sourceNodeId: edge.source,
-            sourceNodeName: edge.source, // Could resolve actual name from nodeMap
+            sourceNodeName: nodeMap.get(edge.source)?.nodeName || edge.source,
             value: nodeOutputs[edge.source],
             edgeId: edge.id,
         }));
 
+        // Store input info
+        await this.updateNodeInput(executionId, node.id, { sources: inputSources, rawValues });
+
         const maxRetries = options.maxRetries || 3;
         let retryCount = 0;
-        let lastError: string | undefined;
+        let lastError: ErrorDetail | undefined;
 
         while (retryCount <= maxRetries) {
             try {
@@ -253,7 +307,7 @@ export class WorkflowExecutorService {
                     maxRetries,
                 });
 
-                // Add node logs to execution
+                // Add node logs
                 for (const log of result.logs) {
                     await this.addNodeLog(executionId, node.id, log);
                 }
@@ -263,27 +317,44 @@ export class WorkflowExecutorService {
                     const endTime = new Date();
                     const duration = endTime.getTime() - startTime.getTime();
 
+                    // Store output
+                    const outputInfo = {
+                        value: result.output,
+                        type: typeof result.output,
+                        timestamp: endTime,
+                    };
+
                     await this.updateNodeStatus(executionId, node.id, NodeExecutionStatus.SUCCESS, {
                         endTime,
                         duration,
-                        input: inputs.map(i => ({ from: i.sourceNodeId, value: i.value })),
-                        output: result.output,
+                        output: outputInfo,
                         metadata: result.metadata,
                     });
+
+                    // Add to nodeOutputs collection
+                    await this.addNodeOutput(executionId, node.id, node.nodeName, result.output);
 
                     await this.addLog(
                         executionId,
                         LogLevel.INFO,
-                        `Node ${node.nodeName} completed in ${duration}ms with output: ${result.output}`,
+                        `Node ${node.nodeName} completed in ${duration}ms with output: ${JSON.stringify(result.output)}`,
                         node.id,
                         node.nodeName,
                     );
 
                     return true;
                 } else {
-                    lastError = result.error;
-                    retryCount++;
+                    lastError = {
+                        code: 'NODE_EXECUTION_FAILED',
+                        message: result.error || 'Unknown error',
+                        stack: result.errorStack,
+                        timestamp: new Date(),
+                        nodeId: node.id,
+                        nodeName: node.nodeName,
+                        context: { retryCount, inputs: rawValues },
+                    };
 
+                    retryCount++;
                     if (retryCount <= maxRetries && options.retryFailedNodes !== false) {
                         await this.addLog(
                             executionId,
@@ -293,18 +364,29 @@ export class WorkflowExecutorService {
                             node.nodeName,
                         );
                         await this.updateNodeRetryCount(executionId, node.id, retryCount);
-                        await new Promise(resolve => setTimeout(resolve, 1000 * retryCount)); // Exponential backoff
+                        await new Promise(resolve => setTimeout(resolve, 1000 * retryCount));
                     }
                 }
             } catch (error) {
-                lastError = error instanceof Error ? error.message : String(error);
-                retryCount++;
+                const errorMessage = error instanceof Error ? error.message : String(error);
+                const errorStack = error instanceof Error ? error.stack : undefined;
 
+                lastError = {
+                    code: 'NODE_EXCEPTION',
+                    message: errorMessage,
+                    stack: errorStack,
+                    timestamp: new Date(),
+                    nodeId: node.id,
+                    nodeName: node.nodeName,
+                    context: { retryCount, inputs: rawValues },
+                };
+
+                retryCount++;
                 if (retryCount <= maxRetries && options.retryFailedNodes !== false) {
                     await this.addLog(
                         executionId,
                         LogLevel.WARN,
-                        `Node ${node.nodeName} threw exception, retrying (${retryCount}/${maxRetries}): ${lastError}`,
+                        `Node ${node.nodeName} threw exception, retrying (${retryCount}/${maxRetries}): ${errorMessage}`,
                         node.id,
                         node.nodeName,
                     );
@@ -318,6 +400,10 @@ export class WorkflowExecutorService {
         const endTime = new Date();
         const duration = endTime.getTime() - startTime.getTime();
 
+        if (lastError) {
+            await this.addNodeError(executionId, node.id, lastError);
+        }
+
         await this.updateNodeStatus(executionId, node.id, NodeExecutionStatus.FAILED, {
             endTime,
             duration,
@@ -328,12 +414,17 @@ export class WorkflowExecutorService {
         await this.addLog(
             executionId,
             LogLevel.ERROR,
-            `Node ${node.nodeName} failed after ${retryCount - 1} retries: ${lastError}`,
+            `Node ${node.nodeName} failed after ${retryCount - 1} retries: ${lastError?.message}`,
             node.id,
             node.nodeName,
         );
 
         return false;
+    }
+
+    private async skipNode(executionId: string, node: SchemaWorkflowNode, reason: string): Promise<void> {
+        await this.updateNodeStatus(executionId, node.id, NodeExecutionStatus.SKIPPED);
+        await this.addLog(executionId, LogLevel.WARN, `Skipping node ${node.nodeName}: ${reason}`, node.id, node.nodeName);
     }
 
     private buildIncomingEdgesMap(edges: WorkflowEdge[]): Map<string, WorkflowEdge[]> {
@@ -345,6 +436,68 @@ export class WorkflowExecutorService {
         }
         return map;
     }
+
+    // ==================== ERROR MANAGEMENT ====================
+
+    private async addWorkflowError(executionId: string, error: ErrorDetail): Promise<void> {
+        await this.historyModel.findByIdAndUpdate(executionId, {
+            $push: { 'errors.workflowErrors': error },
+            $inc: { 'errors.totalErrors': 1 },
+            $set: { 'errors.primaryError': error },
+            errorMessage: error.message,
+        });
+    }
+
+    private async addExecutionError(executionId: string, error: ErrorDetail): Promise<void> {
+        await this.historyModel.findByIdAndUpdate(executionId, {
+            $push: { 'errors.executionErrors': error },
+            $inc: { 'errors.totalErrors': 1 },
+            $set: { 'errors.primaryError': error },
+            errorMessage: error.message,
+        });
+    }
+
+    private async addNodeError(executionId: string, nodeId: string, error: ErrorDetail): Promise<void> {
+        await this.historyModel.findByIdAndUpdate(executionId, {
+            $push: { 'errors.nodeErrors': error },
+            $inc: { 'errors.totalErrors': 1 },
+            errorNodeId: nodeId,
+        });
+
+        // Also check if this is the first/primary error
+        const history = await this.historyModel.findById(executionId);
+        if (history && !history.errors?.primaryError) {
+            await this.historyModel.findByIdAndUpdate(executionId, {
+                $set: { 'errors.primaryError': error },
+                errorMessage: error.message,
+            });
+        }
+    }
+
+    // ==================== NODE OUTPUT MANAGEMENT ====================
+
+    private async addNodeOutput(executionId: string, nodeId: string, nodeName: string, value: any): Promise<void> {
+        await this.historyModel.findByIdAndUpdate(executionId, {
+            $push: {
+                nodeOutputs: {
+                    nodeId,
+                    nodeName,
+                    value,
+                    type: typeof value,
+                    timestamp: new Date(),
+                },
+            },
+        });
+    }
+
+    private async updateNodeInput(executionId: string, nodeId: string, input: any): Promise<void> {
+        await this.historyModel.updateOne(
+            { _id: executionId, 'nodeExecutions.nodeId': nodeId },
+            { $set: { 'nodeExecutions.$.input': input } },
+        );
+    }
+
+    // ==================== STATUS MANAGEMENT ====================
 
     async cancelExecution(executionId: string, cancelledBy: string, reason?: string): Promise<boolean> {
         const activeExec = this.activeExecutions.get(executionId);
@@ -388,10 +541,8 @@ export class WorkflowExecutorService {
             startTime?: Date;
             endTime?: Date;
             duration?: number;
-            input?: any;
             output?: any;
-            error?: string;
-            errorStack?: string;
+            error?: ErrorDetail;
             metadata?: Record<string, any>;
             retryCount?: number;
         } = {},
@@ -403,10 +554,8 @@ export class WorkflowExecutorService {
         if (updates.startTime) updateFields['nodeExecutions.$.startTime'] = updates.startTime;
         if (updates.endTime) updateFields['nodeExecutions.$.endTime'] = updates.endTime;
         if (updates.duration !== undefined) updateFields['nodeExecutions.$.duration'] = updates.duration;
-        if (updates.input !== undefined) updateFields['nodeExecutions.$.input'] = updates.input;
         if (updates.output !== undefined) updateFields['nodeExecutions.$.output'] = updates.output;
         if (updates.error) updateFields['nodeExecutions.$.error'] = updates.error;
-        if (updates.errorStack) updateFields['nodeExecutions.$.errorStack'] = updates.errorStack;
         if (updates.metadata) updateFields['nodeExecutions.$.metadata'] = updates.metadata;
         if (updates.retryCount !== undefined) updateFields['nodeExecutions.$.retryCount'] = updates.retryCount;
 
@@ -432,6 +581,8 @@ export class WorkflowExecutorService {
             { $set: { 'nodeExecutions.$.retryCount': retryCount } },
         );
     }
+
+    // ==================== LOGGING ====================
 
     private async addLog(
         executionId: string,
@@ -473,26 +624,46 @@ export class WorkflowExecutorService {
         );
     }
 
+    // ==================== FINALIZATION ====================
+
     private async finalizeExecution(
         executionId: string,
         status: ExecutionStatus,
         startTime: Date,
         finalResult?: any,
-        errorMessage?: string,
-        errorNodeId?: string,
     ): Promise<void> {
         const endTime = new Date();
         const duration = endTime.getTime() - startTime.getTime();
 
-        // Calculate average node duration
+        // Calculate metrics
         const history = await this.historyModel.findById(executionId);
         let averageNodeDuration = 0;
+        let fastestNode: { nodeId: string; nodeName: string; duration: number } | undefined;
+        let slowestNode: { nodeId: string; nodeName: string; duration: number } | undefined;
+
         if (history) {
             const completedNodes = history.nodeExecutions.filter(
                 n => n.status === NodeExecutionStatus.SUCCESS && n.duration,
             );
+
             if (completedNodes.length > 0) {
-                averageNodeDuration = completedNodes.reduce((sum, n) => sum + (n.duration || 0), 0) / completedNodes.length;
+                const totalNodeDuration = completedNodes.reduce((sum, n) => sum + (n.duration || 0), 0);
+                averageNodeDuration = Math.round(totalNodeDuration / completedNodes.length);
+
+                // Find fastest and slowest
+                const sorted = [...completedNodes].sort((a, b) => (a.duration || 0) - (b.duration || 0));
+                if (sorted.length > 0) {
+                    fastestNode = {
+                        nodeId: sorted[0].nodeId,
+                        nodeName: sorted[0].nodeName,
+                        duration: sorted[0].duration || 0,
+                    };
+                    slowestNode = {
+                        nodeId: sorted[sorted.length - 1].nodeId,
+                        nodeName: sorted[sorted.length - 1].nodeName,
+                        duration: sorted[sorted.length - 1].duration || 0,
+                    };
+                }
             }
         }
 
@@ -501,10 +672,10 @@ export class WorkflowExecutorService {
             endTime,
             duration,
             finalResult,
-            errorMessage,
-            errorNodeId,
             'metrics.totalDuration': duration,
             'metrics.averageNodeDuration': averageNodeDuration,
+            'metrics.fastestNode': fastestNode,
+            'metrics.slowestNode': slowestNode,
         });
 
         // Clear timeout and remove from active executions
