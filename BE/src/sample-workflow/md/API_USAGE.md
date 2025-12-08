@@ -50,34 +50,48 @@ curl -X POST http://localhost:3000/sample-workflows \
             "id": "node-1",
             "type": "INPUT",
             "nodeName": "Input A",
-            "data": { "value": 10 },
+            "data": { 
+                "inputs": [
+                    { "name": "value", "type": "number", "value": 10, "valueType": "static" }
+                ]
+            },
             "position": { "x": 0, "y": 0 }
         },
         {
             "id": "node-2",
             "type": "INPUT",
             "nodeName": "Input B",
-            "data": { "value": 5 },
+            "data": { 
+                 "inputs": [
+                    { "name": "value", "type": "number", "value": 5, "valueType": "static" }
+                ]
+            },
             "position": { "x": 0, "y": 100 }
         },
         {
             "id": "node-3",
             "type": "ADD",
             "nodeName": "Adder",
+            "data": {
+                // Example of Input Mapping (Expression)
+                "inputMappings": {
+                    "val1": "{{Input A.outputs.value}}", 
+                    "val2": "{{Input B.outputs.value}}"
+                }
+            },
             "position": { "x": 200, "y": 50 }
         },
         {
             "id": "node-4",
             "type": "MULTIPLY",
             "nodeName": "Multiplier",
+            "data": {
+                // Using built-in variables
+                "inputMappings": {
+                     "factor": 2
+                }
+            },
             "position": { "x": 400, "y": 50 }
-        },
-        {
-            "id": "node-5",
-            "type": "INPUT",
-            "nodeName": "Factor",
-            "data": { "value": 2 },
-            "position": { "x": 200, "y": 150 }
         }
     ],
     "edges": [

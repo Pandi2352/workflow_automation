@@ -45,12 +45,14 @@ import { BaseWorkflowNode } from './workflow-node.interface';
 export class PowerNode extends BaseWorkflowNode {
     /**
      * @param inputs Array of input values from connected nodes.
-     * @param data Optional configuration data (static values set in the workflow).
+     * @param data Configuration data. 
+     *             NOTE: 'data.config' will already have expressions resolved by the engine.
      */
     execute(inputs: number[], data?: any): number {
-        // 1. Get inputs safely
-        const base = inputs[0] || 0;
-        const exponent = inputs[1] || 1;
+        // 1. Get inputs 
+        // If mapped via expressions, values might be in data.config
+        const base = inputs[0] || data?.config?.base || 0;
+        const exponent = inputs[1] || data?.config?.exponent || 1;
 
         // 2. Log useful debug info (shows up in execution history)
         this.log('DEBUG', `Calculating ${base} ^ ${exponent}`);
