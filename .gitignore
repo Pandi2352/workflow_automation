@@ -1,0 +1,5 @@
+node_modules
+dist
+.env
+BE_Express_Backup
+BE_Express_Backup_Final
