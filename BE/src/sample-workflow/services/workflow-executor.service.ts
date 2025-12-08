@@ -388,27 +388,38 @@ export class WorkflowExecutorService {
                 }
             }
 
-            // If structured inputs exist, resolve them
+            // If structured inputs exist, resolve them based on valueType
             if (node.data.inputs && Array.isArray(node.data.inputs)) {
                 const resolvedInputs: Record<string, any> = {};
-                for (const inputDef of node.data.inputs) {
-                    if (inputDef.expression) {
-                        resolvedInputs[inputDef.name] = this.expressionEvaluator.evaluate(
-                            inputDef.expression,
+                for (const inputField of node.data.inputs) {
+                    let resolvedValue: any;
+
+                    if (inputField.valueType === 'expression' && inputField.value) {
+                        // Value is an expression - evaluate it
+                        resolvedValue = this.expressionEvaluator.evaluate(
+                            inputField.value,
                             expressionContext,
                         );
-                    } else if (inputDef.value !== undefined) {
-                        resolvedInputs[inputDef.name] = inputDef.value;
-                    } else if (inputDef.defaultValue !== undefined) {
-                        resolvedInputs[inputDef.name] = inputDef.defaultValue;
+                    } else if (inputField.valueType === 'static' || !inputField.valueType) {
+                        // Value is static - use as-is
+                        if (inputField.value !== undefined) {
+                            resolvedValue = inputField.value;
+                        } else if (inputField.defaultValue !== undefined) {
+                            resolvedValue = inputField.defaultValue;
+                        }
+                    }
+
+                    if (resolvedValue !== undefined) {
+                        resolvedInputs[inputField.name] = resolvedValue;
                     }
                 }
+
                 evaluatedData.config = {
                     ...evaluatedData.config,
                     ...resolvedInputs,
                 };
 
-                // Store resolved structured inputs
+                // Store resolved structured inputs for history
                 const nodeDataForHistory = nodeDataMap.get(node.id);
                 if (nodeDataForHistory?.input) {
                     nodeDataForHistory.input.resolved = {

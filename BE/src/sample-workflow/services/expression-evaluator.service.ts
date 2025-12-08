@@ -136,6 +136,7 @@ export class ExpressionEvaluatorService {
 
     /**
      * Resolve a single expression
+     * Supports both singular (output/input) and plural (outputs/inputs) syntax for n8n compatibility
      */
     private resolveExpression(expression: string, context: ExpressionContext): any {
         // Handle built-in variables
@@ -143,7 +144,7 @@ export class ExpressionEvaluatorService {
             return this.resolveBuiltIn(expression, context);
         }
 
-        // Parse the expression: NodeName.output.property or NodeName.input.property
+        // Parse the expression: NodeName.output.property or NodeName.outputs.property
         const parts = this.parseExpression(expression);
 
         if (parts.length === 0) {
@@ -163,8 +164,17 @@ export class ExpressionEvaluatorService {
             return undefined;
         }
 
+        // Normalize 'outputs' to 'output' and 'inputs' to 'input' for n8n compatibility
+        const normalizedParts = parts.slice(1).map((part, index) => {
+            if (index === 0) {
+                if (part === 'outputs') return 'output';
+                if (part === 'inputs') return 'input';
+            }
+            return part;
+        });
+
         // Navigate to the requested property
-        return this.getNestedValue(nodeData, parts.slice(1));
+        return this.getNestedValue(nodeData, normalizedParts);
     }
 
     /**
