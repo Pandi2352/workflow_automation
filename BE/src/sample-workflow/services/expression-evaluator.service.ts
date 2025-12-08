@@ -3,33 +3,79 @@ import { Injectable } from '@nestjs/common';
 /**
  * Expression Evaluator Service
  *
- * Evaluates expressions like:
- * - {{NodeName.output}} - Get the output of a node
+ * Evaluates n8n-style expressions for dynamic node input/output referencing.
+ *
+ * SUPPORTED EXPRESSION SYNTAX:
+ *
+ * Node References:
+ * - {{NodeName.output}} - Get the entire output of a node
  * - {{NodeName.output.value}} - Get specific property from output
- * - {{NodeName.input.value1}} - Get specific input value
+ * - {{NodeName.output.data.users}} - Deep nested property access
+ * - {{NodeName.output.items[0]}} - Array index access
+ * - {{NodeName.output.users[0].name}} - Combined nested and array access
+ * - {{NodeName.input.fieldName}} - Get specific input field value
  * - {{NodeName.input.sources[0].value}} - Get first source input value
- * - {{$input}} - Current node's input
- * - {{$json}} - Current data as JSON
- * - {{$now}} - Current timestamp
+ *
+ * Built-in Variables:
+ * - {{$input}} - Current node's aggregated input
+ * - {{$input.sources}} - Array of input sources
+ * - {{$input.rawValues}} - Array of raw input values
+ * - {{$input.resolved.fieldName}} - Resolved input field
+ * - {{$output}} - Current node's output (if available)
+ * - {{$output.value}} - Current node's output value
+ * - {{$vars}} - Workflow variables
+ * - {{$vars.apiKey}} - Specific workflow variable
+ * - {{$json}} - All previous node outputs as JSON object
+ * - {{$json.NodeName}} - Specific node's output from $json
+ * - {{$now}} - Current timestamp as Date
+ * - {{$timestamp}} - Current timestamp as milliseconds
  * - {{$executionId}} - Current execution ID
+ * - {{$workflowId}} - Current workflow ID
+ * - {{$nodeName}} - Current node name
+ * - {{$nodeId}} - Current node ID
+ * - {{$trigger}} - Trigger data (if workflow was triggered)
+ * - {{$trigger.property}} - Specific trigger data property
+ * - {{$env.VARIABLE}} - Environment variable (if enabled)
+ *
+ * String Interpolation:
+ * - "Hello {{NodeName.output.name}}!" - Expressions within strings
+ * - "{{Config.output.baseUrl}}/api/{{User.output.id}}" - Multiple expressions
+ *
+ * Complex Data Types Supported:
+ * - Strings, Numbers, Booleans
+ * - Arrays: {{NodeName.output.items}}, {{NodeName.output[0]}}
+ * - Objects: {{NodeName.output.data}}, {{NodeName.output.user.profile}}
+ * - Nested structures: {{NodeName.output.response.data.users[0].addresses[0].city}}
  */
 
+/**
+ * Node data structure for expression context
+ * Stores input and output data for each node during execution
+ */
 export interface NodeData {
     input?: {
         sources: Array<{
             nodeId: string;
             nodeName: string;
             value: any;
+            type?: string;
         }>;
         rawValues: any[];
+        resolved?: Record<string, any>;
+        expressions?: Record<string, string>;
     };
     output?: {
         value: any;
         type: string;
         timestamp: Date;
+        originalValue?: any;
+        schema?: Record<string, any>;
     };
 }
 
+/**
+ * Context provided for expression evaluation
+ */
 export interface ExpressionContext {
     executionId: string;
     workflowId: string;
@@ -38,6 +84,8 @@ export interface ExpressionContext {
     nodeDataMap: Map<string, NodeData>; // nodeId -> NodeData
     nodeNameMap: Map<string, string>; // nodeName -> nodeId
     triggerData?: any;
+    variables?: Record<string, any>; // Workflow-level variables
+    env?: Record<string, string>; // Environment variables (if enabled)
 }
 
 @Injectable()
@@ -169,7 +217,7 @@ export class ExpressionEvaluatorService {
                 }
                 return this.getNestedValue(context.triggerData, parts.slice(1));
 
-            case '$json':
+            case '$json': {
                 // Return all node outputs as JSON
                 const allOutputs: Record<string, any> = {};
                 context.nodeDataMap.forEach((data, nodeId) => {
@@ -178,7 +226,69 @@ export class ExpressionEvaluatorService {
                         allOutputs[nodeName] = data.output.value;
                     }
                 });
-                return allOutputs;
+                if (parts.length === 1) {
+                    return allOutputs;
+                }
+                // Support {{$json.NodeName}} or {{$json.NodeName.property}}
+                return this.getNestedValue(allOutputs, parts.slice(1));
+            }
+
+            case '$vars': {
+                // Workflow-level variables
+                if (parts.length === 1) {
+                    return context.variables;
+                }
+                return this.getNestedValue(context.variables, parts.slice(1));
+            }
+
+            case '$env': {
+                // Environment variables (if enabled)
+                if (parts.length === 1) {
+                    return context.env;
+                }
+                return this.getNestedValue(context.env, parts.slice(1));
+            }
+
+            case '$item': {
+                // For array processing - get current item (useful in loops/iterations)
+                // This would need to be set in context when processing arrays
+                const currentNodeData = context.nodeDataMap.get(context.currentNodeId);
+                if (parts.length === 1) {
+                    // Return first raw value as current item
+                    return currentNodeData?.input?.rawValues?.[0];
+                }
+                return this.getNestedValue(currentNodeData?.input?.rawValues?.[0], parts.slice(1));
+            }
+
+            case '$items': {
+                // Get all items from input (useful for batch processing)
+                const currentNodeData = context.nodeDataMap.get(context.currentNodeId);
+                if (parts.length === 1) {
+                    return currentNodeData?.input?.rawValues;
+                }
+                return this.getNestedValue(currentNodeData?.input?.rawValues, parts.slice(1));
+            }
+
+            case '$first': {
+                // Shortcut to get first input value
+                const currentNodeData = context.nodeDataMap.get(context.currentNodeId);
+                const firstValue = currentNodeData?.input?.rawValues?.[0];
+                if (parts.length === 1) {
+                    return firstValue;
+                }
+                return this.getNestedValue(firstValue, parts.slice(1));
+            }
+
+            case '$last': {
+                // Shortcut to get last input value
+                const currentNodeData = context.nodeDataMap.get(context.currentNodeId);
+                const rawValues = currentNodeData?.input?.rawValues || [];
+                const lastValue = rawValues[rawValues.length - 1];
+                if (parts.length === 1) {
+                    return lastValue;
+                }
+                return this.getNestedValue(lastValue, parts.slice(1));
+            }
 
             default:
                 return undefined;

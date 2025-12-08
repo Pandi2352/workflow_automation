@@ -106,7 +106,103 @@ export class ExecutionLogEntry {
     nodeName?: string;
 }
 
-// ==================== NODE OUTPUT ====================
+// ==================== NODE INPUT SOURCE ====================
+
+@Schema({ _id: false })
+export class NodeInputSource {
+    @Prop({ required: true })
+    nodeId: string;
+
+    @Prop({ required: true })
+    nodeName: string;
+
+    /**
+     * The value from the source node - can be any type:
+     * string, number, boolean, array, object, or nested structures
+     */
+    @Prop({ type: Object })
+    value: any;
+
+    /**
+     * Type of the value for quick reference
+     */
+    @Prop()
+    type?: string;
+}
+
+// ==================== NODE INPUT DATA ====================
+
+@Schema({ _id: false })
+export class NodeInputData {
+    /**
+     * Sources - inputs from connected nodes
+     * Each source contains the full output from a previous node
+     */
+    @Prop({ type: [NodeInputSource], default: [] })
+    sources: NodeInputSource[];
+
+    /**
+     * Raw values array (flattened source values for quick access)
+     */
+    @Prop({ type: [Object], default: [] })
+    rawValues: any[];
+
+    /**
+     * Resolved input mappings after expression evaluation
+     * Key-value pairs where expressions have been resolved to actual values
+     * Example: { "url": "https://api.example.com", "userId": 123, "items": [...] }
+     */
+    @Prop({ type: Object })
+    resolved?: Record<string, any>;
+
+    /**
+     * Original expressions before evaluation (for debugging)
+     * Example: { "url": "{{Config.output.baseUrl}}", "userId": "{{User.output.id}}" }
+     */
+    @Prop({ type: Object })
+    expressions?: Record<string, string>;
+}
+
+// ==================== NODE OUTPUT DATA ====================
+
+@Schema({ _id: false })
+export class NodeOutputData {
+    /**
+     * The output value - can be any type:
+     * - Simple: string, number, boolean
+     * - Complex: array, object
+     * - Nested: { data: { users: [...], meta: { total: 100 } } }
+     */
+    @Prop({ type: Object })
+    value: any;
+
+    /**
+     * Type of the output value
+     */
+    @Prop()
+    type: string;
+
+    /**
+     * Timestamp when output was produced
+     */
+    @Prop()
+    timestamp: Date;
+
+    /**
+     * If output was transformed via outputMapping, store the original
+     */
+    @Prop({ type: Object })
+    originalValue?: any;
+
+    /**
+     * Schema/structure of the output for documentation
+     * Example: { "users": "array", "meta": { "total": "number", "page": "number" } }
+     */
+    @Prop({ type: Object })
+    schema?: Record<string, any>;
+}
+
+// ==================== NODE OUTPUT (Quick Access Collection) ====================
 
 @Schema({ _id: false })
 export class NodeOutput {
@@ -116,14 +212,24 @@ export class NodeOutput {
     @Prop({ required: true })
     nodeName: string;
 
+    /**
+     * The output value - supports any type: string, number, boolean, array, object, nested
+     */
     @Prop({ type: Object })
     value: any;
 
     @Prop()
-    type: string; // 'number', 'string', 'object', 'array', etc.
+    type: string;
 
     @Prop()
     timestamp: Date;
+
+    /**
+     * Keys available in the output (for object types)
+     * Helps with autocomplete/intellisense in UI
+     */
+    @Prop({ type: [String], default: [] })
+    keys?: string[];
 }
 
 // ==================== NODE EXECUTION ====================
@@ -151,24 +257,19 @@ export class NodeExecutionEntry {
     @Prop()
     duration?: number; // milliseconds
 
-    // Input data received by this node
-    @Prop({ type: Object })
-    input?: {
-        sources: Array<{
-            nodeId: string;
-            nodeName: string;
-            value: any;
-        }>;
-        rawValues: any[];
-    };
+    /**
+     * Comprehensive input data received by this node
+     * Contains sources, resolved values, and original expressions
+     */
+    @Prop({ type: NodeInputData })
+    input?: NodeInputData;
 
-    // Output produced by this node
-    @Prop({ type: Object })
-    output?: {
-        value: any;
-        type: string;
-        timestamp: Date;
-    };
+    /**
+     * Comprehensive output data produced by this node
+     * Can be any structure: simple values, arrays, objects, nested
+     */
+    @Prop({ type: NodeOutputData })
+    output?: NodeOutputData;
 
     // Node-level error details
     @Prop({ type: ErrorDetail })
@@ -180,8 +281,18 @@ export class NodeExecutionEntry {
     @Prop({ type: [ExecutionLogEntry], default: [] })
     logs: ExecutionLogEntry[];
 
+    /**
+     * Additional metadata about the execution
+     * Can store node-specific information
+     */
     @Prop({ type: Object })
     metadata?: Record<string, any>;
+
+    /**
+     * Configuration used for this execution (after expression resolution)
+     */
+    @Prop({ type: Object })
+    resolvedConfig?: Record<string, any>;
 }
 
 // ==================== NODE PERFORMANCE INFO ====================

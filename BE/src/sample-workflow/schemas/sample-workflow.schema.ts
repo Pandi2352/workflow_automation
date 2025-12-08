@@ -14,41 +14,156 @@ export class NodePosition {
 }
 
 /**
- * Node Input Mapping - allows referencing other nodes' outputs
- * Example:
- * {
- *   "value1": "{{Input1.output}}",
- *   "value2": "{{Input2.output}}",
- *   "multiplier": "{{Config.output.multiplier}}"
- * }
+ * Node Input Definition - defines the structure and type of each input field
+ * Similar to n8n's input definition
  */
 @Schema({ _id: false })
-export class NodeInputMapping {
+export class NodeInputDefinition {
+    @Prop({ required: true })
+    name: string;
+
+    @Prop({ required: true, enum: ['string', 'number', 'boolean', 'array', 'object', 'any'] })
+    type: string;
+
+    @Prop()
+    description?: string;
+
+    @Prop({ default: false })
+    required: boolean;
+
     @Prop({ type: Object })
-    mappings: Record<string, string>; // key -> expression (e.g., "{{NodeName.output}}")
+    defaultValue?: any;
+
+    /**
+     * Expression to get value from another node
+     * Example: "{{Input1.output}}", "{{HTTP.output.data.users[0]}}"
+     */
+    @Prop()
+    expression?: string;
+
+    /**
+     * Static value (used if no expression)
+     */
+    @Prop({ type: Object })
+    value?: any;
 }
 
+/**
+ * Node Output Definition - defines what the node outputs
+ */
+@Schema({ _id: false })
+export class NodeOutputDefinition {
+    @Prop({ required: true })
+    name: string;
+
+    @Prop({ required: true, enum: ['string', 'number', 'boolean', 'array', 'object', 'any'] })
+    type: string;
+
+    @Prop()
+    description?: string;
+}
+
+/**
+ * Node Data - comprehensive data structure for node configuration
+ * Supports complex inputs/outputs like n8n
+ *
+ * Expression syntax supported:
+ * - {{NodeName.output}} - entire output of a node
+ * - {{NodeName.output.propertyName}} - specific property
+ * - {{NodeName.output.data[0]}} - array index access
+ * - {{NodeName.output.users[0].name}} - deep nested access
+ * - {{NodeName.input.fieldName}} - specific input field value
+ * - {{$vars.variableName}} - workflow variables
+ * - {{$input}} - current node's aggregated input
+ * - {{$json}} - all previous outputs as JSON
+ */
 @Schema({ _id: false })
 export class NodeData {
-    @Prop()
-    value?: number;
+    /**
+     * Simple value for basic nodes (backward compatibility)
+     */
+    @Prop({ type: Object })
+    value?: any;
 
+    /**
+     * Node configuration/settings
+     * Can contain any key-value pairs, arrays, nested objects
+     */
     @Prop({ type: Object })
     config?: Record<string, any>;
 
     /**
-     * Input mappings - map input names to expressions
-     * Example: { "a": "{{Input1.output}}", "b": "{{Input2.output}}" }
+     * Structured input fields with types and expressions
+     * Example:
+     * [
+     *   { name: "url", type: "string", expression: "{{Config.output.baseUrl}}/api" },
+     *   { name: "headers", type: "object", value: { "Content-Type": "application/json" } },
+     *   { name: "body", type: "object", expression: "{{Transform.output.payload}}" }
+     * ]
+     */
+    @Prop({ type: [NodeInputDefinition], default: [] })
+    inputs?: NodeInputDefinition[];
+
+    /**
+     * Input mappings - simple key to expression mapping (alternative to structured inputs)
+     * Example: {
+     *   "a": "{{Input1.output}}",
+     *   "b": "{{Input2.output.value}}",
+     *   "items": "{{HTTP.output.data.items}}",
+     *   "firstUser": "{{Users.output[0]}}"
+     * }
      */
     @Prop({ type: Object })
     inputMappings?: Record<string, string>;
 
     /**
-     * Output mapping - how to structure the output
-     * Can contain expressions to transform output
+     * Static input values (used when not using expressions)
+     * Can be any type: string, number, boolean, array, object
+     * Example: {
+     *   "timeout": 5000,
+     *   "retries": 3,
+     *   "headers": { "Authorization": "Bearer xxx" },
+     *   "tags": ["important", "urgent"]
+     * }
+     */
+    @Prop({ type: Object })
+    inputValues?: Record<string, any>;
+
+    /**
+     * Output schema definition - describes what this node outputs
+     * Example:
+     * [
+     *   { name: "data", type: "object", description: "Response data" },
+     *   { name: "items", type: "array", description: "List of items" }
+     * ]
+     */
+    @Prop({ type: [NodeOutputDefinition], default: [] })
+    outputSchema?: NodeOutputDefinition[];
+
+    /**
+     * Output mapping - transform the output before passing to next nodes
+     * Can use expressions to reshape data
+     * Example: {
+     *   "users": "{{$output.data.users}}",
+     *   "count": "{{$output.data.total}}",
+     *   "processed": true
+     * }
      */
     @Prop({ type: Object })
     outputMapping?: Record<string, any>;
+
+    /**
+     * Credentials reference for nodes that need authentication
+     */
+    @Prop()
+    credentialId?: string;
+
+    /**
+     * Custom parameters specific to the node type
+     * Flexible object to hold any node-specific settings
+     */
+    @Prop({ type: Object })
+    parameters?: Record<string, any>;
 }
 
 @Schema({ _id: false })

@@ -29,13 +29,18 @@ interface ExecutionNodeData {
             nodeId: string;
             nodeName: string;
             value: any;
+            type?: string;
         }>;
         rawValues: any[];
+        resolved?: Record<string, any>;
+        expressions?: Record<string, string>;
     };
     output?: {
         value: any;
         type: string;
         timestamp: Date;
+        originalValue?: any;
+        schema?: Record<string, any>;
     };
 }
 
@@ -305,21 +310,27 @@ export class WorkflowExecutorService {
         await this.updateNodeStatus(executionId, node.id, NodeExecutionStatus.RUNNING, { startTime });
         await this.addLog(executionId, LogLevel.INFO, `Executing node: ${node.nodeName}`, node.id, node.nodeName);
 
-        // Gather inputs with source info
+        // Gather inputs with source info and type information
         const inputEdges = edges.filter(e => e.target === node.id);
         const inputSources = inputEdges.map(edge => {
             const sourceNode = nodeMap.get(edge.source);
+            const value = nodeOutputs[edge.source];
             return {
                 nodeId: edge.source,
                 nodeName: sourceNode?.nodeName || edge.source,
-                value: nodeOutputs[edge.source],
+                value: value,
+                type: this.getValueType(value),
             };
         });
         const rawValues = inputSources.map(s => s.value);
 
         // Update current node's input data in the nodeDataMap for expression context
         const currentNodeData = nodeDataMap.get(node.id) || {};
-        currentNodeData.input = { sources: inputSources, rawValues };
+        currentNodeData.input = {
+            sources: inputSources,
+            rawValues,
+            expressions: node.data?.inputMappings, // Store original expressions for debugging
+        };
         nodeDataMap.set(node.id, currentNodeData);
 
         // Build expression context for this node
@@ -330,7 +341,8 @@ export class WorkflowExecutorService {
             currentNodeName: node.nodeName,
             nodeDataMap: nodeDataMap as Map<string, NodeData>,
             nodeNameMap,
-            triggerData: workflowVariables, // Workflow variables available as trigger data
+            triggerData: undefined, // Trigger data from external sources
+            variables: workflowVariables, // Workflow-level variables accessible via {{$vars.name}}
         };
 
         // Evaluate expressions in node data (inputMappings, config, etc.)
@@ -368,6 +380,42 @@ export class WorkflowExecutorService {
                     ...evaluatedData.config,
                     ...resolvedMappings,
                 };
+
+                // Store resolved mappings in node data for history tracking
+                const nodeDataForHistory = nodeDataMap.get(node.id);
+                if (nodeDataForHistory?.input) {
+                    nodeDataForHistory.input.resolved = resolvedMappings;
+                }
+            }
+
+            // If structured inputs exist, resolve them
+            if (node.data.inputs && Array.isArray(node.data.inputs)) {
+                const resolvedInputs: Record<string, any> = {};
+                for (const inputDef of node.data.inputs) {
+                    if (inputDef.expression) {
+                        resolvedInputs[inputDef.name] = this.expressionEvaluator.evaluate(
+                            inputDef.expression,
+                            expressionContext,
+                        );
+                    } else if (inputDef.value !== undefined) {
+                        resolvedInputs[inputDef.name] = inputDef.value;
+                    } else if (inputDef.defaultValue !== undefined) {
+                        resolvedInputs[inputDef.name] = inputDef.defaultValue;
+                    }
+                }
+                evaluatedData.config = {
+                    ...evaluatedData.config,
+                    ...resolvedInputs,
+                };
+
+                // Store resolved structured inputs
+                const nodeDataForHistory = nodeDataMap.get(node.id);
+                if (nodeDataForHistory?.input) {
+                    nodeDataForHistory.input.resolved = {
+                        ...nodeDataForHistory.input.resolved,
+                        ...resolvedInputs,
+                    };
+                }
             }
         }
 
@@ -409,11 +457,12 @@ export class WorkflowExecutorService {
                     const endTime = new Date();
                     const duration = endTime.getTime() - startTime.getTime();
 
-                    // Store output
+                    // Store output with comprehensive type information
                     const outputInfo = {
                         value: result.output,
-                        type: typeof result.output,
+                        type: this.getValueType(result.output),
                         timestamp: endTime,
+                        schema: this.buildSchema(result.output),
                     };
 
                     // Update nodeDataMap with output for expression referencing by subsequent nodes
@@ -426,10 +475,17 @@ export class WorkflowExecutorService {
                         duration,
                         output: outputInfo,
                         metadata: result.metadata,
+                        resolvedConfig: evaluatedData.config, // Store the resolved configuration
                     });
 
-                    // Add to nodeOutputs collection
-                    await this.addNodeOutput(executionId, node.id, node.nodeName, result.output);
+                    // Add to nodeOutputs collection with keys for UI autocomplete
+                    await this.addNodeOutput(
+                        executionId,
+                        node.id,
+                        node.nodeName,
+                        result.output,
+                        this.extractKeys(result.output),
+                    );
 
                     await this.addLog(
                         executionId,
@@ -573,15 +629,22 @@ export class WorkflowExecutorService {
 
     // ==================== NODE OUTPUT MANAGEMENT ====================
 
-    private async addNodeOutput(executionId: string, nodeId: string, nodeName: string, value: any): Promise<void> {
+    private async addNodeOutput(
+        executionId: string,
+        nodeId: string,
+        nodeName: string,
+        value: any,
+        keys?: string[],
+    ): Promise<void> {
         await this.historyModel.findByIdAndUpdate(executionId, {
             $push: {
                 nodeOutputs: {
                     nodeId,
                     nodeName,
                     value,
-                    type: typeof value,
+                    type: this.getValueType(value),
                     timestamp: new Date(),
+                    keys: keys || [],
                 },
             },
         });
@@ -642,6 +705,7 @@ export class WorkflowExecutorService {
             error?: ErrorDetail;
             metadata?: Record<string, any>;
             retryCount?: number;
+            resolvedConfig?: Record<string, any>;
         } = {},
     ): Promise<void> {
         const updateFields: Record<string, any> = {
@@ -655,6 +719,7 @@ export class WorkflowExecutorService {
         if (updates.error) updateFields['nodeExecutions.$.error'] = updates.error;
         if (updates.metadata) updateFields['nodeExecutions.$.metadata'] = updates.metadata;
         if (updates.retryCount !== undefined) updateFields['nodeExecutions.$.retryCount'] = updates.retryCount;
+        if (updates.resolvedConfig) updateFields['nodeExecutions.$.resolvedConfig'] = updates.resolvedConfig;
 
         // Update metrics based on status
         const metricsUpdate: Record<string, any> = {};
@@ -789,5 +854,71 @@ export class WorkflowExecutorService {
 
     getActiveExecutionCount(): number {
         return this.activeExecutions.size;
+    }
+
+    // ==================== HELPER METHODS ====================
+
+    /**
+     * Get the type of a value for metadata tracking
+     * Handles complex types: arrays, objects, nested structures
+     */
+    private getValueType(value: any): string {
+        if (value === null) return 'null';
+        if (value === undefined) return 'undefined';
+        if (Array.isArray(value)) {
+            if (value.length === 0) return 'array';
+            const firstItemType = this.getValueType(value[0]);
+            return `array<${firstItemType}>`;
+        }
+        if (value instanceof Date) return 'date';
+        if (typeof value === 'object') {
+            const keys = Object.keys(value);
+            if (keys.length === 0) return 'object';
+            return 'object';
+        }
+        return typeof value;
+    }
+
+    /**
+     * Extract keys from an object value (for UI autocomplete)
+     */
+    private extractKeys(value: any): string[] {
+        if (value === null || value === undefined) return [];
+        if (typeof value !== 'object') return [];
+        if (Array.isArray(value)) {
+            // For arrays, return indices and common keys from first item
+            const keys: string[] = [];
+            if (value.length > 0) {
+                keys.push('0', `[0..${value.length - 1}]`);
+                if (typeof value[0] === 'object' && value[0] !== null) {
+                    keys.push(...Object.keys(value[0]).map(k => `[].${k}`));
+                }
+            }
+            return keys;
+        }
+        return Object.keys(value);
+    }
+
+    /**
+     * Build a schema/structure representation of a value
+     * Always returns an object for consistent typing
+     */
+    private buildSchema(value: any, depth: number = 0): Record<string, any> {
+        if (depth > 3) return { type: 'any' };
+        if (value === null) return { type: 'null' };
+        if (value === undefined) return { type: 'undefined' };
+        if (Array.isArray(value)) {
+            if (value.length === 0) return { type: 'array', items: { type: 'unknown' } };
+            return { type: 'array', items: this.buildSchema(value[0], depth + 1) };
+        }
+        if (value instanceof Date) return { type: 'date' };
+        if (typeof value === 'object') {
+            const schema: Record<string, any> = { type: 'object', properties: {} };
+            for (const key of Object.keys(value).slice(0, 10)) { // Limit keys
+                schema.properties[key] = this.buildSchema(value[key], depth + 1);
+            }
+            return schema;
+        }
+        return { type: typeof value };
     }
 }
