@@ -79,6 +79,7 @@ export class WorkflowExecutorService {
                 status: NodeExecutionStatus.PENDING,
                 retryCount: 0,
                 logs: [],
+                data: node.data, // Initial snapshot of configuration
             })),
             nodeOutputs: [],
             logs: [],
@@ -403,56 +404,48 @@ export class WorkflowExecutorService {
                 }
             }
 
-            // If structured inputs exist, resolve them based on valueType
-            if (node.data.inputs && Array.isArray(node.data.inputs)) {
+            // Handle inputs: Support both Array (Legacy) and Object (New/Simplified) structures
+            if (node.data.inputs) {
                 const resolvedInputs: Record<string, any> = {};
-                for (const inputField of node.data.inputs) {
-                    let resolvedValue: any;
 
-                    if (inputField.valueType === 'expression' && inputField.value) {
-                        // Value is an expression - evaluate it
-                        resolvedValue = this.expressionEvaluator.evaluate(
-                            inputField.value,
-                            expressionContext,
-                        );
-                    } else if (inputField.valueType === 'static' || !inputField.valueType) {
-                        // Value is static - use as-is
-                        if (inputField.value !== undefined) {
-                            resolvedValue = inputField.value;
-                        } else if (inputField.defaultValue !== undefined) {
-                            resolvedValue = inputField.defaultValue;
+                if (Array.isArray(node.data.inputs)) {
+                    // Legacy Array Loop
+                    for (const inputField of node.data.inputs) {
+                        let resolvedValue: any;
+
+                        if (inputField.valueType === 'expression' && inputField.value) {
+                            resolvedValue = this.expressionEvaluator.evaluate(inputField.value, expressionContext);
+                        } else if (inputField.valueType === 'static' || !inputField.valueType) {
+                            if (inputField.value !== undefined) {
+                                resolvedValue = inputField.value;
+                            } else if (inputField.defaultValue !== undefined) {
+                                resolvedValue = inputField.defaultValue;
+                            }
+                        }
+
+                        if (resolvedValue !== undefined) {
+                            resolvedInputs[inputField.name] = resolvedValue;
                         }
                     }
+                } else if (typeof node.data.inputs === 'object') {
+                    evaluatedData.inputs = node.data.inputs;
 
-                    if (resolvedValue !== undefined) {
-                        resolvedInputs[inputField.name] = resolvedValue;
+                    await this.addLog(
+                        executionId,
+                        LogLevel.DEBUG,
+                        `Resolved structured inputs for ${node.nodeName}: ${JSON.stringify(resolvedInputs)}`,
+                        node.id,
+                        node.nodeName,
+                    );
+
+                    // Store resolved structured inputs for history
+                    const nodeDataForHistory = nodeDataMap.get(node.id);
+                    if (nodeDataForHistory?.input) {
+                        nodeDataForHistory.input.resolved = {
+                            ...nodeDataForHistory.input.resolved,
+                            ...resolvedInputs,
+                        };
                     }
-                }
-
-                // Merge resolved inputs into config
-                evaluatedData.config = {
-                    ...evaluatedData.config,
-                    ...resolvedInputs,
-                };
-
-                // Also preserve the original inputs array in evaluatedData for nodes that need it
-                evaluatedData.inputs = node.data.inputs;
-
-                await this.addLog(
-                    executionId,
-                    LogLevel.DEBUG,
-                    `Resolved structured inputs for ${node.nodeName}: ${JSON.stringify(resolvedInputs)}`,
-                    node.id,
-                    node.nodeName,
-                );
-
-                // Store resolved structured inputs for history
-                const nodeDataForHistory = nodeDataMap.get(node.id);
-                if (nodeDataForHistory?.input) {
-                    nodeDataForHistory.input.resolved = {
-                        ...nodeDataForHistory.input.resolved,
-                        ...resolvedInputs,
-                    };
                 }
             }
         }
@@ -464,46 +457,36 @@ export class WorkflowExecutorService {
             edgeId: edge.id,
         }));
 
-        // Store input info - will be updated later with resolved values
-        // Initial store with sources and rawValues from connected nodes
-        const inputData: {
-            sources: typeof inputSources;
-            rawValues: any[];
-            resolved?: Record<string, any>;
-            expressions?: Record<string, string>;
-            configuredInputs?: Array<{
-                name: string;
-                type: string;
-                valueType?: string;
-                value?: any;
-            }>;
-        } = {
-            sources: inputSources,
-            rawValues,
-        };
+        let simplifiedInputs: any = {};
 
         // Add configured inputs from node.data.inputs (for INPUT nodes and any node with structured inputs)
-        if (node.data?.inputs && Array.isArray(node.data.inputs)) {
-            inputData.configuredInputs = node.data.inputs.map(inp => ({
-                name: inp.name,
-                type: inp.type,
-                valueType: inp.valueType,
-                value: inp.value,
-            }));
-        }
-
-        // Add input expressions/mappings
-        if (node.data?.inputMappings) {
-            inputData.expressions = node.data.inputMappings;
+        if (node.data?.inputs) {
+            if (Array.isArray(node.data.inputs)) {
+                // Convert array to object for simplified view
+                node.data.inputs.forEach(inp => {
+                    if (inp.name) simplifiedInputs[inp.name] = inp.value;
+                });
+            } else if (typeof node.data.inputs === 'object') {
+                simplifiedInputs = node.data.inputs;
+            }
         }
 
         // Add resolved values from the nodeDataMap
         const nodeDataForInput = nodeDataMap.get(node.id);
         if (nodeDataForInput?.input?.resolved) {
-            inputData.resolved = nodeDataForInput.input.resolved;
+            // Merge resolved values into simplified inputs
+            simplifiedInputs = { ...simplifiedInputs, ...nodeDataForInput.input.resolved };
         }
 
-        await this.updateNodeInput(executionId, node.id, inputData);
+        // Update the simplified 'inputs' field (user requested to remove the complex 'input' field)
+        await this.historyModel.updateOne(
+            { _id: executionId, 'nodeExecutions.nodeId': node.id },
+            {
+                $set: {
+                    'nodeExecutions.$.inputs': simplifiedInputs
+                }
+            },
+        );
 
         const maxRetries = options.maxRetries || 3;
         let retryCount = 0;
@@ -549,7 +532,7 @@ export class WorkflowExecutorService {
                     await this.updateNodeStatus(executionId, node.id, NodeExecutionStatus.SUCCESS, {
                         endTime,
                         duration,
-                        output: outputInfo,
+                        outputs: result.output, // Store raw output directly
                         metadata: result.metadata,
                         resolvedConfig: evaluatedData.config, // Store the resolved configuration
                     });
@@ -777,11 +760,12 @@ export class WorkflowExecutorService {
             startTime?: Date;
             endTime?: Date;
             duration?: number;
-            output?: any;
+            outputs?: any;
             error?: ErrorDetail;
             metadata?: Record<string, any>;
             retryCount?: number;
             resolvedConfig?: Record<string, any>;
+            data?: any;
         } = {},
     ): Promise<void> {
         const updateFields: Record<string, any> = {
@@ -791,11 +775,14 @@ export class WorkflowExecutorService {
         if (updates.startTime) updateFields['nodeExecutions.$.startTime'] = updates.startTime;
         if (updates.endTime) updateFields['nodeExecutions.$.endTime'] = updates.endTime;
         if (updates.duration !== undefined) updateFields['nodeExecutions.$.duration'] = updates.duration;
-        if (updates.output !== undefined) updateFields['nodeExecutions.$.output'] = updates.output;
+        if (updates.duration !== undefined) updateFields['nodeExecutions.$.duration'] = updates.duration;
+        if (updates.outputs !== undefined) updateFields['nodeExecutions.$.outputs'] = updates.outputs;
+        if (updates.error) updateFields['nodeExecutions.$.error'] = updates.error;
         if (updates.error) updateFields['nodeExecutions.$.error'] = updates.error;
         if (updates.metadata) updateFields['nodeExecutions.$.metadata'] = updates.metadata;
         if (updates.retryCount !== undefined) updateFields['nodeExecutions.$.retryCount'] = updates.retryCount;
         if (updates.resolvedConfig) updateFields['nodeExecutions.$.resolvedConfig'] = updates.resolvedConfig;
+        if (updates.data) updateFields['nodeExecutions.$.data'] = updates.data;
 
         // Update metrics based on status
         const metricsUpdate: Record<string, any> = {};

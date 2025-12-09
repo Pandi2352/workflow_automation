@@ -93,12 +93,9 @@ class NodeDataDto {
     @IsOptional()
     config?: Record<string, any>;
 
-    @ApiPropertyOptional({ description: 'Structured input fields with types and values/expressions', type: [NodeInputFieldDto] })
-    @IsArray()
-    @ValidateNested({ each: true })
-    @Type(() => NodeInputFieldDto)
+    @ApiPropertyOptional({ description: 'Structured input fields. Can be an array (legacy) or a key-value object (preferred).' })
     @IsOptional()
-    inputs?: NodeInputFieldDto[];
+    inputs?: any;
 
     @ApiPropertyOptional({ description: 'Structured output fields declaration', type: [NodeOutputFieldDto] })
     @IsArray()

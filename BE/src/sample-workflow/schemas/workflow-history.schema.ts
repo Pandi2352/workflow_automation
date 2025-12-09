@@ -167,13 +167,14 @@ export class NodeInputData {
      * This stores the original input configuration including static values
      * Useful for INPUT nodes and any node with structured inputs
      */
-    @Prop({ type: [Object], default: [] })
-    configuredInputs?: Array<{
-        name: string;
-        type: string;
-        valueType?: string;
-        value?: any;
-    }>;
+    /**
+     * Configured inputs from node.data.inputs (structured inputs defined in the node)
+     * This stores the original input configuration including static values
+     * Useful for INPUT nodes and any node with structured inputs
+     * Can be Array (legacy) or Object (new simplified key-value)
+     */
+    @Prop({ type: Object })
+    configuredInputs?: any;
 }
 
 // ==================== NODE OUTPUT DATA ====================
@@ -274,15 +275,19 @@ export class NodeExecutionEntry {
      * Comprehensive input data received by this node
      * Contains sources, resolved values, and original expressions
      */
-    @Prop({ type: NodeInputData })
-    input?: NodeInputData;
 
     /**
-     * Comprehensive output data produced by this node
-     * Can be any structure: simple values, arrays, objects, nested
+     * Simplified inputs structure (what the user configured/resolved)
+     * e.g. { "value": 10, "url": "..." }
      */
-    @Prop({ type: NodeOutputData })
-    output?: NodeOutputData;
+    @Prop({ type: Object })
+    inputs?: any;
+
+    /**
+     * Simplified outputs (raw result from the node)
+     */
+    @Prop({ type: Object })
+    outputs?: any;
 
     // Node-level error details
     @Prop({ type: ErrorDetail })
@@ -298,14 +303,6 @@ export class NodeExecutionEntry {
      * Additional metadata about the execution
      * Can store node-specific information
      */
-    @Prop({ type: Object })
-    metadata?: Record<string, any>;
-
-    /**
-     * Configuration used for this execution (after expression resolution)
-     */
-    @Prop({ type: Object })
-    resolvedConfig?: Record<string, any>;
 }
 
 // ==================== NODE PERFORMANCE INFO ====================

@@ -176,19 +176,14 @@ export class NodeData {
      *   }
      * ]
      */
-    @Prop({ type: [Object], default: [] })
-    inputs?: Array<{
-        name: string;
-        type: string;
-        valueType?: string;
-        value?: any;
-        description?: string;
-        required?: boolean;
-        defaultValue?: any;
-        schema?: Record<string, any>;
-        sourceNodeName?: string;
-        sourcePropertyPath?: string;
-    }>;
+    /**
+     * Node Inputs.
+     * Flexible structure:
+     * 1. Key-Value Object (Preferred): { "param1": "value", "param2": "{{expression}}" }
+     * 2. Array (Legacy/Strict): [ { "name": "param1", "value": "..." } ]
+     */
+    @Prop({ type: Object })
+    inputs?: any;
 
     /**
      * Structured output fields - declares what this node will output
