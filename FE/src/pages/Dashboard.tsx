@@ -3,6 +3,8 @@ import { useNavigate } from 'react-router-dom';
 import { Plus, ArrowRight, Activity, Calendar } from 'lucide-react';
 import { workflowService } from '../services/api/workflows';
 import type { SampleWorkflow } from '../types/workflow.types';
+import { Button } from '../components/common/Button';
+import { Card } from '../components/common/Card';
 
 export const Dashboard: React.FC = () => {
   const navigate = useNavigate();
@@ -38,17 +40,12 @@ export const Dashboard: React.FC = () => {
                 <p className="text-slate-500 text-sm mt-1">All the workflows, credentials and data tables you have access to</p>
             </div>
             <div className="flex gap-3">
-                <button className="px-4 py-2 bg-white border border-slate-300 text-slate-700 font-medium rounded-md text-sm hover:bg-slate-50 transition-colors flex items-center gap-2 cursor-pointer">
-                    <Activity size={16} />
+                <Button variant="secondary" leftIcon={<Activity size={16} />}>
                     Try an AI workflow
-                </button>
-                <button 
-                    onClick={handleCreateWorkflow}
-                    className="bg-[#10b981] hover:bg-[#059669] text-white px-4 py-2 rounded-md flex items-center gap-2 transition-colors font-medium text-sm shadow-sm cursor-pointer"
-                >
-                    <Plus size={18} />
+                </Button>
+                <Button onClick={handleCreateWorkflow} leftIcon={<Plus size={18} />}>
                     Create workflow
-                </button>
+                </Button>
             </div>
          </div>
 
@@ -88,15 +85,12 @@ export const Dashboard: React.FC = () => {
       ) : workflows.length === 0 ? (
         <div className="text-center py-20 bg-white rounded-lg border border-dashed border-slate-300">
             <p className="text-slate-500 mb-4">No workflows found</p>
-            <button 
-              onClick={handleCreateWorkflow}
-              className="text-[#10b981] hover:underline font-medium cursor-pointer"
-            >
+            <Button variant="ghost" className="text-[#10b981] hover:text-[#059669] hover:bg-transparent hover:underline p-0 h-auto" onClick={handleCreateWorkflow}>
               Create your first workflow
-            </button>
+            </Button>
         </div>
       ) : (
-        <div className="bg-white border border-slate-200 rounded-lg overflow-hidden shadow-sm">
+        <Card noPadding className="shadow-sm">
             {/* Table Header */}
             <div className="grid grid-cols-12 gap-4 p-4 border-b border-slate-100 bg-slate-50/50 text-xs font-semibold text-slate-500 uppercase tracking-wide">
                 <div className="col-span-6">Name</div>
@@ -131,14 +125,14 @@ export const Dashboard: React.FC = () => {
                             {new Date(workflow.createdAt).toLocaleDateString()}
                         </div>
                         <div className="col-span-1 flex justify-end">
-                             <button className="p-1 hover:bg-slate-200 rounded text-slate-400 hover:text-slate-600 cursor-pointer">
+                             <Button variant="ghost" size="sm" className="p-1 h-auto text-slate-400 hover:text-slate-600">
                                 <ArrowRight size={16} />
-                             </button>
+                             </Button>
                         </div>
                     </div>
                 ))}
             </div>
-        </div>
+        </Card>
       )}
     </div>
   );

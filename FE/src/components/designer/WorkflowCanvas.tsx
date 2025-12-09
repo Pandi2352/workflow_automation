@@ -14,10 +14,17 @@ import { useWorkflowStore } from '../../store/workflowStore';
 let id = 0;
 const getId = () => `dndnode_${id++}`;
 
-const WorkflowCanvasInner: React.FC = () => {
+import { Plus } from 'lucide-react';
+
+interface WorkflowCanvasProps {
+    onToggleDrawer?: () => void;
+}
+
+const WorkflowCanvasInner: React.FC<WorkflowCanvasProps> = ({ onToggleDrawer }) => {
   const reactFlowWrapper = useRef<HTMLDivElement>(null);
   const { nodes, edges, onNodesChange, onEdgesChange, onConnect, addNode, setSelectedNode } = useWorkflowStore();
   const { screenToFlowPosition } = useReactFlow();
+  const proOptions = { hideAttribution: true };
 
   const onDragOver = useCallback((event: React.DragEvent) => {
     event.preventDefault();
@@ -60,7 +67,7 @@ const WorkflowCanvasInner: React.FC = () => {
   }, [setSelectedNode]);
 
   return (
-    <div className="flex-1 h-full" ref={reactFlowWrapper}>
+    <div className="flex-1 h-full relative" ref={reactFlowWrapper}>
       <ReactFlow
         nodes={nodes}
         edges={edges}
@@ -73,19 +80,53 @@ const WorkflowCanvasInner: React.FC = () => {
         onDragOver={onDragOver}
         fitView
         className="bg-slate-50"
+        proOptions={proOptions}
       >
-        <Controls className="bg-white border-slate-200 fill-slate-500" />
-        <MiniMap className="bg-white border-slate-200" maskColor="rgba(255,255,255,0.7)" />
-        <Background variant={BackgroundVariant.Dots} gap={12} size={1} color="#94a3b8" />
+        <Controls 
+            position="bottom-left"
+            orientation='horizontal'
+            className="m-4 bg-white border border-slate-100 rounded-md p-1 fill-slate-500 [&>button]:border-none [&>button]:rounded-lg [&>button]:p-2 hover:[&>button]:bg-slate-50 [&>button]:transition-colors" 
+        />
+        <MiniMap
+            className="bg-white rounded-lg border border-gray-200"
+            nodeColor="#e5e7eb"
+            maskColor="rgba(0,0,0,0.1)"
+            draggable
+            pannable
+            zoomable
+        />
+        <Background variant={BackgroundVariant.Lines} gap={10} size={3} color="#ebedefff" />
+        
       </ReactFlow>
+
+      {nodes.length === 0 && (
+        <div className="absolute inset-0 flex items-center justify-center z-50 pointer-events-none">
+            <div className="flex items-center gap-8 pointer-events-auto">
+                {/* Add First Step Button */}
+                <button 
+                    onClick={(e) => {
+                        e.stopPropagation();
+                        console.log('Open Drawer Clicked');
+                        onToggleDrawer?.();
+                    }}
+                    className="group flex flex-col items-center gap-2 cursor-pointer"
+                >
+                    <div className="w-24 h-24 border-2 border-dashed border-gray-400 rounded-xl flex items-center justify-center bg-white hover:border-[#10b981] hover:bg-emerald-50/30 transition-all cursor-pointer shadow-sm">
+                        <Plus size={32} className="text-gray-500 group-hover:text-[#10b981]" />
+                    </div>
+                    <span className="text-sm font-medium text-[#10b981]">Add first step...</span>
+                </button>
+            </div>
+        </div>
+      )}
     </div>
   );
 };
 
-export const WorkflowCanvas: React.FC = () => {
+export const WorkflowCanvas: React.FC<WorkflowCanvasProps> = (props) => {
   return (
     <ReactFlowProvider>
-      <WorkflowCanvasInner />
+      <WorkflowCanvasInner {...props} />
     </ReactFlowProvider>
   );
 };

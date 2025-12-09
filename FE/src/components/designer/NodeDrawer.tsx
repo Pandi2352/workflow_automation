@@ -1,5 +1,7 @@
 import React, { useState } from 'react';
-import { Search, X, MousePointerClick, Clock, Webhook, FileText, ArrowRight, Globe } from 'lucide-react';
+import { Search, X, MousePointerClick, Clock, Webhook, FileText, ArrowRight, Globe, ChevronRight } from 'lucide-react';
+import { Input } from '../common/Input';
+import { Button } from '../common/Button';
 
 interface NodeDrawerProps {
     isOpen: boolean;
@@ -44,61 +46,71 @@ export const NodeDrawer: React.FC<NodeDrawerProps> = ({ isOpen, onClose }) => {
 
     return (
         <>
-            {/* Backdrop */}
+            {/* Transparent Backdrop for click-outside */}
             {isOpen && (
                 <div 
-                    className="absolute inset-0 bg-black/20 z-40 transition-opacity"
+                    className="absolute inset-0 z-40" 
                     onClick={onClose}
                 />
             )}
 
             {/* Drawer */}
-            <div className={`absolute top-0 right-0 h-full w-[400px] bg-white shadow-2xl z-50 transform transition-transform duration-300 ease-in-out flex flex-col ${
-                isOpen ? 'translate-x-0' : 'translate-x-full'
+            <div className={`absolute top-0 left-0 h-full w-[400px] bg-white border-r border-gray-300 z-50 transform transition-transform duration-300 ease-in-out flex flex-col ${
+                isOpen ? 'translate-x-0' : '-translate-x-full'
             }`}>
                 {/* Header */}
                 <div className="p-4 border-b border-slate-100 flex items-center justify-between bg-white">
                     <h2 className="font-semibold text-slate-800 text-lg">Add Node</h2>
-                    <button 
+                    <Button 
                         onClick={onClose}
-                        className="p-1 hover:bg-slate-100 rounded-md text-slate-500 transition-colors cursor-pointer"
+                        variant="ghost"
+                        className="p-1 h-auto text-slate-500 hover:text-slate-900"
                     >
                         <X size={20} />
-                    </button>
+                    </Button>
                 </div>
 
                 {/* Search */}
                 <div className="p-4">
-                    <div className="relative">
-                        <Search className="absolute left-3 top-2.5 text-slate-400" size={18} />
-                        <input
-                            type="text"
-                            placeholder="Search nodes..."
-                            className="w-full pl-10 pr-4 py-2 border border-slate-200 rounded-lg text-sm focus:outline-none focus:border-[#10b981] focus:ring-1 focus:ring-[#10b981] transition-all"
-                            value={searchTerm}
-                            onChange={(e) => setSearchTerm(e.target.value)}
-                            autoFocus={isOpen}
-                        />
-                    </div>
+                    <Input
+                        placeholder="Search nodes..."
+                        leftIcon={<Search size={18} />}
+                        value={searchTerm}
+                        onChange={(e) => setSearchTerm(e.target.value)}
+                        autoFocus={isOpen}
+                        fullWidth
+                    />
                 </div>
 
                 {/* Node List */}
                 <div className="flex-1 overflow-y-auto px-4 pb-4">
                     {filteredNodes.length > 0 ? (
-                        <div className="space-y-2">
+                        <div className="space-y-1">
                              {filteredNodes.map((node) => (
                                 <div
                                     key={node.type}
-                                    className="p-3 bg-white border border-transparent hover:border-[#10b981] hover:shadow-md rounded-lg cursor-grab active:cursor-grabbing group transition-all flex items-start gap-4"
-                                    onDragStart={(event) => onDragStart(event, node.type)}
                                     draggable
+                                    onDragStart={(event) => onDragStart(event, node.type)}
+                                    className="group flex items-start gap-4 p-3 hover:bg-slate-50 rounded-lg cursor-grab active:cursor-grabbing transition-colors duration-200"
                                 >
-                                    <div className={`mt-1 p-2 bg-slate-50 rounded-md group-hover:bg-[#10b981]/10 transition-colors`}>
-                                        <node.icon size={20} className={`${node.color} group-hover:text-[#10b981] transition-colors`} />
+                                    {/* Icon */}
+                                    <div className="mt-1 text-slate-500 group-hover:text-slate-700 transition-colors">
+                                        <node.icon size={24} strokeWidth={1.5} />
                                     </div>
-                                    <div>
-                                        <h3 className="text-sm font-semibold text-slate-900 mb-0.5">{node.label}</h3>
-                                        <p className="text-xs text-slate-500">{node.description}</p>
+
+                                    {/* Content */}
+                                    <div className="flex-1 min-w-0">
+                                        <h3 className="text-sm font-semibold text-slate-900 mb-0.5">
+                                            {node.label}
+                                        </h3>
+                                        <p className="text-xs text-slate-500 leading-snug line-clamp-2">
+                                            {node.description}
+                                        </p>
+                                    </div>
+
+                                    {/* Right Arrow */}
+                                    <div className="mt-1 text-slate-400 group-hover:text-slate-600 transition-colors">
+                                        <ChevronRight size={16} />
                                     </div>
                                 </div>
                              ))}

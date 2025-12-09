@@ -31,6 +31,16 @@ interface WorkflowState {
 
     addNode: (node: Node) => void;
     updateNodeData: (id: string, data: any) => void;
+
+    // UI State
+    activeTab: 'editor' | 'executions';
+    setActiveTab: (tab: 'editor' | 'executions') => void;
+
+    // Workflow Metadata
+    workflowName: string;
+    workflowDescription: string;
+    isWorkflowActive: boolean;
+    setWorkflowMetadata: (metadata: Partial<{ workflowName: string; workflowDescription: string; isWorkflowActive: boolean }>) => void;
 }
 
 export const useWorkflowStore = create<WorkflowState>((set, get) => ({
@@ -76,4 +86,14 @@ export const useWorkflowStore = create<WorkflowState>((set, get) => ({
             }),
         });
     },
+
+    // UI State
+    activeTab: 'editor',
+    setActiveTab: (tab) => set({ activeTab: tab }),
+
+    // Workflow Metadata
+    workflowName: 'Untitled Workflow',
+    workflowDescription: '',
+    isWorkflowActive: false,
+    setWorkflowMetadata: (metadata) => set((state) => ({ ...state, ...metadata })),
 }));
