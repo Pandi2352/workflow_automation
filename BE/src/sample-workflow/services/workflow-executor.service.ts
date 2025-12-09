@@ -2,7 +2,7 @@ import { Injectable, Logger } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model } from 'mongoose';
 import { WorkflowHistory, WorkflowHistoryDocument, ErrorDetail } from '../schemas/workflow-history.schema';
-import { SampleWorkflowDocument, WorkflowNode as SchemaWorkflowNode, WorkflowEdge } from '../schemas/sample-workflow.schema';
+import { SampleWorkflowDocument, WorkflowNode as SchemaWorkflowNode, WorkflowEdge, SampleWorkflow } from '../schemas/sample-workflow.schema';
 import { ExecutionStatus, NodeExecutionStatus, LogLevel } from '../enums/execution-status.enum';
 import { NodeRegistryService } from './node-registry.service';
 import { NodeInput, WorkflowExecutionOptions } from '../interfaces/execution-context.interface';
@@ -53,7 +53,7 @@ export class WorkflowExecutorService {
         @InjectModel(WorkflowHistory.name) private historyModel: Model<WorkflowHistoryDocument>,
         private nodeRegistry: NodeRegistryService,
         private expressionEvaluator: ExpressionEvaluatorService,
-    ) {}
+    ) { }
 
     async startExecution(
         workflow: SampleWorkflowDocument,
@@ -146,10 +146,15 @@ export class WorkflowExecutorService {
     }
 
     private async executeWorkflow(
-        workflow: SampleWorkflowDocument,
+        workflowDoc: SampleWorkflowDocument,
         executionId: string,
         options: WorkflowExecutionOptions,
     ): Promise<void> {
+        // Convert to plain object to avoid Mongoose recursion issues in ExpressionEvaluator
+        const workflow = (
+            workflowDoc.toObject ? workflowDoc.toObject() : workflowDoc
+        ) as SampleWorkflow & { _id: any };
+
         const startTime = new Date();
 
         await this.updateExecutionStatus(executionId, ExecutionStatus.RUNNING, { startTime });
@@ -347,6 +352,16 @@ export class WorkflowExecutorService {
 
         // Evaluate expressions in node data (inputMappings, config, etc.)
         let evaluatedData = node.data || {};
+
+        // Debug: Log original node data before evaluation
+        await this.addLog(
+            executionId,
+            LogLevel.DEBUG,
+            `Original node.data for ${node.nodeName}: ${JSON.stringify(node.data)}`,
+            node.id,
+            node.nodeName,
+        );
+
         if (node.data) {
             try {
                 evaluatedData = this.expressionEvaluator.evaluate(node.data, expressionContext);
@@ -414,10 +429,22 @@ export class WorkflowExecutorService {
                     }
                 }
 
+                // Merge resolved inputs into config
                 evaluatedData.config = {
                     ...evaluatedData.config,
                     ...resolvedInputs,
                 };
+
+                // Also preserve the original inputs array in evaluatedData for nodes that need it
+                evaluatedData.inputs = node.data.inputs;
+
+                await this.addLog(
+                    executionId,
+                    LogLevel.DEBUG,
+                    `Resolved structured inputs for ${node.nodeName}: ${JSON.stringify(resolvedInputs)}`,
+                    node.id,
+                    node.nodeName,
+                );
 
                 // Store resolved structured inputs for history
                 const nodeDataForHistory = nodeDataMap.get(node.id);
@@ -437,8 +464,46 @@ export class WorkflowExecutorService {
             edgeId: edge.id,
         }));
 
-        // Store input info
-        await this.updateNodeInput(executionId, node.id, { sources: inputSources, rawValues });
+        // Store input info - will be updated later with resolved values
+        // Initial store with sources and rawValues from connected nodes
+        const inputData: {
+            sources: typeof inputSources;
+            rawValues: any[];
+            resolved?: Record<string, any>;
+            expressions?: Record<string, string>;
+            configuredInputs?: Array<{
+                name: string;
+                type: string;
+                valueType?: string;
+                value?: any;
+            }>;
+        } = {
+            sources: inputSources,
+            rawValues,
+        };
+
+        // Add configured inputs from node.data.inputs (for INPUT nodes and any node with structured inputs)
+        if (node.data?.inputs && Array.isArray(node.data.inputs)) {
+            inputData.configuredInputs = node.data.inputs.map(inp => ({
+                name: inp.name,
+                type: inp.type,
+                valueType: inp.valueType,
+                value: inp.value,
+            }));
+        }
+
+        // Add input expressions/mappings
+        if (node.data?.inputMappings) {
+            inputData.expressions = node.data.inputMappings;
+        }
+
+        // Add resolved values from the nodeDataMap
+        const nodeDataForInput = nodeDataMap.get(node.id);
+        if (nodeDataForInput?.input?.resolved) {
+            inputData.resolved = nodeDataForInput.input.resolved;
+        }
+
+        await this.updateNodeInput(executionId, node.id, inputData);
 
         const maxRetries = options.maxRetries || 3;
         let retryCount = 0;

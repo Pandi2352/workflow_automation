@@ -161,6 +161,19 @@ export class NodeInputData {
      */
     @Prop({ type: Object })
     expressions?: Record<string, string>;
+
+    /**
+     * Configured inputs from node.data.inputs (structured inputs defined in the node)
+     * This stores the original input configuration including static values
+     * Useful for INPUT nodes and any node with structured inputs
+     */
+    @Prop({ type: [Object], default: [] })
+    configuredInputs?: Array<{
+        name: string;
+        type: string;
+        valueType?: string;
+        value?: any;
+    }>;
 }
 
 // ==================== NODE OUTPUT DATA ====================

@@ -17,7 +17,20 @@ export abstract class BaseWorkflowNode implements WorkflowNode {
             this.log('INFO', `Starting execution of node: ${context.nodeName}`);
             this.log('DEBUG', `Input values: ${JSON.stringify(context.inputs)}`);
 
-            const inputValues = context.inputs.map(input => input.value);
+            // Priority 1: Use resolved config values from expressions (if available)
+            // These are values resolved from expressions like {{NodeName.outputs.value.property}}
+            let inputValues: any[];
+
+            if (context.data?.config && Object.keys(context.data.config).length > 0) {
+                // Get values from resolved config (expression results)
+                const configValues = Object.values(context.data.config);
+                inputValues = configValues;
+                this.log('DEBUG', `Using resolved config values: ${JSON.stringify(configValues)}`);
+            } else {
+                // Fallback: Use raw values from edge connections
+                inputValues = context.inputs.map(input => input.value);
+            }
+
             const result = this.execute(inputValues, context.data);
 
             this.log('INFO', `Node executed successfully with result: ${result}`);

@@ -15,16 +15,122 @@ class NodePositionDto {
     y?: number;
 }
 
-class NodeDataDto {
-    @ApiPropertyOptional({ description: 'Value for INPUT nodes' })
-    @IsNumber()
-    @IsOptional()
-    value?: number;
+/**
+ * Input field DTO for structured node inputs
+ */
+class NodeInputFieldDto {
+    @ApiProperty({ description: 'Input field name' })
+    @IsString()
+    name: string;
 
-    @ApiPropertyOptional({ description: 'Additional configuration' })
+    @ApiProperty({ description: 'Data type', enum: ['string', 'number', 'boolean', 'array', 'object', 'any', 'date', 'file', 'json'] })
+    @IsString()
+    type: string;
+
+    @ApiPropertyOptional({ description: 'Value type: static or expression', enum: ['static', 'expression'], default: 'static' })
+    @IsString()
+    @IsOptional()
+    valueType?: string;
+
+    @ApiPropertyOptional({ description: 'The value (static) or expression string' })
+    @IsOptional()
+    value?: any;
+
+    @ApiPropertyOptional({ description: 'Field description' })
+    @IsString()
+    @IsOptional()
+    description?: string;
+
+    @ApiPropertyOptional({ description: 'Is this field required', default: false })
+    @IsBoolean()
+    @IsOptional()
+    required?: boolean;
+
+    @ApiPropertyOptional({ description: 'Default value if not provided' })
+    @IsOptional()
+    defaultValue?: any;
+
+    @ApiPropertyOptional({ description: 'Schema for array/object types' })
+    @IsObject()
+    @IsOptional()
+    schema?: Record<string, any>;
+}
+
+/**
+ * Output field DTO for structured node outputs
+ */
+class NodeOutputFieldDto {
+    @ApiProperty({ description: 'Output field name' })
+    @IsString()
+    name: string;
+
+    @ApiProperty({ description: 'Data type', enum: ['string', 'number', 'boolean', 'array', 'object', 'any', 'date', 'file', 'json'] })
+    @IsString()
+    type: string;
+
+    @ApiPropertyOptional({ description: 'Field description' })
+    @IsString()
+    @IsOptional()
+    description?: string;
+
+    @ApiPropertyOptional({ description: 'Schema for array/object types' })
+    @IsObject()
+    @IsOptional()
+    schema?: Record<string, any>;
+
+    @ApiPropertyOptional({ description: 'Example value' })
+    @IsOptional()
+    example?: any;
+}
+
+class NodeDataDto {
+    @ApiPropertyOptional({ description: 'Simple value for basic nodes (backward compatibility)' })
+    @IsOptional()
+    value?: any;
+
+    @ApiPropertyOptional({ description: 'Node configuration/settings' })
     @IsObject()
     @IsOptional()
     config?: Record<string, any>;
+
+    @ApiPropertyOptional({ description: 'Structured input fields with types and values/expressions', type: [NodeInputFieldDto] })
+    @IsArray()
+    @ValidateNested({ each: true })
+    @Type(() => NodeInputFieldDto)
+    @IsOptional()
+    inputs?: NodeInputFieldDto[];
+
+    @ApiPropertyOptional({ description: 'Structured output fields declaration', type: [NodeOutputFieldDto] })
+    @IsArray()
+    @ValidateNested({ each: true })
+    @Type(() => NodeOutputFieldDto)
+    @IsOptional()
+    outputs?: NodeOutputFieldDto[];
+
+    @ApiPropertyOptional({ description: 'Input mappings - key to expression mapping' })
+    @IsObject()
+    @IsOptional()
+    inputMappings?: Record<string, string>;
+
+    @ApiPropertyOptional({ description: 'Static input values' })
+    @IsObject()
+    @IsOptional()
+    inputValues?: Record<string, any>;
+
+    @ApiPropertyOptional({ description: 'Output mapping transformation' })
+    @IsObject()
+    @IsOptional()
+    outputMapping?: Record<string, any>;
+
+    @ApiPropertyOptional({ description: 'Credentials reference ID' })
+    @IsString()
+    @IsOptional()
+    credentialId?: string;
+
+    @ApiPropertyOptional({ description: 'Custom node-specific parameters' })
+    @IsObject()
+    @IsOptional()
+    parameters?: Record<string, any>;
 }
 
 class NodeDto {

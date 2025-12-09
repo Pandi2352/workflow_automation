@@ -176,8 +176,19 @@ export class NodeData {
      *   }
      * ]
      */
-    @Prop({ type: [NodeInputField], default: [] })
-    inputs?: NodeInputField[];
+    @Prop({ type: [Object], default: [] })
+    inputs?: Array<{
+        name: string;
+        type: string;
+        valueType?: string;
+        value?: any;
+        description?: string;
+        required?: boolean;
+        defaultValue?: any;
+        schema?: Record<string, any>;
+        sourceNodeName?: string;
+        sourcePropertyPath?: string;
+    }>;
 
     /**
      * Structured output fields - declares what this node will output
@@ -208,8 +219,14 @@ export class NodeData {
      *   }
      * ]
      */
-    @Prop({ type: [NodeOutputField], default: [] })
-    outputs?: NodeOutputField[];
+    @Prop({ type: [Object], default: [] })
+    outputs?: Array<{
+        name: string;
+        type: string;
+        description?: string;
+        schema?: Record<string, any>;
+        example?: any;
+    }>;
 
     /**
      * Input mappings - simple key to expression mapping (alternative to structured inputs)
