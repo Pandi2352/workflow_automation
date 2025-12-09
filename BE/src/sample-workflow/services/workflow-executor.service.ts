@@ -532,7 +532,7 @@ export class WorkflowExecutorService {
                     await this.updateNodeStatus(executionId, node.id, NodeExecutionStatus.SUCCESS, {
                         endTime,
                         duration,
-                        outputs: result.output, // Store raw output directly
+                        outputs: typeof result.output === 'object' && result.output !== null ? result.output : { output: result.output }, // Store raw output if object, otherwise wrap
                         metadata: result.metadata,
                         resolvedConfig: evaluatedData.config, // Store the resolved configuration
                     });

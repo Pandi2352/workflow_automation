@@ -1,32 +1,28 @@
-import { BaseWorkflowNode } from './workflow-node.interface';
-
-interface InputNodeData {
-    value?: any;
-    config?: Record<string, any>;
-    inputs?: Array<{ name: string; type: string; value?: any; valueType?: string }>;
+// Mocks
+class BaseWorkflowNode {
+    log(level, message) {
+        console.log(`[${level}] ${message}`);
+    }
 }
 
-export class InputNode extends BaseWorkflowNode {
-    execute(inputs: any[], data?: InputNodeData): any {
+class InputNode extends BaseWorkflowNode {
+    execute(inputs, data) {
         this.log('DEBUG', `InputNode received data: ${JSON.stringify(data)}`);
 
         // Priority 1: Check resolved config.value (from expression evaluation)
-        // This is where resolved inputs go: config.value = 10
         if (data?.config?.value !== undefined) {
             this.log('INFO', `Input node providing value from config.value: ${JSON.stringify(data.config.value)}`);
             return data.config.value;
         }
 
-        // Priority 2: Check if config has any values (resolved inputs are stored here)
+        // Priority 2: Check if config has any values
         if (data?.config && Object.keys(data.config).length > 0) {
-            // If there's only one key, return its value
             const keys = Object.keys(data.config);
             if (keys.length === 1) {
                 const singleValue = data.config[keys[0]];
                 this.log('INFO', `Input node providing single config value: ${JSON.stringify(singleValue)}`);
                 return singleValue;
             }
-            // If multiple keys, return the whole config object
             this.log('INFO', `Input node providing config object: ${JSON.stringify(data.config)}`);
             return data.config;
         }
@@ -35,15 +31,13 @@ export class InputNode extends BaseWorkflowNode {
         if (data?.inputs) {
             // Case A: Array (Legacy)
             if (Array.isArray(data.inputs) && data.inputs.length > 0) {
-                // If there's only one input named 'value', return it directly
                 const valueInput = data.inputs.find(i => i?.name === 'value');
                 if (valueInput?.value !== undefined) {
                     this.log('INFO', `Input node providing value from inputs array: ${JSON.stringify(valueInput.value)}`);
                     return valueInput.value;
                 }
 
-                // If multiple inputs, return as an object
-                const result: Record<string, any> = {};
+                const result = {};
                 for (const input of data.inputs) {
                     if (input?.name && input.value !== undefined) {
                         result[input.name] = input.value;
@@ -53,28 +47,25 @@ export class InputNode extends BaseWorkflowNode {
                     this.log('INFO', `Input node providing values from inputs array: ${JSON.stringify(result)}`);
                     return Object.keys(result).length === 1 ? Object.values(result)[0] : result;
                 }
-            }
+            } 
             // Case B: Object (Simplified/New)
             else if (typeof data.inputs === 'object' && !Array.isArray(data.inputs)) {
-                const keys = Object.keys(data.inputs);
-                if (keys.length > 0) {
-                    // If explicit 'value' key exists, prioritize it
-                    if (data.inputs['value'] !== undefined) {
-                        this.log('INFO', `Input node providing value from inputs object 'value' key: ${JSON.stringify(data.inputs['value'])}`);
-                        return data.inputs['value'];
-                    }
+                 const keys = Object.keys(data.inputs);
+                 if (keys.length > 0) {
+                     if (data.inputs['value'] !== undefined) {
+                         this.log('INFO', `Input node providing value from inputs object 'value' key: ${JSON.stringify(data.inputs['value'])}`);
+                         return data.inputs['value'];
+                     }
 
-                    // If only one key, return its value (e.g. { "myVar": 10 } -> 10)
-                    if (keys.length === 1) {
+                     if (keys.length === 1) {
                         const val = data.inputs[keys[0]];
                         this.log('INFO', `Input node providing single value from inputs object: ${JSON.stringify(val)}`);
                         return val;
-                    }
+                     }
 
-                    // Otherwise return the whole object
-                    this.log('INFO', `Input node providing inputs object: ${JSON.stringify(data.inputs)}`);
-                    return data.inputs;
-                }
+                     this.log('INFO', `Input node providing inputs object: ${JSON.stringify(data.inputs)}`);
+                     return data.inputs;
+                 }
             }
         }
 
@@ -89,3 +80,30 @@ export class InputNode extends BaseWorkflowNode {
         return 0;
     }
 }
+
+// Tests
+const mockInputNode = new InputNode();
+
+console.log('--- Test Case 1: Simplified Input Object { value: 10 } ---');
+const result1 = mockInputNode.execute([], { inputs: { value: 10 } });
+console.log('Result 1:', result1); // Should be 10
+
+console.log('\n--- Test Case 2: Simplified Input Object { myVar: 50 } ---');
+const result2 = mockInputNode.execute([], { inputs: { myVar: 50 } });
+console.log('Result 2:', result2); // Should be 50
+
+console.log('\n--- Test Case 3: Priority Check (value vs others) ---');
+const result3 = mockInputNode.execute([], { inputs: { value: 100, other: 200 } });
+console.log('Result 3:', result3); // Should be 100
+
+console.log('\n--- Test Case 4: Multiple keys without "value" ---');
+const result4 = mockInputNode.execute([], { inputs: { a: 1, b: 2 } });
+console.log('Result 4:', result4); // Should be { a: 1, b: 2 }
+
+console.log('\n--- Test Case 5: Legacy Array ---');
+const result5 = mockInputNode.execute([], { inputs: [{ name: 'value', value: 99 }] });
+console.log('Result 5:', result5); // Should be 99
+
+console.log('\n--- Test Case 6: Empty Object ---');
+const result6 = mockInputNode.execute([], { inputs: {} });
+console.log('Result 6:', result6); // Should be 0 (WARN)
