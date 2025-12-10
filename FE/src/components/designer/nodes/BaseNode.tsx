@@ -45,8 +45,24 @@ export const BaseNode = memo(({ data, isConnectable, selected, label, icon: Icon
 
             {/* Body */}
             <div className="p-3 bg-white rounded-b-lg">
-                 {children || (
-                     <div className="text-xs text-slate-500">
+                 {data.executionStatus ? (
+                    <div className="flex items-center justify-between text-xs">
+                         <span className={`font-semibold ${
+                             data.executionStatus === 'SUCCESS' ? 'text-green-600' :
+                             data.executionStatus === 'FAILED' ? 'text-red-600' :
+                             'text-blue-600'
+                         }`}>
+                             {data.executionStatus === 'SUCCESS' ? 'Success' : 
+                              data.executionStatus === 'FAILED' ? 'Error' : 'Running'}
+                         </span>
+                         {data.executionDuration !== undefined && (
+                             <span className="text-gray-400">
+                                 {data.executionDuration}ms
+                             </span>
+                         )}
+                    </div>
+                 ) : children || (
+                     <div className="text-xs text-slate-500 line-clamp-2">
                         {data.description as string || 'No description'}
                      </div>
                  )}

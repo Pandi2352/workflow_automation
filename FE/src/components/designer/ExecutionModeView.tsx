@@ -3,8 +3,9 @@ import React, { useState } from 'react';
 import { useParams } from 'react-router-dom';
 import { ExecutionSidebar } from './ExecutionSidebar';
 import { ExecutionDetailsPanel } from './ExecutionDetailsPanel';
-import { WorkflowCanvas } from './WorkflowCanvas';
+import { ExecutionCanvas } from './ExecutionCanvas';
 import { useWorkflowStore } from '../../store/workflowStore';
+import { NodeConfigPanel } from './NodeConfigPanel';
 
 export const ExecutionModeView: React.FC = () => {
     const { id } = useParams<{ id: string }>();
@@ -25,15 +26,18 @@ export const ExecutionModeView: React.FC = () => {
             <div className="flex-1 flex flex-col h-full relative min-w-0">
                 {/* Canvas Area - 2/3 height roughly, or flex-1 */}
                 <div className="flex-1 relative bg-slate-50">
-                    <WorkflowCanvas 
+                    <ExecutionCanvas 
                         executionData={selectedExecution} 
                     />
+                    
+                    {/* Node Config Popup Overlay */}
+                    {selectedNode && <NodeConfigPanel />}
                 </div>
 
-                {/* Bottom Panel: Logs/Data */}
+                {/* Bottom Panel: Logs/Data - Always show workflow level output now */}
                 <ExecutionDetailsPanel 
                     execution={selectedExecution}
-                    selectedNodeId={selectedNode?.id}
+                    selectedNodeId={null} 
                 />
             </div>
         </div>
