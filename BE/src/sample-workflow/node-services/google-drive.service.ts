@@ -1,0 +1,68 @@
+import { Injectable, NotFoundException } from '@nestjs/common';
+import { google, drive_v3 } from 'googleapis';
+import { CredentialsService } from '../../credentials/credentials.service';
+import { ConfigService } from '@nestjs/config';
+
+@Injectable()
+export class GoogleDriveService {
+    constructor(
+        private credentialsService: CredentialsService,
+        private configService: ConfigService,
+    ) { }
+
+    private async getClient(credentialId: string): Promise<drive_v3.Drive> {
+        const credential = await this.credentialsService.findById(credentialId);
+        if (!credential) {
+            throw new NotFoundException(`Credential with ID ${credentialId} not found`);
+        }
+
+        const clientId = this.configService.get<string>('GOOGLE_CLIENT_ID');
+        const clientSecret = this.configService.get<string>('GOOGLE_CLIENT_SECRET');
+        const redirectUri = this.configService.get<string>('GOOGLE_CALLBACK_URL');
+
+        const authClient = new google.auth.OAuth2(clientId, clientSecret, redirectUri);
+
+        authClient.setCredentials({
+            access_token: credential.accessToken,
+            refresh_token: credential.refreshToken,
+            expiry_date: credential.expiryDate,
+        });
+
+        // The google library handles token refresh automatically if refresh_token and client ID/secret are present
+
+        return google.drive({ version: 'v3', auth: authClient });
+    }
+
+    async fetchFiles(credentialId: string, folderId?: string): Promise<any[]> {
+        const client = await this.getClient(credentialId);
+        const q = folderId
+            ? `'${folderId}' in parents and trashed = false`
+            : "'root' in parents and trashed = false and mimeType != 'application/vnd.google-apps.folder'";
+
+        const res = await client.files.list({
+            pageSize: 100,
+            fields: 'nextPageToken, files(id, name, mimeType, webViewLink, parents, owners(displayName, emailAddress, photoLink), size, createdTime, modifiedTime, iconLink, thumbnailLink)',
+            q: q,
+        });
+
+        return res.data.files || [];
+    }
+
+    async fetchFolders(credentialId: string, parentId?: string): Promise<any[]> {
+        const client = await this.getClient(credentialId);
+        let q = "mimeType = 'application/vnd.google-apps.folder' and trashed = false";
+        if (parentId) {
+            q += ` and '${parentId}' in parents`;
+        } else {
+            q += " and 'root' in parents";
+        }
+
+        const res = await client.files.list({
+            pageSize: 100,
+            fields: 'nextPageToken, files(id, name, mimeType, webViewLink, owners(displayName, emailAddress), createdTime, modifiedTime)',
+            q: q,
+        });
+
+        return res.data.files || [];
+    }
+}

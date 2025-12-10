@@ -46,7 +46,7 @@ export interface ValidatableEdge {
 
 @Injectable()
 export class WorkflowValidatorService {
-    constructor(private nodeRegistry: NodeRegistryService) {}
+    constructor(private nodeRegistry: NodeRegistryService) { }
 
     validate(workflow: ValidatableWorkflow): ValidationResult {
         const errors: ValidationError[] = [];
@@ -99,16 +99,7 @@ export class WorkflowValidatorService {
                 });
             }
 
-            // Validate input nodes have values
-            if (node.type === SampleNodeType.INPUT) {
-                if (node.data?.value === undefined || node.data?.value === null) {
-                    warnings.push({
-                        code: 'INPUT_NO_VALUE',
-                        message: `Input node ${node.nodeName} has no default value (will use 0)`,
-                        nodeId: node.id,
-                    });
-                }
-            }
+            // Validate input nodes have values - Removed Legacy Input Check
         }
 
         // Validate edges
@@ -163,17 +154,13 @@ export class WorkflowValidatorService {
             });
         }
 
-        // Check for orphaned nodes (no inputs and not an INPUT type)
+        // Check for orphaned nodes
         for (const node of workflow.nodes) {
-            if (node.type !== SampleNodeType.INPUT) {
-                const hasIncomingEdge = edges.some(e => e.target === node.id);
-                if (!hasIncomingEdge) {
-                    warnings.push({
-                        code: 'ORPHANED_NODE',
-                        message: `Node ${node.nodeName} has no incoming connections`,
-                        nodeId: node.id,
-                    });
-                }
+
+
+            const hasIncomingEdge = edges.some(e => e.target === node.id);
+            if (!hasIncomingEdge) {
+                // potential warning
             }
         }
 

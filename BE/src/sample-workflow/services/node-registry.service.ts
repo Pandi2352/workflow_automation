@@ -1,11 +1,8 @@
 import { Injectable } from '@nestjs/common';
 import { SampleNodeType } from '../enums/node-type.enum';
 import { BaseWorkflowNode } from '../nodes/workflow-node.interface';
-import { AddNode } from '../nodes/add.node';
-import { SubtractNode } from '../nodes/subtract.node';
-import { MultiplyNode } from '../nodes/multiply.node';
-import { DivideNode } from '../nodes/divide.node';
-import { InputNode } from '../nodes/input.node';
+import { GoogleDriveNode } from '../nodes/google-drive.node';
+import { GoogleDriveService } from '../node-services/google-drive.service';
 
 export interface NodeDefinition {
     type: string;
@@ -22,65 +19,45 @@ export class NodeRegistryService {
     private nodeInstances: Map<string, BaseWorkflowNode> = new Map();
     private nodeDefinitions: Map<string, NodeDefinition> = new Map();
 
-    constructor() {
+    constructor(private readonly googleDriveService: GoogleDriveService) {
         this.registerDefaultNodes();
     }
 
     private registerDefaultNodes(): void {
         // Register node instances
-        this.nodeInstances.set(SampleNodeType.ADD, new AddNode());
-        this.nodeInstances.set(SampleNodeType.SUBTRACT, new SubtractNode());
-        this.nodeInstances.set(SampleNodeType.MULTIPLY, new MultiplyNode());
-        this.nodeInstances.set(SampleNodeType.DIVIDE, new DivideNode());
-        this.nodeInstances.set(SampleNodeType.INPUT, new InputNode());
+        this.nodeInstances.set(SampleNodeType.GOOGLE_DRIVE, new GoogleDriveNode(this.googleDriveService));
 
         // Register node definitions
-        this.nodeDefinitions.set(SampleNodeType.INPUT, {
-            type: SampleNodeType.INPUT,
-            name: 'Input',
-            description: 'Provides a numeric input value',
-            category: 'Input/Output',
+        this.nodeDefinitions.set(SampleNodeType.GOOGLE_DRIVE, {
+            type: SampleNodeType.GOOGLE_DRIVE,
+            name: 'Google Drive',
+            description: 'Fetch files and folders from Google Drive',
+            category: 'Google',
             inputs: 0,
             outputs: 1,
             configSchema: {
-                value: { type: 'number', required: true, description: 'The input value' }
+                operation: {
+                    type: 'select',
+                    options: ['fetch_files', 'fetch_folders'],
+                    default: 'fetch_files',
+                    description: 'Operation to perform'
+                },
+                folderId: {
+                    type: 'folder_selector',
+                    description: 'Folder ID to list files from (optional)',
+                    condition: { operation: 'fetch_files' }
+                },
+                parentId: {
+                    type: 'string',
+                    description: 'Parent Folder ID to list folders from (optional)',
+                    condition: { operation: 'fetch_folders' }
+                },
+                credentials: {
+                    type: 'credential',
+                    provider: 'google',
+                    description: 'Google Drive Credentials'
+                }
             }
-        });
-
-        this.nodeDefinitions.set(SampleNodeType.ADD, {
-            type: SampleNodeType.ADD,
-            name: 'Add',
-            description: 'Adds all input values together',
-            category: 'Math',
-            inputs: -1, // -1 means variable inputs
-            outputs: 1,
-        });
-
-        this.nodeDefinitions.set(SampleNodeType.SUBTRACT, {
-            type: SampleNodeType.SUBTRACT,
-            name: 'Subtract',
-            description: 'Subtracts second input from first input',
-            category: 'Math',
-            inputs: 2,
-            outputs: 1,
-        });
-
-        this.nodeDefinitions.set(SampleNodeType.MULTIPLY, {
-            type: SampleNodeType.MULTIPLY,
-            name: 'Multiply',
-            description: 'Multiplies all input values together',
-            category: 'Math',
-            inputs: -1,
-            outputs: 1,
-        });
-
-        this.nodeDefinitions.set(SampleNodeType.DIVIDE, {
-            type: SampleNodeType.DIVIDE,
-            name: 'Divide',
-            description: 'Divides first input by second input',
-            category: 'Math',
-            inputs: 2,
-            outputs: 1,
         });
     }
 

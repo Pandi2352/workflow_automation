@@ -1,11 +1,12 @@
 import React, { useState } from 'react';
-import { Search, X, MousePointerClick, Clock, Webhook, FileText, ArrowRight, Globe, ChevronRight } from 'lucide-react';
+import { Search, X, MousePointerClick, ChevronRight, HardDrive } from 'lucide-react';
 import { Input } from '../common/Input';
 import { Button } from '../common/Button';
 
 interface NodeDrawerProps {
     isOpen: boolean;
     onClose: () => void;
+    onNodeSelect?: (type: string) => void;
 }
 
 interface NodeType {
@@ -20,18 +21,12 @@ interface NodeType {
 const availableNodes: NodeType[] = [
     // Triggers
     { type: 'input', label: 'Manual Trigger', description: 'Starts the workflow manually', icon: MousePointerClick, color: 'text-slate-600', category: 'trigger' },
-    { type: 'webhook', label: 'Webhook', description: 'Starts when URL is called', icon: Webhook, color: 'text-slate-600', category: 'trigger' },
-    { type: 'schedule', label: 'Schedule', description: 'Runs at specific intervals', icon: Clock, color: 'text-green-600', category: 'trigger' },
     
     // Actions
-    { type: 'api', label: 'HTTP Request', description: 'Call any API', icon: Globe, color: 'text-blue-500', category: 'action' },
-    { type: 'output', label: 'Respond to Webhook', description: 'Return data to caller', icon: ArrowRight, color: 'text-slate-600', category: 'action' },
-    
-    // Logic/Transform
-    { type: 'transform', label: 'Code', description: 'Run JavaScript code', icon: FileText, color: 'text-orange-500', category: 'logic' },
+    { type: 'GOOGLE_DRIVE', label: 'Google Drive', description: 'Interact with Google Drive', icon: HardDrive, color: 'text-green-600', category: 'action' },
 ];
 
-export const NodeDrawer: React.FC<NodeDrawerProps> = ({ isOpen, onClose }) => {
+export const NodeDrawer: React.FC<NodeDrawerProps> = ({ isOpen, onClose, onNodeSelect }) => {
     const [searchTerm, setSearchTerm] = useState('');
 
     const onDragStart = (event: React.DragEvent, nodeType: string) => {
@@ -91,7 +86,8 @@ export const NodeDrawer: React.FC<NodeDrawerProps> = ({ isOpen, onClose }) => {
                                     key={node.type}
                                     draggable
                                     onDragStart={(event) => onDragStart(event, node.type)}
-                                    className="group flex items-start gap-4 p-3 hover:bg-slate-50 rounded-lg cursor-grab active:cursor-grabbing transition-colors duration-200"
+                                    onClick={() => onNodeSelect?.(node.type)}
+                                    className="group flex items-start gap-4 p-3 hover:bg-slate-50 rounded-lg cursor-pointer active:cursor-grabbing transition-colors duration-200"
                                 >
                                     {/* Icon */}
                                     <div className="mt-1 text-slate-500 group-hover:text-slate-700 transition-colors">

@@ -1,13 +1,13 @@
 import { NodeExecutionContext, NodeExecutionResult, ExecutionLog } from '../interfaces/execution-context.interface';
 
 export interface WorkflowNode {
-    execute(inputs: number[], data?: any): number;
+    execute(inputs: any[], data?: any): Promise<any> | any;
 }
 
 export abstract class BaseWorkflowNode implements WorkflowNode {
     protected logs: ExecutionLog[] = [];
 
-    abstract execute(inputs: number[], data?: any): number;
+    abstract execute(inputs: any[], data?: any): Promise<any> | any;
 
     async executeWithContext(context: NodeExecutionContext): Promise<NodeExecutionResult> {
         this.logs = [];
@@ -31,7 +31,7 @@ export abstract class BaseWorkflowNode implements WorkflowNode {
                 inputValues = context.inputs.map(input => input.value);
             }
 
-            const result = this.execute(inputValues, context.data);
+            const result = await this.execute(inputValues, context.data);
 
             this.log('INFO', `Node executed successfully with result: ${result}`);
 

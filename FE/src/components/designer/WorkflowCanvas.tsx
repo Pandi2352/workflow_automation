@@ -20,6 +20,20 @@ interface WorkflowCanvasProps {
     onToggleDrawer?: () => void;
 }
 
+import { GenericNode } from './nodes/GenericNode';
+import { GoogleDriveNode } from './nodes/google-drive/GoogleDriveNode';
+
+const nodeTypes = {
+    GOOGLE_DRIVE: GoogleDriveNode,
+    default: GenericNode, // Fallback
+    input: GenericNode,
+    webhook: GenericNode,
+    api: GenericNode,
+    transform: GenericNode,
+    output: GenericNode,
+    schedule: GenericNode
+};
+
 const WorkflowCanvasInner: React.FC<WorkflowCanvasProps> = ({ onToggleDrawer }) => {
   const reactFlowWrapper = useRef<HTMLDivElement>(null);
   const { nodes, edges, onNodesChange, onEdgesChange, onConnect, addNode, setSelectedNode } = useWorkflowStore();
@@ -70,6 +84,7 @@ const WorkflowCanvasInner: React.FC<WorkflowCanvasProps> = ({ onToggleDrawer }) 
     <div className="flex-1 h-full relative" ref={reactFlowWrapper}>
       <ReactFlow
         nodes={nodes}
+        nodeTypes={nodeTypes}
         edges={edges}
         onNodesChange={onNodesChange}
         onEdgesChange={onEdgesChange}

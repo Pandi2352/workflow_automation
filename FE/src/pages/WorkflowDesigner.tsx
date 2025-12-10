@@ -17,7 +17,7 @@ export const WorkflowDesigner: React.FC = () => {
     const [isDrawerOpen, setIsDrawerOpen] = React.useState(false);
     const [showToast, setShowToast] = React.useState(false);
     const navigate = useNavigate();
-    const { nodes, edges, setNodes, setEdges, selectedNode, activeTab } = useWorkflowStore(); // Access state directly
+    const { nodes, edges, setNodes, setEdges, selectedNode, activeTab, addNode } = useWorkflowStore(); // Access state directly
 
     useEffect(() => {
         if (id === 'new') {
@@ -44,20 +44,25 @@ export const WorkflowDesigner: React.FC = () => {
     const handleSave = async (): Promise<string | null> => {
         setIsSaving(true);
         try {
-            const workflowData = {
-                nodes: nodes as any,
-                edges: edges as any,
-                ...(id === 'new' ? { name: 'Untitled Workflow', description: '' } : {}) 
-            };
-
             let currentId: string | null = id || null;
 
             if (id === 'new') {
-                const newWorkflow = await workflowService.create(workflowData);
+                const createPayload = {
+                    name: 'Untitled Workflow',
+                    description: '',
+                    nodes: nodes as any,
+                    edges: edges as any
+                };
+                
+                const newWorkflow = await workflowService.create(createPayload);
                 currentId = newWorkflow._id;
                 navigate(`/workflow/${newWorkflow._id}`, { replace: true });
             } else if (id) {
-                await workflowService.update(id, workflowData);
+                const updatePayload = {
+                    nodes: nodes as any,
+                    edges: edges as any
+                };
+                await workflowService.update(id, updatePayload);
             }
             return currentId;
         } catch (error) {
@@ -81,6 +86,19 @@ export const WorkflowDesigner: React.FC = () => {
              console.error('Execution failed', error);
              alert('Failed to start execution');
          }
+    };
+
+    const handleAddNode = (type: string) => {
+        const nodeId = `node_${Date.now()}`;
+        const newNode = {
+            id: nodeId,
+            type, 
+            position: { x: 100, y: 100 + nodes.length * 50 },
+            data: { label: `${type} node` },
+        };
+        
+        addNode(newNode);
+        setIsDrawerOpen(false);
     };
 
     if (!id) return <div>Invalid Workflow ID</div>;
@@ -131,7 +149,8 @@ export const WorkflowDesigner: React.FC = () => {
                         {/* Node Drawer */}
                         <NodeDrawer 
                             isOpen={isDrawerOpen} 
-                            onClose={() => setIsDrawerOpen(false)} 
+                            onClose={() => setIsDrawerOpen(false)}
+                            onNodeSelect={handleAddNode}
                         />
                     </div>
                 )}

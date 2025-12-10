@@ -24,7 +24,7 @@ import { extractClientInfo } from '../common/utils/client-info.util';
 @ApiTags('Sample Workflows')
 @Controller('sample-workflows')
 export class SampleWorkflowController {
-    constructor(private readonly sampleWorkflowService: SampleWorkflowService) {}
+    constructor(private readonly sampleWorkflowService: SampleWorkflowService) { }
 
     // ==================== WORKFLOW CRUD ====================
 
@@ -105,7 +105,12 @@ export class SampleWorkflowController {
 
     // ==================== WORKFLOW EXECUTION ====================
 
-    @Post(':id/execute')
+    @Post('nodes/test')
+    @ApiOperation({ summary: 'Execute a single node for testing' })
+    @ApiResponse({ status: 200, description: 'Node executed successfully' })
+    executeNodeTest(@Body() dto: any) {
+        return this.sampleWorkflowService.executeNodeTest(dto);
+    }
     @ApiOperation({ summary: 'Execute a workflow' })
     @ApiParam({ name: 'id', description: 'Workflow ID' })
     @ApiResponse({ status: 201, description: 'Execution started' })

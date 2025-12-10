@@ -23,6 +23,13 @@ export interface SampleWorkflow {
     active: boolean;
 }
 
+export interface CreateWorkflowPayload {
+    name: string;
+    description?: string;
+    nodes: WorkflowNode[];
+    edges: WorkflowEdge[];
+}
+
 export interface ExecutionHistory {
     _id: string;
     workflowId: string;

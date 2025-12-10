@@ -32,7 +32,7 @@ export class SampleWorkflowService {
         private executorService: WorkflowExecutorService,
         private validatorService: WorkflowValidatorService,
         private nodeRegistry: NodeRegistryService,
-    ) {}
+    ) { }
 
     // ==================== WORKFLOW CRUD ====================
 
@@ -136,7 +136,31 @@ export class SampleWorkflowService {
         return this.validatorService.validate(createDto);
     }
 
-    // ==================== WORKFLOW EXECUTION ====================
+    // ==================== SINGLE NODE EXECUTION ====================
+
+    async executeNodeTest(dto: any): Promise<any> {
+        const { nodeType, nodeData, inputs = [] } = dto;
+        const strategy = this.nodeRegistry.getNode(nodeType);
+
+        if (!strategy) {
+            throw new BadRequestException(`Unknown node type: ${nodeType}`);
+        }
+
+        // Mock Context
+        const context = {
+            executionId: 'test-execution',
+            workflowId: 'test-workflow',
+            nodeId: 'test-node',
+            nodeName: 'Test Node',
+            nodeType: nodeType,
+            inputs: inputs.map((val: any) => ({ value: val, nodeId: 'mock', nodeName: 'Mock', edgeId: 'mock' })),
+            data: { config: nodeData },
+            retryCount: 0,
+            maxRetries: 1
+        };
+
+        return strategy.executeWithContext(context as any);
+    }
 
     async execute(id: string, executeDto?: ExecuteWorkflowOptions): Promise<{
         message: string;
