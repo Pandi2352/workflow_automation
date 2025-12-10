@@ -85,6 +85,7 @@ export class SampleWorkflowService {
 
     async findOne(id: string): Promise<SampleWorkflowDocument> {
         if (!Types.ObjectId.isValid(id)) {
+            console.error(`[SampleWorkflowService.findOne] Invalid ID received: "${id}" (Type: ${typeof id})`);
             throw new BadRequestException('Invalid workflow ID');
         }
 
@@ -209,6 +210,68 @@ export class SampleWorkflowService {
             workflowId: id,
             workflowName: workflow.name,
         };
+    }
+
+    async initiateExecution(id: string, executeDto?: ExecuteWorkflowOptions): Promise<{
+        message: string;
+        executionId: string;
+        workflowId: string;
+        workflowName: string;
+    }> {
+        const workflow = await this.findOne(id);
+
+        if (!workflow.isActive) {
+            throw new BadRequestException('Cannot execute an inactive workflow');
+        }
+
+        // Validate before execution
+        const validation = this.validatorService.validate(workflow);
+        if (!validation.valid) {
+            throw new BadRequestException({
+                message: 'Workflow validation failed',
+                errors: validation.errors,
+            });
+        }
+
+        const options = {
+            timeout: executeDto?.timeout || workflow.settings?.timeout,
+            maxRetries: executeDto?.maxRetries || workflow.settings?.maxRetries,
+            retryFailedNodes: executeDto?.retryFailedNodes,
+            continueOnError: executeDto?.continueOnError || workflow.settings?.continueOnError,
+        };
+
+        const executionId = await this.executorService.createExecutionEntry(
+            workflow,
+            options,
+            executeDto?.triggerData,
+            executeDto?.clientInfo,
+        );
+
+        // Update workflow execution count and last executed time
+        await this.workflowModel.findByIdAndUpdate(id, {
+            $inc: { executionCount: 1 },
+            lastExecutedAt: new Date(),
+        });
+
+        return {
+            message: 'Execution initialized',
+            executionId,
+            workflowId: id,
+            workflowName: workflow.name,
+        };
+    }
+
+    async startExecution(executionId: string): Promise<{ started: boolean }> {
+        const history = await this.historyModel.findById(executionId);
+        if (!history) {
+            throw new NotFoundException(`Execution ${executionId} not found`);
+        }
+
+        const workflow = await this.findOne(history.workflowId.toString());
+
+        await this.executorService.runExecution(executionId, workflow, history.options || {});
+
+        return { started: true };
     }
 
     async cancelExecution(executionId: string, reason?: string): Promise<{ cancelled: boolean }> {

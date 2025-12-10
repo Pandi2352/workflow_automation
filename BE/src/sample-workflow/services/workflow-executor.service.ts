@@ -55,7 +55,7 @@ export class WorkflowExecutorService {
         private expressionEvaluator: ExpressionEvaluatorService,
     ) { }
 
-    async startExecution(
+    async createExecutionEntry(
         workflow: SampleWorkflowDocument,
         options: WorkflowExecutionOptions = {},
         triggerData?: any,
@@ -105,25 +105,39 @@ export class WorkflowExecutorService {
         });
 
         await history.save();
-
         const executionId = history._id.toString();
 
-        // Track active execution
         const activeExecution: ActiveExecution = {
             executionId,
             cancelled: false,
         };
         this.activeExecutions.set(executionId, activeExecution);
 
+        return executionId;
+    }
+
+    async runExecution(
+        executionId: string,
+        workflow: SampleWorkflowDocument,
+        options: WorkflowExecutionOptions,
+    ): Promise<void> {
+        const activeExecution = this.activeExecutions.get(executionId);
+        if (!activeExecution) {
+            this.activeExecutions.set(executionId, { executionId, cancelled: false });
+        }
+
         // Set timeout if specified
         if (options.timeout) {
-            activeExecution.timeoutId = setTimeout(() => {
-                this.handleTimeout(executionId);
-            }, options.timeout);
+            const existing = this.activeExecutions.get(executionId);
+            if (existing) {
+                existing.timeoutId = setTimeout(() => {
+                    this.handleTimeout(executionId);
+                }, options.timeout);
+            }
         }
 
         // Start execution asynchronously
-        this.executeWorkflow(workflow, executionId, options).catch(async error => {
+        this.executeWorkflowLogic(workflow, executionId, options).catch(async error => {
             this.logger.error(`Workflow execution failed: ${error.message}`, error.stack);
             await this.addExecutionError(executionId, {
                 code: 'SYSTEM_ERROR',
@@ -133,7 +147,16 @@ export class WorkflowExecutorService {
             });
             await this.finalizeExecution(executionId, ExecutionStatus.FAILED, new Date());
         });
+    }
 
+    async startExecution(
+        workflow: SampleWorkflowDocument,
+        options: WorkflowExecutionOptions = {},
+        triggerData?: any,
+        clientInfo?: ClientInfo,
+    ): Promise<string> {
+        const executionId = await this.createExecutionEntry(workflow, options, triggerData, clientInfo);
+        this.runExecution(executionId, workflow, options);
         return executionId;
     }
 
@@ -146,7 +169,7 @@ export class WorkflowExecutorService {
         await this.cancelExecution(executionId, 'system', 'Execution timeout');
     }
 
-    private async executeWorkflow(
+    private async executeWorkflowLogic(
         workflowDoc: SampleWorkflowDocument,
         executionId: string,
         options: WorkflowExecutionOptions,

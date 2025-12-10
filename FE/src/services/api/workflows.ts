@@ -32,5 +32,22 @@ export const workflowService = {
     run: async (id: string): Promise<any> => {
         const response = await axiosInstance.post(API_ENDPOINTS.WORKFLOWS.EXECUTE(id));
         return response.data;
+    },
+
+    getExecutions: async (id: string, page = 1, limit = 20): Promise<any> => {
+        const response = await axiosInstance.get(API_ENDPOINTS.WORKFLOWS.GET(id) + '/executions', {
+            params: { page, limit }
+        });
+        return response.data;
+    },
+
+    initiate: async (id: string): Promise<any> => {
+        const response = await axiosInstance.post(API_ENDPOINTS.WORKFLOWS.GET(id) + '/executions');
+        return response.data;
+    },
+
+    start: async (executionId: string): Promise<any> => {
+        const response = await axiosInstance.post(`/sample-workflows/executions/${executionId}/start`);
+        return response.data;
     }
 };

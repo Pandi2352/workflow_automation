@@ -111,6 +111,29 @@ export class SampleWorkflowController {
     executeNodeTest(@Body() dto: any) {
         return this.sampleWorkflowService.executeNodeTest(dto);
     }
+
+    @Post(':id/executions')
+    @ApiOperation({ summary: 'Initialize workflow execution' })
+    @ApiParam({ name: 'id', description: 'Workflow ID' })
+    @ApiResponse({ status: 201, description: 'Execution initialized' })
+    createExecution(
+        @Param('id') id: string,
+        @Body() executeDto: ExecuteWorkflowDto,
+        @Req() req: Request,
+    ) {
+        const clientInfo = extractClientInfo(req);
+        return this.sampleWorkflowService.initiateExecution(id, { ...executeDto, clientInfo });
+    }
+
+    @Post('executions/:executionId/start')
+    @ApiOperation({ summary: 'Start initialized execution' })
+    @ApiParam({ name: 'executionId', description: 'Execution ID' })
+    @ApiResponse({ status: 200, description: 'Execution started' })
+    startExecution(@Param('executionId') executionId: string) {
+        return this.sampleWorkflowService.startExecution(executionId);
+    }
+
+    @Post(':id/execute')
     @ApiOperation({ summary: 'Execute a workflow' })
     @ApiParam({ name: 'id', description: 'Workflow ID' })
     @ApiResponse({ status: 201, description: 'Execution started' })

@@ -1,27 +1,28 @@
-import React, { useEffect } from 'react';
+
+import React, { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { Zap, Plus } from 'lucide-react';
+import { Zap, Plus, ChevronUp } from 'lucide-react';
 import { Button } from '../components/common/Button';
 import { Toast } from '../components/common/Toast';
 import { NodeDrawer } from '../components/designer/NodeDrawer';
 import { WorkflowCanvas } from '../components/designer/WorkflowCanvas';
 import { NodeConfigPanel } from '../components/designer/NodeConfigPanel';
 import { DesignerHeader } from '../components/designer/DesignerHeader';
-import { ExecutionsView } from '../components/designer/ExecutionsView';
+import { ExecutionModeView } from '../components/designer/ExecutionModeView';
 import { useWorkflowStore } from '../store/workflowStore';
 import { workflowService } from '../services/api/workflows';
 
 export const WorkflowDesigner: React.FC = () => {
     const { id } = useParams<{ id: string }>();
-    const [isSaving, setIsSaving] = React.useState(false);
-    const [isDrawerOpen, setIsDrawerOpen] = React.useState(false);
-    const [showToast, setShowToast] = React.useState(false);
+    const [isSaving, setIsSaving] = useState(false);
+    const [isDrawerOpen, setIsDrawerOpen] = useState(false);
+    const [showToast, setShowToast] = useState(false);
+
     const navigate = useNavigate();
-    const { nodes, edges, setNodes, setEdges, selectedNode, activeTab, addNode } = useWorkflowStore(); // Access state directly
+    const { nodes, edges, setNodes, setEdges, selectedNode, addNode, activeTab } = useWorkflowStore(); 
 
     useEffect(() => {
         if (id === 'new') {
-             // Reset store for new workflow
              setNodes([]);
              setEdges([]);
         } else if (id) {
@@ -33,7 +34,14 @@ export const WorkflowDesigner: React.FC = () => {
         try {
             const workflow = await workflowService.getById(workflowId);
             if (workflow) {
-                setNodes(workflow.nodes || []);
+                const hydratedNodes = (workflow.nodes || []).map((n: any) => ({
+                    ...n,
+                    data: {
+                        ...n.data,
+                        label: n.nodeName || n.id
+                    }
+                }));
+                setNodes(hydratedNodes);
                 setEdges(workflow.edges || []);
             }
         } catch (err) {
@@ -50,7 +58,7 @@ export const WorkflowDesigner: React.FC = () => {
                 const createPayload = {
                     name: 'Untitled Workflow',
                     description: '',
-                    nodes: nodes as any,
+                    nodes: nodes.map(n => ({ ...n, nodeName: n.data?.label || n.id })) as any,
                     edges: edges as any
                 };
                 
@@ -59,7 +67,7 @@ export const WorkflowDesigner: React.FC = () => {
                 navigate(`/workflow/${newWorkflow._id}`, { replace: true });
             } else if (id) {
                 const updatePayload = {
-                    nodes: nodes as any,
+                    nodes: nodes.map(n => ({ ...n, nodeName: n.data?.label || n.id })) as any,
                     edges: edges as any
                 };
                 await workflowService.update(id, updatePayload);
@@ -79,9 +87,14 @@ export const WorkflowDesigner: React.FC = () => {
          if (!currentId) return;
 
          try {
-             const result = await workflowService.run(currentId);
-             console.log('Execution result:', result);
+             // 1. Initialize execution
+             const initResult = await workflowService.initiate(currentId);
+             
+             // 2. Just notify success, let it run in background
              setShowToast(true);
+
+             // 3. Start the actual execution
+             await workflowService.start(initResult.executionId);
          } catch (error) {
              console.error('Execution failed', error);
              alert('Failed to start execution');
@@ -90,11 +103,21 @@ export const WorkflowDesigner: React.FC = () => {
 
     const handleAddNode = (type: string) => {
         const nodeId = `node_${Date.now()}`;
+        const baseLabel = type.replace('_', ' '); 
+        let label = baseLabel;
+        let counter = 1;
+
+        while (nodes.some(n => (n as any).nodeName === label || n.data?.label === label)) {
+            label = `${baseLabel} ${counter}`;
+            counter++;
+        }
+
         const newNode = {
             id: nodeId,
             type, 
             position: { x: 100, y: 100 + nodes.length * 50 },
-            data: { label: `${type} node` },
+            data: { label },
+            nodeName: label
         };
         
         addNode(newNode);
@@ -114,39 +137,39 @@ export const WorkflowDesigner: React.FC = () => {
 
             <div className="flex flex-1 overflow-hidden relative">
                 {activeTab === 'executions' ? (
-                    <ExecutionsView />
+                    <ExecutionModeView />
                 ) : (
-                    /* Main Canvas Area */
+                    /* Editor Mode */
                     <div className="flex-1 relative flex bg-[#f4f4f4]">
-                        <WorkflowCanvas onToggleDrawer={() => setIsDrawerOpen(prev => !prev)} />
+                        <WorkflowCanvas 
+                            onToggleDrawer={() => setIsDrawerOpen(prev => !prev)} 
+                        />
 
                         {/* Top Left Controls */}
                         <div className="absolute top-4 left-4 z-30 flex flex-col gap-2 border border-gray-400 rounded-lg">
-                             <button 
-                                onClick={() => setIsDrawerOpen(true)}
-                                className="w-12 h-12 p-0 rounded-lg shadow-none hover:text-[#10b981] hover:border-[#10b981] flex items-center justify-center bg-white cursor-pointer"
-                                title="Add Node"
-                             >
-                                <Plus size={22} className='text-gray-500' />
-                             </button>
+                            <button 
+                            onClick={() => setIsDrawerOpen(true)}
+                            className="w-12 h-12 p-0 rounded-lg shadow-none hover:text-[#10b981] hover:border-[#10b981] flex items-center justify-center bg-white cursor-pointer"
+                            title="Add Node"
+                            >
+                            <Plus size={22} className='text-gray-500' />
+                            </button>
                         </div>
                         
-                        {/* Floating Bottom Bar for Execution */}
+                        {/* Execute Button */}
                         <div className="absolute bottom-6 left-1/2 transform -translate-x-1/2 z-30 flex items-center gap-2">
-
-                             <Button 
+                                <Button 
                                 onClick={executeWorkflow}
                                 className="bg-[#10b981] hover:bg-[#059669] text-white px-6 py-2.5 rounded-lg shadow-[0_4px_20px_rgba(16,185,129,0.3)] font-semibold text-sm flex items-center gap-2 transition-all transform hover:-translate-y-0.5"
                                 leftIcon={<Zap size={16} fill="currentColor" />}
-                             >
+                                >
                                 Execute workflow
-                             </Button>
+                                </Button>
                         </div>
 
-                        {/* Config Panel Overlay */}
+                        {/* Overlays */}
                         {selectedNode && <NodeConfigPanel />}
 
-                        {/* Node Drawer */}
                         <NodeDrawer 
                             isOpen={isDrawerOpen} 
                             onClose={() => setIsDrawerOpen(false)}
@@ -155,9 +178,9 @@ export const WorkflowDesigner: React.FC = () => {
                     </div>
                 )}
             </div>
-            {/* Toast Notification */}
+            
             <Toast 
-                message="Workflow executed successfully" 
+                message="Workflow execution started" 
                 isVisible={showToast} 
                 onClose={() => setShowToast(false)} 
             />

@@ -18,10 +18,12 @@ import { Plus } from 'lucide-react';
 
 interface WorkflowCanvasProps {
     onToggleDrawer?: () => void;
+    executionData?: any;
 }
 
 import { GenericNode } from './nodes/GenericNode';
 import { GoogleDriveNode } from './nodes/google-drive/GoogleDriveNode';
+import { useMemo } from 'react';
 
 const nodeTypes = {
     GOOGLE_DRIVE: GoogleDriveNode,
@@ -34,11 +36,31 @@ const nodeTypes = {
     schedule: GenericNode
 };
 
-const WorkflowCanvasInner: React.FC<WorkflowCanvasProps> = ({ onToggleDrawer }) => {
+const WorkflowCanvasInner: React.FC<WorkflowCanvasProps> = ({ onToggleDrawer, executionData }) => {
   const reactFlowWrapper = useRef<HTMLDivElement>(null);
   const { nodes, edges, onNodesChange, onEdgesChange, onConnect, addNode, setSelectedNode } = useWorkflowStore();
   const { screenToFlowPosition } = useReactFlow();
   const proOptions = { hideAttribution: true };
+
+  // Merge nodes with execution status
+  const nodesWithStatus = useMemo(() => {
+      if (!executionData || !executionData.nodeExecutions) return nodes;
+
+      return nodes.map(node => {
+          const execution = executionData.nodeExecutions.find((ex: any) => ex.nodeId === node.id);
+          if (!execution) return node;
+
+          let statusClass = '';
+          if (execution.status === 'SUCCESS') statusClass = '!border-green-500 !ring-2 !ring-green-200 !shadow-lg';
+          else if (execution.status === 'FAILED') statusClass = '!border-red-500 !ring-2 !ring-red-200 !shadow-lg';
+          else if (execution.status === 'RUNNING') statusClass = '!border-blue-500 !ring-2 !ring-blue-200 !shadow-lg';
+
+          return {
+              ...node,
+              className: `${node.className || ''} ${statusClass}`,
+          };
+      });
+  }, [nodes, executionData]);
 
   const onDragOver = useCallback((event: React.DragEvent) => {
     event.preventDefault();
@@ -83,7 +105,7 @@ const WorkflowCanvasInner: React.FC<WorkflowCanvasProps> = ({ onToggleDrawer }) 
   return (
     <div className="flex-1 h-full relative" ref={reactFlowWrapper}>
       <ReactFlow
-        nodes={nodes}
+        nodes={nodesWithStatus}
         nodeTypes={nodeTypes}
         edges={edges}
         onNodesChange={onNodesChange}

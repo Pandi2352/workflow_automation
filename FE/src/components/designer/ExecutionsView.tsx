@@ -1,46 +1,57 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
+import { useParams } from 'react-router-dom';
 import { Filter, RotateCcw, CheckCircle2, XCircle, ChevronRight, LayoutList } from 'lucide-react';
 import { Badge } from '../common/Badge';
 import { Button } from '../common/Button';
 import { ExecutionLogsPanel } from './ExecutionLogsPanel';
-
-interface Execution {
-    id: string;
-    status: 'success' | 'failed' | 'running';
-    startTime: string;
-    duration: string;
-    trigger: string;
-}
-
-const MOCK_EXECUTIONS: Execution[] = [
-    { id: '27', status: 'success', startTime: 'Dec 9, 17:00:30', duration: '37ms', trigger: 'Manual' },
-    { id: '26', status: 'failed', startTime: 'Dec 9, 10:58:17', duration: '31ms', trigger: 'Webhook' },
-    { id: '25', status: 'success', startTime: 'Dec 9, 10:58:13', duration: '32ms', trigger: 'Manual' },
-    { id: '24', status: 'success', startTime: 'Dec 8, 18:00:48', duration: '397ms', trigger: 'Schedule' },
-    { id: '23', status: 'failed', startTime: 'Dec 8, 18:00:31', duration: '374ms', trigger: 'Manual' },
-    { id: '22', status: 'success', startTime: 'Dec 8, 14:59:56', duration: '436ms', trigger: 'Manual' },
-];
+import { workflowService } from '../../services/api/workflows';
 
 export const ExecutionsView: React.FC = () => {
-    const [selectedExecutionId, setSelectedExecutionId] = useState<string | null>(MOCK_EXECUTIONS[0].id);
+    const { id: workflowId } = useParams<{ id: string }>();
+    const [executions, setExecutions] = useState<any[]>([]);
+    const [selectedExecutionId, setSelectedExecutionId] = useState<string | null>(null);
     const [logsHeight, setLogsHeight] = useState(300);
     const [isResizing, setIsResizing] = useState(false);
 
-    const selectedExecution = MOCK_EXECUTIONS.find(e => e.id === selectedExecutionId);
-
-    const getStatusIcon = (status: Execution['status']) => {
-        switch (status) {
-            case 'success': return <CheckCircle2 size={16} className="text-green-500" />;
-            case 'failed': return <XCircle size={16} className="text-red-500" />;
-            case 'running': return <RotateCcw size={16} className="text-blue-500 animate-spin" />;
+    const fetchExecutions = async () => {
+        if (!workflowId) return;
+        try {
+            const res = await workflowService.getExecutions(workflowId);
+            const list = res.data || [];
+            setExecutions(list);
+            if (!selectedExecutionId && list.length > 0) {
+                setSelectedExecutionId(list[0]._id);
+            }
+        } catch (err) {
+            console.error('Failed to fetch executions', err);
         }
     };
 
-    const getStatusBadgeVariant = (status: Execution['status']) => {
-        switch (status) {
-            case 'success': return 'success';
+    useEffect(() => {
+        fetchExecutions();
+        const interval = setInterval(fetchExecutions, 2000); // Poll every 2s for live updates
+        return () => clearInterval(interval);
+    }, [workflowId]);
+
+    const selectedExecution = executions.find(e => e._id === selectedExecutionId);
+
+    const getStatusIcon = (status: string) => {
+        switch (status?.toLowerCase()) {
+            case 'completed': return <CheckCircle2 size={16} className="text-green-500" />;
+            case 'failed': return <XCircle size={16} className="text-red-500" />;
+            case 'running': 
+            case 'pending': return <RotateCcw size={16} className="text-blue-500 animate-spin" />;
+            default: return <RotateCcw size={16} className="text-slate-400" />;
+        }
+    };
+
+    const getStatusBadgeVariant = (status: string) => {
+        switch (status?.toLowerCase()) {
+            case 'completed': return 'success';
             case 'failed': return 'error';
-            case 'running': return 'default';
+            case 'running': 
+            case 'pending': return 'default';
+            default: return 'default';
         }
     };
 
@@ -91,29 +102,31 @@ export const ExecutionsView: React.FC = () => {
                 </div>
 
                 <div className="flex-1 overflow-y-auto">
-                    {MOCK_EXECUTIONS.map(exec => (
+                    {executions.map(exec => (
                         <div 
-                            key={exec.id}
-                            onClick={() => setSelectedExecutionId(exec.id)}
+                            key={exec._id}
+                            onClick={() => setSelectedExecutionId(exec._id)}
                             className={`
                                 group flex items-center p-3 border-l-4 cursor-pointer transition-all border-b border-slate-50
-                                ${selectedExecutionId === exec.id 
+                                ${selectedExecutionId === exec._id 
                                     ? 'bg-green-50/50 border-l-[#10b981]' 
                                     : 'bg-white border-l-transparent hover:bg-slate-50'}
                             `}
                         >
                             <div className="flex-1 min-w-0">
                                 <div className="flex items-center gap-2 mb-1">
-                                    <span className="text-xs font-medium text-slate-700">{exec.startTime}</span>
+                                    <span className="text-xs font-medium text-slate-700">
+                                        {new Date(exec.createdAt).toLocaleString()}
+                                    </span>
                                 </div>
                                 <div className="flex items-center gap-2 text-xs text-slate-500">
                                      <span className={
-                                         exec.status === 'success' ? 'text-green-600' : 
-                                         exec.status === 'failed' ? 'text-red-500' : 'text-blue-500'
+                                         exec.status === 'COMPLETED' ? 'text-green-600' : 
+                                         exec.status === 'FAILED' ? 'text-red-500' : 'text-blue-500'
                                      }>
-                                         {exec.status.charAt(0).toUpperCase() + exec.status.slice(1)}
+                                         {exec.status}
                                      </span>
-                                     <span>in {exec.duration}</span>
+                                     {/* <span>in {exec.duration || '...'}</span> */}
                                 </div>
                             </div>
                             <div className="opacity-0 group-hover:opacity-100 transition-opacity flex items-center text-slate-400">
@@ -135,9 +148,9 @@ export const ExecutionsView: React.FC = () => {
                                     {getStatusIcon(selectedExecution.status)}
                                     <div>
                                         <h2 className="text-sm font-semibold text-slate-800 flex items-center gap-2">
-                                            {selectedExecution.startTime}
+                                            {new Date(selectedExecution.createdAt).toLocaleString()}
                                             <Badge variant={getStatusBadgeVariant(selectedExecution.status)} size="sm">
-                                                ID#{selectedExecution.id}
+                                                ID#{selectedExecution._id.substring(0, 8)}...
                                             </Badge>
                                         </h2>
                                         <div className="text-xs text-slate-500 mt-0.5">
@@ -162,7 +175,7 @@ export const ExecutionsView: React.FC = () => {
                                          <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-[#10b981]"><path d="M12 2v4"/><path d="m9 2 2 2.5"/><path d="m15 2-2 2.5"/><line x1="12" x2="12" y1="12" y2="22"/><line x1="12" x2="16" y1="12" y2="16"/><line x1="12" x2="8" y1="12" y2="16"/></svg>
                                      </div>
                                      <h3 className="text-slate-900 font-medium mb-1">When clicking 'Execute workflow'</h3>
-                                     <p className="text-slate-500 text-xs">Run {selectedExecution.id}</p>
+                                     <p className="text-slate-500 text-xs">Run {selectedExecution._id}</p>
                                  </div>
                             </div>
                         </div>
