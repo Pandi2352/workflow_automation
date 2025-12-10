@@ -10,7 +10,7 @@ import { NodeConfigPanel } from './NodeConfigPanel';
 export const ExecutionModeView: React.FC = () => {
     const { id } = useParams<{ id: string }>();
     const [selectedExecution, setSelectedExecution] = useState<any>(null);
-    const { selectedNode, setSelectedNode } = useWorkflowStore();
+    const { selectedNode, } = useWorkflowStore();
 
     return (
         <div className="flex h-full w-full bg-slate-50 overflow-hidden">

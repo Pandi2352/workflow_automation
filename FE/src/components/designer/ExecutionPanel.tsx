@@ -1,6 +1,6 @@
 
 import React, { useState, useEffect } from 'react';
-import { X, RefreshCw, ChevronRight, CheckCircle, AlertCircle, Clock } from 'lucide-react';
+import { X, RefreshCw, Clock } from 'lucide-react';
 import { workflowService } from '../../services/api/workflows';
 
 // Simple date formatter to avoid external dependencies
@@ -81,15 +81,6 @@ export const ExecutionPanel: React.FC<ExecutionPanelProps> = ({
     const handleSelect = (execution: any) => {
         setSelectedId(execution._id);
         onExecutionSelect(execution);
-    };
-
-    const getStatusColor = (status: string) => {
-        switch (status) {
-            case 'COMPLETED': return 'text-green-500';
-            case 'FAILED': return 'text-red-500';
-            case 'RUNNING': return 'text-blue-500';
-            default: return 'text-gray-500';
-        }
     };
 
     const selectedExecution = executions.find(e => e._id === selectedId);

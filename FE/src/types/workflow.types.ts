@@ -26,6 +26,7 @@ export interface SampleWorkflow {
 export interface CreateWorkflowPayload {
     name: string;
     description?: string;
+    active?: boolean;
     nodes: WorkflowNode[];
     edges: WorkflowEdge[];
 }

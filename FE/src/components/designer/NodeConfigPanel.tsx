@@ -6,7 +6,7 @@ import { axiosInstance } from '../../api/axiosConfig';
 
 // --- Generic Configuration Component ---
 const GenericNodeConfig = ({ selectedNode }: { selectedNode: any }) => {
-    const { updateNodeData, nodeDefinitions, fetchCredentials, credentials } = useWorkflowStore();
+    const { updateNodeData, nodeDefinitions, credentials } = useWorkflowStore();
     
     // Config change handler
     const handleConfigChange = (key: string, value: any) => {
@@ -117,7 +117,7 @@ const NODE_CONFIGS: Record<string, React.FC<any>> = {
 };
 
 // --- Main Panel Component ---
-export const NodeConfigPanel: React.FC = () => {
+export const NodeConfigPanel: React.FC<{ nodeExecutionData?: any }> = ({ nodeExecutionData }) => {
     const { selectedNode, updateNodeData, setSelectedNode, fetchNodeDefinitions, nodeDefinitions, fetchCredentials } = useWorkflowStore();
     const [label, setLabel] = useState('');
     const [executionResult, setExecutionResult] = useState<any>(null);
@@ -131,9 +131,24 @@ export const NodeConfigPanel: React.FC = () => {
     useEffect(() => {
         if (selectedNode) {
             setLabel((selectedNode.data?.label as string) || '');
-            setExecutionResult(null); // Reset on node change
+            // Only reset if no external data provided, otherwise let the next effect handle it
+            if (!nodeExecutionData) {
+                setExecutionResult(null); 
+            }
         }
     }, [selectedNode]);
+
+    // Sync with external execution data
+    useEffect(() => {
+        if (nodeExecutionData) {
+            setExecutionResult({
+                success: nodeExecutionData.status === 'SUCCESS',
+                output: nodeExecutionData.outputs || nodeExecutionData.value,
+                logs: nodeExecutionData.logs,
+                status: nodeExecutionData.status
+            });
+        }
+    }, [nodeExecutionData]);
 
     // Handle Google Auth Pop-up Message (Global Listener for Panel)
     useEffect(() => {

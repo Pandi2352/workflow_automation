@@ -18,5 +18,7 @@ export const API_ENDPOINTS = {
     },
     EXECUTIONS: {
         LIST: '/sample-workflows/executions/list',
+        GET: (id: string) => `/sample-workflows/executions/${id}`,
+        START: (id: string) => `/sample-workflows/executions/${id}/start`,
     }
 };

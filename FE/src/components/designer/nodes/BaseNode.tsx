@@ -1,6 +1,6 @@
 import React, { memo } from 'react';
 import { Handle, Position, type NodeProps } from '@xyflow/react';
-import { MoreVertical } from 'lucide-react';
+import { MoreVertical, Loader2 } from 'lucide-react';
 
 interface BaseNodeProps extends Omit<NodeProps, 'selected'> {
     label: string;
@@ -46,14 +46,17 @@ export const BaseNode = memo(({ data, isConnectable, selected, label, icon: Icon
             {/* Body */}
             <div className="p-3 bg-white rounded-b-lg">
                  {data.executionStatus ? (
-                    <div className="flex items-center justify-between text-xs">
-                         <span className={`font-semibold ${
+                     <div className="flex items-center justify-between text-xs">
+                         <span className={`font-semibold flex items-center gap-1 ${
                              data.executionStatus === 'SUCCESS' ? 'text-green-600' :
                              data.executionStatus === 'FAILED' ? 'text-red-600' :
                              'text-blue-600'
                          }`}>
                              {data.executionStatus === 'SUCCESS' ? 'Success' : 
-                              data.executionStatus === 'FAILED' ? 'Error' : 'Running'}
+                              data.executionStatus === 'FAILED' ? 'Error' : 
+                              <>
+                                <Loader2 className="animate-spin" size={12} /> Running
+                              </>}
                          </span>
                          {data.executionDuration !== undefined && (
                              <span className="text-gray-400">

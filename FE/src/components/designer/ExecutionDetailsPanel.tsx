@@ -1,8 +1,8 @@
 
 import React, { useState, useEffect, useRef } from 'react';
 import { 
-    X, Maximize2, Minimize2, FileText, Code, GripHorizontal, 
-    LayoutDashboard, Monitor, Database, Activity
+   Code, GripHorizontal, 
+    LayoutDashboard, Monitor, Database, Activity, ChevronUp
 } from 'lucide-react';
 
 const formatTime = (dateString: string, includeMs = false) => {
@@ -22,30 +22,51 @@ interface ExecutionDetailsPanelProps {
 
 type TabType = 'overview' | 'client_info' | 'outputs' | 'logs' | 'json';
 
-export const ExecutionDetailsPanel: React.FC<ExecutionDetailsPanelProps> = ({ execution, selectedNodeId }) => {
+export const ExecutionDetailsPanel: React.FC<ExecutionDetailsPanelProps> = ({ execution }) => {
     const [activeTab, setActiveTab] = useState<TabType>('overview');
     const [height, setHeight] = useState(300);
+    const [isCollapsed, setIsCollapsed] = useState(true);
     const [isDragging, setIsDragging] = useState(false);
-    const dragStartY = useRef<number>(0);
-    const dragStartHeight = useRef<number>(0);
+    
+    // Performance Optimization: Use ref for direct DOM manipulation during drag
+    const panelRef = useRef<HTMLDivElement>(null);
+    const heightRef = useRef(300);
+
+    // Sync ref when state changes (e.g. initial load or expand)
+    useEffect(() => {
+        if (!isDragging) heightRef.current = height;
+    }, [height, isDragging]);
 
     useEffect(() => {
         const handleMouseMove = (e: MouseEvent) => {
-            if (!isDragging) return;
-            const delta = dragStartY.current - e.clientY;
-            const newHeight = Math.max(200, Math.min(dragStartHeight.current + delta, window.innerHeight - 100));
-            setHeight(newHeight);
+            if (!isDragging || !panelRef.current) return;
+            
+            const availableHeight = window.innerHeight;
+            const maxH = availableHeight - 100; // Leave space for header
+            const minH = 200;
+            
+            // Calculate height from bottom of screen
+            const newHeight = Math.max(minH, Math.min(availableHeight - e.clientY, maxH));
+            
+            // Direct DOM update (Performance: No React Re-render loop)
+            panelRef.current.style.height = `${newHeight}px`;
+            heightRef.current = newHeight;
         };
 
         const handleMouseUp = () => {
-            setIsDragging(false);
-            document.body.style.cursor = 'default';
+            if (isDragging) {
+                setIsDragging(false);
+                setHeight(heightRef.current); // Sync state on release
+                document.body.style.cursor = 'default';
+                document.body.classList.remove('select-none');
+            }
         };
 
         if (isDragging) {
             window.addEventListener('mousemove', handleMouseMove);
             window.addEventListener('mouseup', handleMouseUp);
             document.body.style.cursor = 'row-resize';
+            document.body.classList.add('select-none');
         }
 
         return () => {
@@ -55,14 +76,13 @@ export const ExecutionDetailsPanel: React.FC<ExecutionDetailsPanelProps> = ({ ex
     }, [isDragging]);
 
     const handleMouseDown = (e: React.MouseEvent) => {
+        e.preventDefault(); 
         setIsDragging(true);
-        dragStartY.current = e.clientY;
-        dragStartHeight.current = height;
     };
 
     if (!execution) {
         return (
-            <div className="h-64 border-t border-gray-200 bg-white flex items-center justify-center text-gray-400 text-sm">
+            <div className="h-10 border-t border-gray-200 bg-gray-50 flex items-center px-4 text-gray-400 text-xs shadow-inner">
                 Select an execution to view details
             </div>
         );
@@ -215,35 +235,74 @@ export const ExecutionDetailsPanel: React.FC<ExecutionDetailsPanelProps> = ({ ex
 
     return (
         <div 
-            className="bg-white border-t border-gray-200 flex flex-col shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.1)] relative z-20"
-            style={{ height: `${height}px` }}
+            ref={panelRef}
+            className={`bg-white border-t border-gray-200 flex flex-col shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.1)] relative z-20 flex-shrink-0 ease-in-out ${isDragging ? 'transition-none' : 'transition-[height] duration-300'}`}
+            style={{ height: isCollapsed ? '48px' : `${height}px` }}
         >
-            {/* Resize Handle */}
+            {/* Resize Handle (Only when expanded) */}
+            {!isCollapsed && (
+                <div 
+                    className="absolute top-0 left-0 right-0 h-3 -mt-1.5 cursor-row-resize hover:bg-blue-500/10 transition-colors z-30 flex justify-center group"
+                    onMouseDown={handleMouseDown}
+                >
+                    {/* Visible indicator line */}
+                    <div className="w-full h-[1px] bg-transparent group-hover:bg-blue-400/50 mt-[7px]" />
+                </div>
+            )}
+
+            {/* Header / Toggle Bar */}
             <div 
-                className="absolute top-0 left-0 right-0 h-1.5 cursor-row-resize hover:bg-blue-500/50 transition-colors z-30"
-                onMouseDown={handleMouseDown}
-            />
-            
-            <div className="flex flex-1 overflow-hidden pt-2">
-                {/* Internal Sidebar */}
-                <div className="w-48 bg-gray-50 border-r border-gray-200 flex flex-col flex-shrink-0">
-                    <div className="p-4 border-b border-gray-200">
-                        <h3 className="text-xs font-bold text-gray-400 uppercase tracking-wider">Execution Data</h3>
+                className="h-12 border-b border-gray-200 flex items-center justify-between px-4 bg-gray-50 cursor-pointer hover:bg-gray-100 select-none"
+                onClick={() => setIsCollapsed(!isCollapsed)}
+            >
+                <div className="flex items-center gap-3">
+                    <div className={`p-1 rounded-md bg-white border border-gray-200 shadow-sm transition-transform duration-300 ${!isCollapsed ? 'rotate-180' : ''}`}>
+                        <ChevronUp size={14} className="text-gray-500" />
                     </div>
-                    <nav className="flex-1 overflow-y-auto">
-                        <SidebarItem id="overview" icon={LayoutDashboard} label="Overview" />
-                        <SidebarItem id="client_info" icon={Monitor} label="Client Info" />
-                        <SidebarItem id="outputs" icon={Database} label="Node Outputs" />
-                        <SidebarItem id="logs" icon={Activity} label="Logs" />
-                        <SidebarItem id="json" icon={Code} label="Raw JSON" />
-                    </nav>
+                    
+                    <div className="flex items-center gap-2">
+                        <span className="text-sm font-semibold text-gray-700">
+                            Workflow Execution Logs
+                        </span>
+                        {execution && (
+                            <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full uppercase ml-2 
+                                ${execution.status === 'COMPLETED' ? 'bg-green-100 text-green-700' : 'bg-blue-100 text-blue-700'}`}>
+                                {execution.status}
+                            </span>
+                        )}
+                    </div>
                 </div>
 
-                {/* Content Area */}
-                <div className="flex-1 overflow-auto bg-white p-6 scrollbar-thin scrollbar-thumb-gray-200">
-                    {renderContent()}
-                </div>
+                {!isCollapsed && (
+                    <div className="text-gray-400">
+                        <GripHorizontal size={14} />
+                    </div>
+                )}
             </div>
+            
+            {/* Expanded Content */}
+            {!isCollapsed && (
+                <div className="flex flex-1 overflow-hidden pt-0 animate-in fade-in duration-300">
+                    {/* Internal Sidebar */}
+                    <div className="w-48 bg-gray-50 border-r border-gray-200 flex flex-col flex-shrink-0">
+                        <div className="p-3 border-b border-gray-200 bg-gray-50/50">
+                             <span className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">Details</span>
+                        </div>
+                        <nav className="flex-1 overflow-y-auto">
+                            <SidebarItem id="overview" icon={LayoutDashboard} label="Overview" />
+                            <SidebarItem id="client_info" icon={Monitor} label="Client Info" />
+                            <SidebarItem id="outputs" icon={Database} label="Node Outputs" />
+                            <SidebarItem id="logs" icon={Activity} label="Logs" />
+                            <SidebarItem id="json" icon={Code} label="Raw JSON" />
+                        </nav>
+                    </div>
+
+                    {/* Content Area */}
+                    <div className="flex-1 overflow-auto bg-white p-6 scrollbar-thin scrollbar-thumb-gray-200">
+                        {renderContent()}
+                    </div>
+                </div>
+            )}
         </div>
     );
 };

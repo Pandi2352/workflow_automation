@@ -1,7 +1,7 @@
 
 import React, { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { Zap, Plus, ChevronUp } from 'lucide-react';
+import { Zap, Plus } from 'lucide-react';
 import { Button } from '../components/common/Button';
 import { Toast } from '../components/common/Toast';
 import { NodeDrawer } from '../components/designer/NodeDrawer';
@@ -11,20 +11,44 @@ import { DesignerHeader } from '../components/designer/DesignerHeader';
 import { ExecutionModeView } from '../components/designer/ExecutionModeView';
 import { useWorkflowStore } from '../store/workflowStore';
 import { workflowService } from '../services/api/workflows';
+import { WorkflowMetadataModal } from '../components/designer/WorkflowMetadataModal';
+
 
 export const WorkflowDesigner: React.FC = () => {
     const { id } = useParams<{ id: string }>();
     const [isSaving, setIsSaving] = useState(false);
     const [isDrawerOpen, setIsDrawerOpen] = useState(false);
-    const [showToast, setShowToast] = useState(false);
 
     const navigate = useNavigate();
-    const { nodes, edges, setNodes, setEdges, selectedNode, addNode, activeTab } = useWorkflowStore(); 
+    const { 
+        nodes, edges, setNodes, setEdges, selectedNode, addNode, activeTab,
+        setWorkflowMetadata, workflowName, workflowDescription, isWorkflowActive
+    } = useWorkflowStore(); 
+    
+    const [isMetadataModalOpen, setIsMetadataModalOpen] = useState(false);
+    const [currentExecution, setCurrentExecution] = useState<any>(null);
+    
+    // Toast state
+    const [toastConfig, setToastConfig] = useState<{ 
+        message: string; 
+        description?: string; 
+        variant: 'success' | 'error' | 'info'; 
+        isVisible: boolean 
+    }>({
+        message: '',
+        variant: 'success',
+        isVisible: false
+    });
+
+    const showToast = (message: string, variant: 'success' | 'error' | 'info' = 'success', description?: string) => {
+        setToastConfig({ message, variant, description, isVisible: true });
+    };
 
     useEffect(() => {
         if (id === 'new') {
              setNodes([]);
              setEdges([]);
+             setIsMetadataModalOpen(true);
         } else if (id) {
             loadWorkflow(id);
         }
@@ -43,39 +67,79 @@ export const WorkflowDesigner: React.FC = () => {
                 }));
                 setNodes(hydratedNodes);
                 setEdges(workflow.edges || []);
+                setWorkflowMetadata({
+                    workflowName: workflow.name,
+                    workflowDescription: workflow.description,
+                    isWorkflowActive: workflow.active
+                });
+
+                // Restore latest execution context
+                try {
+                    const executions = await workflowService.getExecutions(workflowId, 1, 1);
+                    const list = Array.isArray(executions) ? executions : (executions.data || []);
+                    const latest = list[0];
+                    
+                    if (latest && latest._id) {
+                         const fullExecution = await workflowService.getExecution(latest._id);
+                         setCurrentExecution(fullExecution);
+                         // Optional: notify user
+                         // showToast('Restored previous execution context', 'info');
+                    }
+                } catch (execErr) {
+                    console.warn('Failed to fetch previous executions', execErr);
+                }
             }
         } catch (err) {
             console.error('Failed to load workflow', err);
+            showToast('Failed to load workflow', 'error');
         }
+    };
+
+    const handleMetadataSave = (data: { name: string; description: string; active: boolean }) => {
+        setWorkflowMetadata({
+            workflowName: data.name,
+            workflowDescription: data.description,
+            isWorkflowActive: data.active
+        });
     };
 
     const handleSave = async (): Promise<string | null> => {
         setIsSaving(true);
         try {
             let currentId: string | null = id || null;
+            
+            // Use store values for save
+            const payload = {
+                name: workflowName || 'Untitled Workflow',
+                description: workflowDescription || '',
+                active: isWorkflowActive,
+                nodes: nodes.map(n => ({ ...n, nodeName: n.data?.label || n.id })) as any,
+                edges: edges as any
+            };
 
             if (id === 'new') {
-                const createPayload = {
-                    name: 'Untitled Workflow',
-                    description: '',
-                    nodes: nodes.map(n => ({ ...n, nodeName: n.data?.label || n.id })) as any,
-                    edges: edges as any
-                };
-                
-                const newWorkflow = await workflowService.create(createPayload);
+                const newWorkflow = await workflowService.create(payload);
                 currentId = newWorkflow._id;
                 navigate(`/workflow/${newWorkflow._id}`, { replace: true });
             } else if (id) {
-                const updatePayload = {
-                    nodes: nodes.map(n => ({ ...n, nodeName: n.data?.label || n.id })) as any,
-                    edges: edges as any
-                };
-                await workflowService.update(id, updatePayload);
+                await workflowService.update(id, payload);
             }
+            
+            showToast('Workflow saved successfully', 'success');
             return currentId;
-        } catch (error) {
+        } catch (error: any) {
             console.error('Failed to save workflow', error);
-            setShowToast(true);
+            
+            // Extract detailed error message from backend response
+            const errorData = error.response?.data;
+            const validationError = errorData?.error?.errors?.[0]?.message;
+            const mainMessage = errorData?.message || 'Failed to save workflow';
+            
+            showToast(
+                validationError ? 'Validation Failed' : 'Save Failed', 
+                'error', 
+                validationError || mainMessage
+            );
             return null;
         } finally {
             setIsSaving(false);
@@ -89,15 +153,33 @@ export const WorkflowDesigner: React.FC = () => {
          try {
              // 1. Initialize execution
              const initResult = await workflowService.initiate(currentId);
+             showToast('Execution initialized', 'info');
              
-             // 2. Just notify success, let it run in background
-             setShowToast(true);
+             // Set initial state
+             setCurrentExecution({ ...initResult, status: 'RUNNING', nodeExecutions: [] });
 
-             // 3. Start the actual execution
+             // 2. Start the actual execution
              await workflowService.start(initResult.executionId);
-         } catch (error) {
+             
+             // 3. Poll for updates
+             const interval = setInterval(async () => {
+                 try {
+                     const execData = await workflowService.getExecution(initResult.executionId);
+                     setCurrentExecution(execData);
+                     
+                     if (['COMPLETED', 'FAILED', 'CANCELLED'].includes(execData.status)) {
+                         clearInterval(interval);
+                         showToast(`Execution ${execData.status.toLowerCase()}`, execData.status === 'COMPLETED' ? 'success' : 'error');
+                     }
+                 } catch (e) {
+                     console.error('Polling failed', e);
+                     clearInterval(interval);
+                 }
+             }, 1000); 
+
+         } catch (error: any) {
              console.error('Execution failed', error);
-             alert('Failed to start execution');
+             showToast('Failed to start execution', 'error', error.response?.data?.message || error.message);
          }
     };
 
@@ -143,6 +225,7 @@ export const WorkflowDesigner: React.FC = () => {
                     <div className="flex-1 relative flex bg-[#f4f4f4]">
                         <WorkflowCanvas 
                             onToggleDrawer={() => setIsDrawerOpen(prev => !prev)} 
+                            executionData={currentExecution}
                         />
 
                         {/* Top Left Controls */}
@@ -168,7 +251,13 @@ export const WorkflowDesigner: React.FC = () => {
                         </div>
 
                         {/* Overlays */}
-                        {selectedNode && <NodeConfigPanel />}
+                        {selectedNode && (
+                            <NodeConfigPanel 
+                                nodeExecutionData={currentExecution?.nodeExecutions?.find(
+                                    (ex: any) => ex.nodeId === selectedNode?.id
+                                )} 
+                            />
+                        )}
 
                         <NodeDrawer 
                             isOpen={isDrawerOpen} 
@@ -180,9 +269,22 @@ export const WorkflowDesigner: React.FC = () => {
             </div>
             
             <Toast 
-                message="Workflow execution started" 
-                isVisible={showToast} 
-                onClose={() => setShowToast(false)} 
+                message={toastConfig.message}
+                description={toastConfig.description}
+                variant={toastConfig.variant} 
+                isVisible={toastConfig.isVisible} 
+                onClose={() => setToastConfig(prev => ({ ...prev, isVisible: false }))} 
+            />
+
+            <WorkflowMetadataModal 
+                isOpen={isMetadataModalOpen}
+                onClose={() => setIsMetadataModalOpen(false)}
+                onSave={handleMetadataSave}
+                initialData={{
+                    name: workflowName,
+                    description: workflowDescription || '',
+                    active: isWorkflowActive ?? true
+                }}
             />
         </div>
     );

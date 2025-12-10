@@ -239,6 +239,11 @@ export class CreateSampleWorkflowDto {
     @IsOptional()
     settings?: WorkflowSettingsDto;
 
+    @ApiPropertyOptional({ description: 'Is the workflow active', default: true })
+    @IsBoolean()
+    @IsOptional()
+    isActive?: boolean;
+
     @ApiPropertyOptional({ type: [String], description: 'Tags for categorization' })
     @IsArray()
     @IsString({ each: true })

@@ -41,13 +41,18 @@ export const workflowService = {
         return response.data;
     },
 
-    initiate: async (id: string): Promise<any> => {
-        const response = await axiosInstance.post(API_ENDPOINTS.WORKFLOWS.GET(id) + '/executions');
+    getExecution: async (executionId: string): Promise<any> => {
+        const response = await axiosInstance.get(API_ENDPOINTS.EXECUTIONS.GET(executionId));
+        return response.data;
+    },
+
+    initiate: async (id: string, payload: any = {}): Promise<any> => {
+        const response = await axiosInstance.post(API_ENDPOINTS.WORKFLOWS.GET(id) + '/executions', payload);
         return response.data;
     },
 
     start: async (executionId: string): Promise<any> => {
-        const response = await axiosInstance.post(`/sample-workflows/executions/${executionId}/start`);
+        const response = await axiosInstance.post(API_ENDPOINTS.EXECUTIONS.START(executionId));
         return response.data;
     }
 };

@@ -79,14 +79,8 @@ const FolderSelectorField = ({ credentialId, value, onFolderSelect }: any) => {
 };
 
 export const GoogleDriveConfig = ({ selectedNode }: { selectedNode: any }) => {
-    const { updateNodeData, fetchCredentials, credentials } = useWorkflowStore();
+    const { updateNodeData, credentials } = useWorkflowStore();
     const config = selectedNode.data?.config || {};
-
-    const handleConfigChange = (key: string, value: any) => {
-        updateNodeData(selectedNode.id, {
-            config: { ...config, [key]: value }
-        });
-    };
 
     return (
         <div className="space-y-6">

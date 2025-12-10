@@ -58,6 +58,11 @@ const WorkflowCanvasInner: React.FC<WorkflowCanvasProps> = ({ onToggleDrawer, ex
           return {
               ...node,
               className: `${node.className || ''} ${statusClass}`,
+              data: {
+                  ...node.data,
+                  executionStatus: execution.status,
+                  executionDuration: execution.duration
+              }
           };
       });
   }, [nodes, executionData]);

@@ -127,7 +127,7 @@ export const useWorkflowStore = create<WorkflowState>((set, get) => ({
     },
     workflowName: 'Untitled Workflow',
     workflowDescription: '',
-    isWorkflowActive: false,
+    isWorkflowActive: true,
     setWorkflowMetadata: (metadata) => set((state) => ({ ...state, ...metadata })),
 
     nodeDefinitions: [],
