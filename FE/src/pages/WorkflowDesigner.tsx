@@ -2,16 +2,16 @@
 import React, { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { Zap, Plus } from 'lucide-react';
-import { Button } from '../components/common/Button';
-import { Toast } from '../components/common/Toast';
 import { NodeDrawer } from '../components/designer/NodeDrawer';
 import { WorkflowCanvas } from '../components/designer/WorkflowCanvas';
-import { NodeConfigPanel } from '../components/designer/NodeConfigPanel';
+import { NodeConfigPanel } from '../nodes/google-drive/NodeConfigPanel';
 import { DesignerHeader } from '../components/designer/DesignerHeader';
-import { ExecutionModeView } from '../components/designer/ExecutionModeView';
+import { ExecutionModeView } from '../components/execution/ExecutionModeView';
 import { useWorkflowStore } from '../store/workflowStore';
 import { workflowService } from '../services/api/workflows';
 import { WorkflowMetadataModal } from '../components/designer/WorkflowMetadataModal';
+import { Button } from '../common/Button';
+import { Toast } from '../common/Toast';
 
 
 export const WorkflowDesigner: React.FC = () => {

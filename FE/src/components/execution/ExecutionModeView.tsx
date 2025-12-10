@@ -5,7 +5,7 @@ import { ExecutionSidebar } from './ExecutionSidebar';
 import { ExecutionDetailsPanel } from './ExecutionDetailsPanel';
 import { ExecutionCanvas } from './ExecutionCanvas';
 import { useWorkflowStore } from '../../store/workflowStore';
-import { NodeConfigPanel } from './NodeConfigPanel';
+import { NodeConfigPanel } from '../../nodes/google-drive/NodeConfigPanel';
 
 export const ExecutionModeView: React.FC = () => {
     const { id } = useParams<{ id: string }>();

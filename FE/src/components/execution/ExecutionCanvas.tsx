@@ -5,13 +5,12 @@ import {
   MiniMap,
   Controls,
   Background,
-  useReactFlow,
   ReactFlowProvider,
   BackgroundVariant,
 } from '@xyflow/react';
 import { useWorkflowStore } from '../../store/workflowStore';
-import { GenericNode } from './nodes/GenericNode';
-import { GoogleDriveNode } from './nodes/google-drive/GoogleDriveNode';
+import { GenericNode } from '../../nodes/GenericNode';
+import { GoogleDriveNode } from '../../nodes/google-drive/GoogleDriveNode';
 
 interface ExecutionCanvasProps {
     executionData?: any;

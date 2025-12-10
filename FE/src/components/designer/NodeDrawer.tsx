@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { Search, X, MousePointerClick, ChevronRight, HardDrive } from 'lucide-react';
-import { Input } from '../common/Input';
-import { Button } from '../common/Button';
+import { Input } from '../../common/Input';
+import { Button } from '../../common/Button';
 
 interface NodeDrawerProps {
     isOpen: boolean;

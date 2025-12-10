@@ -1,7 +1,8 @@
 
 import React, { useState, useEffect } from 'react';
-import { Modal } from '../common/Modal';
-import { Button } from '../common/Button';
+import { Modal } from '../../common/Modal';
+import { Button } from '../../common/Button';
+
 
 interface WorkflowMetadataModalProps {
     isOpen: boolean;

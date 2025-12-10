@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { useWorkflowStore } from '../../store/workflowStore';
 import { X, RefreshCw, Zap } from 'lucide-react';
-import { GoogleDriveConfig } from './nodes/google-drive/GoogleDriveConfig';
+import { GoogleDriveConfig } from './GoogleDriveConfig';
 import { axiosInstance } from '../../api/axiosConfig';
 
 // --- Generic Configuration Component ---

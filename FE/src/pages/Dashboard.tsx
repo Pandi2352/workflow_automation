@@ -6,7 +6,7 @@ import {
 } from 'lucide-react';
 import { workflowService } from '../services/api/workflows';
 import type { SampleWorkflow } from '../types/workflow.types';
-import { Button } from '../components/common/Button';
+import { Button } from '../common/Button';
 
 export const Dashboard: React.FC = () => {
   const navigate = useNavigate();

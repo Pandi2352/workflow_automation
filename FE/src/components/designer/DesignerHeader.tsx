@@ -1,9 +1,9 @@
 import React from 'react';
 import { Save, ChevronLeft, PencilRulerIcon } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
-import { Button } from '../common/Button';
+import { Button } from '../../common/Button';
 import { useWorkflowStore } from '../../store/workflowStore';
-import { Switch } from '../common/Switch';
+import { Switch } from '../../common/Switch';
 
 interface DesignerHeaderProps {
     workflowId: string;

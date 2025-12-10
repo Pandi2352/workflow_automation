@@ -21,8 +21,8 @@ interface WorkflowCanvasProps {
     executionData?: any;
 }
 
-import { GenericNode } from './nodes/GenericNode';
-import { GoogleDriveNode } from './nodes/google-drive/GoogleDriveNode';
+import { GenericNode } from '../../nodes/GenericNode';
+import { GoogleDriveNode } from '../../nodes/google-drive/GoogleDriveNode';
 import { useMemo } from 'react';
 
 const nodeTypes = {

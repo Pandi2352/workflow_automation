@@ -1,8 +1,9 @@
 import React, { useEffect, useState } from 'react';
 import { RefreshCw } from 'lucide-react';
-import { useWorkflowStore } from '../../../../store/workflowStore';
-import { axiosInstance } from '../../../../api/axiosConfig';
-import { API_ENDPOINTS } from '../../../../api/endpoints';
+import { axiosInstance } from '../../api/axiosConfig';
+import { API_ENDPOINTS } from '../../api/endpoints';
+import { useWorkflowStore } from '../../store/workflowStore';
+
 
 // Internal Folder Selector Component
 const FolderSelectorField = ({ credentialId, value, onFolderSelect }: any) => {
