@@ -8,10 +8,13 @@ export const AppRoutes: React.FC = () => {
     const element = useRoutes([
         {
             path: '/',
+            element: <Dashboard />
+        },
+        {
+            path: '/', 
             element: <MainLayout />,
             children: [
-                { index: true, element: <Dashboard /> },
-                // Add execution list route later
+              
             ]
         },
         {
