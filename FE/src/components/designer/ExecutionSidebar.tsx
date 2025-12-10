@@ -32,14 +32,6 @@ export const ExecutionSidebar: React.FC<ExecutionSidebarProps> = ({
         try {
             const data = await workflowService.getExecutions(workflowId, 1, 50);
             setExecutions(data.data || []);
-            
-            // Auto-select first/active if present
-            if (activeExecutionId) {
-                 const active = data.data.find((e: any) => e._id === activeExecutionId);
-                 if (active) onSelectExecution(active);
-            } else if (!selectedId && data.data && data.data.length > 0) {
-                 handleSelect(data.data[0]);
-            }
         } catch (error) {
             console.error('Failed to fetch executions', error);
         } finally {
@@ -49,18 +41,19 @@ export const ExecutionSidebar: React.FC<ExecutionSidebarProps> = ({
 
     useEffect(() => {
         fetchExecutions();
-        const interval = setInterval(fetchExecutions, 3000);
-        return () => clearInterval(interval);
     }, [workflowId]);
 
-    // Update selection if activeExecutionId changes from parent
+    // Handle initial selection and prop updates
     useEffect(() => {
         if (activeExecutionId && activeExecutionId !== selectedId) {
             setSelectedId(activeExecutionId);
             const found = executions.find(e => e._id === activeExecutionId);
             if (found) onSelectExecution(found);
+        } else if (!selectedId && executions.length > 0 && !activeExecutionId) {
+            // Auto-select first item only if nothing selected and no active prop
+            handleSelect(executions[0]);
         }
-    }, [activeExecutionId, executions]);
+    }, [activeExecutionId, executions, selectedId]);
 
     const handleSelect = (execution: any) => {
         setSelectedId(execution._id);

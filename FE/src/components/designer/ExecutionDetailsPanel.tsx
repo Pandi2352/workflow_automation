@@ -1,13 +1,13 @@
 
-import React, { useState } from 'react';
-import { X, Maximize2, Minimize2, FileText, Code } from 'lucide-react';
+import React, { useState, useEffect, useRef } from 'react';
+import { X, Maximize2, Minimize2, FileText, Code, GripHorizontal } from 'lucide-react';
 
 const formatTime = (dateString: string, includeMs = false) => {
     try {
         const date = new Date(dateString);
         if (isNaN(date.getTime())) return '-';
         return includeMs 
-            ? date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit', fractionDigits: 3 })
+            ? date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit', fractionalSecondDigits: 3 })
             : date.toLocaleTimeString();
     } catch (e) { return '-'; }
 };
@@ -19,6 +19,41 @@ interface ExecutionDetailsPanelProps {
 
 export const ExecutionDetailsPanel: React.FC<ExecutionDetailsPanelProps> = ({ execution, selectedNodeId }) => {
     const [activeTab, setActiveTab] = useState<'logs' | 'output'>('output');
+    const [height, setHeight] = useState(300);
+    const [isDragging, setIsDragging] = useState(false);
+    const dragStartY = useRef<number>(0);
+    const dragStartHeight = useRef<number>(0);
+
+    useEffect(() => {
+        const handleMouseMove = (e: MouseEvent) => {
+            if (!isDragging) return;
+            const delta = dragStartY.current - e.clientY;
+            const newHeight = Math.max(200, Math.min(dragStartHeight.current + delta, window.innerHeight - 100));
+            setHeight(newHeight);
+        };
+
+        const handleMouseUp = () => {
+            setIsDragging(false);
+            document.body.style.cursor = 'default';
+        };
+
+        if (isDragging) {
+            window.addEventListener('mousemove', handleMouseMove);
+            window.addEventListener('mouseup', handleMouseUp);
+            document.body.style.cursor = 'row-resize';
+        }
+
+        return () => {
+            window.removeEventListener('mousemove', handleMouseMove);
+            window.removeEventListener('mouseup', handleMouseUp);
+        };
+    }, [isDragging]);
+
+    const handleMouseDown = (e: React.MouseEvent) => {
+        setIsDragging(true);
+        dragStartY.current = e.clientY;
+        dragStartHeight.current = height;
+    };
 
     if (!execution) {
         return (
@@ -36,12 +71,31 @@ export const ExecutionDetailsPanel: React.FC<ExecutionDetailsPanelProps> = ({ ex
     const displayData = nodeExecution || execution;
 
     return (
-        <div className="h-72 bg-white border-t border-gray-200 flex flex-col shadow-inner relative z-20">
+        <div 
+            className="bg-white border-t border-gray-200 flex flex-col shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.1)] relative z-20"
+            style={{ height: `${height}px` }}
+        >
+            {/* Resize Handle */}
+            <div 
+                className="absolute top-0 left-0 right-0 h-1.5 cursor-row-resize hover:bg-blue-500/50 transition-colors z-30"
+                onMouseDown={handleMouseDown}
+            />
+
             {/* Toolbar */}
-            <div className="h-10 border-b border-gray-200 flex items-center px-4 bg-gray-50 justify-between">
+            <div className="h-10 border-b border-gray-200 flex items-center px-4 bg-gray-50 justify-between shrink-0 select-none">
                 <div className="flex items-center gap-4">
-                    <span className="text-xs font-bold uppercase text-gray-500 tracking-wider">
-                        {nodeExecution ? `Node: ${nodeExecution.nodeName}` : 'Workflow Execution'}
+                    <span className="text-xs font-bold uppercase text-gray-500 tracking-wider flex items-center gap-2">
+                        {nodeExecution ? (
+                            <>
+                                <span className="w-2 h-2 rounded-full bg-blue-500"></span>
+                                Node: {nodeExecution.nodeName}
+                            </>
+                        ) : (
+                            <>
+                                <span className="w-2 h-2 rounded-full bg-gray-400"></span>
+                                Workflow Execution
+                            </>
+                        )}
                     </span>
                     
                     <div className="flex bg-gray-200 rounded-md p-0.5">
@@ -59,10 +113,14 @@ export const ExecutionDetailsPanel: React.FC<ExecutionDetailsPanelProps> = ({ ex
                         </button>
                     </div>
                 </div>
+                
+                <div className="text-gray-400">
+                    <GripHorizontal size={14} />
+                </div>
             </div>
 
             {/* Content */}
-            <div className="flex-1 overflow-auto p-0">
+            <div className="flex-1 overflow-auto p-0 scrollbar-thin scrollbar-thumb-gray-200 scrollbar-track-transparent">
                 {activeTab === 'output' && (
                     <div className="p-4 font-mono text-xs text-gray-700">
                          {/* Display Output JSON */}
