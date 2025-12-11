@@ -5,12 +5,10 @@ import { useWorkflowStore } from '../../store/workflowStore';
 import { axiosInstance } from '../../api/axiosConfig';
 import googleDriveIcon from '../../assets/nodeIcons/google-drive-svgrepo-com.svg';
 
-
 interface GoogleDriveNodeData extends Record<string, unknown> {
     label?: string;
     executionStatus?: string;
 }
-
 
 const GoogleDriveLogo = () => (
     <img src={googleDriveIcon} alt="Google Drive" className="w-full h-full object-contain" />
