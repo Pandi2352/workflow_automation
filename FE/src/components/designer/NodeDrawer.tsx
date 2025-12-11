@@ -27,12 +27,14 @@ const availableNodes: NodeType[] = [
     // Triggers
     // { type: 'input', label: 'Manual Trigger', description: 'Starts the workflow manually', icon: MousePointerClick, color: 'text-slate-600', category: 'TRIGGER' },
     { type: 'WEBHOOK', label: 'Webhook', description: 'Start workflow via HTTP request', icon: Zap, color: 'text-amber-500', category: 'TRIGGER' },
-    { type: 'GMAIL', label: 'Gmail', description: 'Fetch emails from Gmail', icon: ({size}: any) => <img src={gmailIcon} style={{width: size, height: size}} />, color: 'text-red-600', category: 'TRIGGER' },
     { type: 'SCHEDULE', label: 'Schedule', description: 'Run workflow on a schedule', icon: Clock, color: 'text-purple-500', category: 'TRIGGER' },
+    { type: 'GMAIL', label: 'Gmail', description: 'Fetch emails from Gmail', icon: ({size}: any) => <img src={gmailIcon} style={{width: size, height: size}} />, color: 'text-red-600', category: 'TRIGGER' },
+    { type: 'GOOGLE_DRIVE', label: 'Google Drive', description: 'Interact with Google Drive', icon: ({size}: any) => <img src={googleDriveIcon} style={{width: size, height: size}} />, color: 'text-green-600', category: 'TRIGGER' },
+    { type: 'ONEDRIVE', label: 'OneDrive', description: 'Interact with Microsoft OneDrive', icon: ({size}: any) => <img src={oneDriveIcon} style={{width: size, height: size}} />, color: 'text-blue-600', category: 'TRIGGER' },
 
     // Actions
-    { type: 'GOOGLE_DRIVE', label: 'Google Drive', description: 'Interact with Google Drive', icon: ({size}: any) => <img src={googleDriveIcon} style={{width: size, height: size}} />, color: 'text-green-600', category: 'ACTION' },
-    { type: 'ONEDRIVE', label: 'OneDrive', description: 'Interact with Microsoft OneDrive', icon: ({size}: any) => <img src={oneDriveIcon} style={{width: size, height: size}} />, color: 'text-blue-600', category: 'ACTION' },
+    // { type: 'GOOGLE_DRIVE', label: 'Google Drive', description: 'Interact with Google Drive', icon: ({size}: any) => <img src={googleDriveIcon} style={{width: size, height: size}} />, color: 'text-green-600', category: 'ACTION' },
+    // { type: 'ONEDRIVE', label: 'OneDrive', description: 'Interact with Microsoft OneDrive', icon: ({size}: any) => <img src={oneDriveIcon} style={{width: size, height: size}} />, color: 'text-blue-600', category: 'ACTION' },
     
     // Logic/Conditional
     { type: 'IF_ELSE', label: 'If / Else', description: 'Branch workflow based on conditions', icon: Split, color: 'text-indigo-500', category: 'CONDITIONAL' },
