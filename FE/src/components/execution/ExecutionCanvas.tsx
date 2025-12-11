@@ -11,6 +11,8 @@ import {
 import { useWorkflowStore } from '../../store/workflowStore';
 import { GenericNode } from '../../nodes/GenericNode';
 import { GoogleDriveNode } from '../../nodes/google-drive/GoogleDriveNode';
+import { ScheduleNode } from '../../nodes/schedule/ScheduleNode';
+import { GmailNode } from '../../nodes/gmail/GmailNode';
 import { OneDriveNode } from '../../nodes/onedrive/OneDriveNode';
 
 interface ExecutionCanvasProps {
@@ -21,13 +23,15 @@ interface ExecutionCanvasProps {
 const nodeTypes = {
     GOOGLE_DRIVE: GoogleDriveNode,
     ONEDRIVE: OneDriveNode,
+    GMAIL: GmailNode,
+    SCHEDULE: ScheduleNode,
     default: GenericNode, 
     input: GenericNode,
     webhook: GenericNode,
     api: GenericNode,
     transform: GenericNode,
     output: GenericNode,
-    schedule: GenericNode
+    schedule: ScheduleNode // Handle lowercase just in case
 };
 
 const ExecutionCanvasInner: React.FC<ExecutionCanvasProps> = ({ executionData, onNodeClick }) => {

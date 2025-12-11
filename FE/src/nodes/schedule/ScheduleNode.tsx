@@ -1,0 +1,135 @@
+import { memo } from 'react';
+import { Handle, Position, type NodeProps } from '@xyflow/react';
+import { Clock, Zap, Play, Trash2 } from 'lucide-react';
+import { useWorkflowStore } from '../../store/workflowStore';
+import { axiosInstance } from '../../api/axiosConfig';
+
+interface ScheduleNodeData extends Record<string, unknown> {
+    config?: {
+        interval?: string;
+        value?: number | string;
+        cronExpression?: string;
+    };
+    label?: string;
+    executionStatus?: string;
+}
+
+export const ScheduleNode = memo(({ id, data, isConnectable, selected }: NodeProps) => {
+    const nodeData = data as ScheduleNodeData;
+    const { deleteNode, showToast, triggerWorkflowExecution } = useWorkflowStore();
+    const isSelected = selected;
+
+    const interval = nodeData.config?.interval || 'Not set';
+    const value = nodeData.config?.value || '';
+
+    let label = 'Schedule';
+    if (interval === 'custom') {
+        label = nodeData.config?.cronExpression || 'Custom Cron';
+    } else if (interval && value) {
+        label = `Every ${value} ${interval}`;
+    }
+
+    const handleTestNode = async (e: React.MouseEvent) => {
+        e.stopPropagation();
+        showToast('Testing node...', 'info');
+        try {
+            await axiosInstance.post('/sample-workflows/nodes/test', {
+                nodeType: 'SCHEDULE',
+                nodeData: nodeData.config || {},
+                inputs: [] 
+            });
+            showToast('Node test successful', 'success');
+        } catch (error: any) {
+            showToast('Node test failed', 'error', error.message);
+        }
+    };
+
+    const handleExecute = (e: React.MouseEvent) => {
+        e.stopPropagation();
+        triggerWorkflowExecution();
+    };
+
+    const handleDelete = (e: React.MouseEvent) => {
+        e.stopPropagation();
+        deleteNode(id);
+    };
+
+    return (
+        <div className="relative group min-w-[180px]">
+            {/* Hover Toolbar */}
+            <div className="absolute top-1/2 left-0 -translate-x-full -translate-y-1/2 pr-4 flex items-center opacity-0 group-hover:opacity-100 transition-all duration-200 z-50 pointer-events-none group-hover:pointer-events-auto">
+                <button 
+                    onClick={handleExecute}
+                    className="bg-[#2EB861] hover:bg-[#25964E] text-white px-2 py-2 rounded-md font-semibold text-[10px] flex items-center gap-2 transition-all transform hover:-translate-y-0.5 cursor-pointer"
+                >
+                    <Zap size={10} fill="currentColor" />
+                    Execute Workflow
+                </button>
+            </div>
+
+            <div className="absolute bottom-full right-0 pb-1 flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-all duration-200 z-50 scale-95 group-hover:scale-100 pointer-events-none group-hover:pointer-events-auto">
+                 <div className="flex items-center gap-1">
+                    <button 
+                        onClick={handleTestNode}
+                        className="p-1 text-slate-500 hover:text-indigo-600 hover:bg-indigo-50 rounded-full transition-colors cursor-pointer"
+                        title="Test Node"
+                    >
+                        <Play size={14} />
+                    </button>
+                    <button 
+                        onClick={handleDelete}
+                        className="p-1 text-slate-500 hover:text-red-600 hover:bg-red-50 rounded-full transition-colors cursor-pointer"
+                        title="Delete Node"
+                    >
+                        <Trash2 size={14} />
+                    </button>
+                </div>
+            </div>
+
+            <div className={`relative flex flex-col items-stretch bg-white rounded-lg border border-gray-100 overflow-hidden duration-200 ${
+                isSelected ? 'border-gray-400 shadow-md' : 'border-gray-400 shadow-md'
+            }`}>
+                
+                {/* Header Section */}
+                <div className="flex items-center justify-between px-3 py-2 bg-slate-50 border-b border-gray-100">
+                    <div className="flex items-center gap-2">
+                        <div className="w-6 h-6 flex items-center justify-center bg-green-100 rounded text-green-600 shrink-0">
+                            <Clock size={16} />
+                        </div>
+                        <span className="text-[10px] font-bold text-slate-600 uppercase tracking-wider">Schedule</span>
+                    </div>
+
+                    <div className="flex items-center gap-1.5 px-2 py-0.5 bg-green-50 text-green-600 rounded text-[8px] font-bold tracking-tight border border-green-100">
+                        <Zap size={8} fill="currentColor" />
+                        <span>TRIGGER</span>
+                    </div>
+                </div>
+
+                {/* Body Content */}
+                <div className="px-3 py-3 bg-white">
+                     <span className="block text-sm font-bold text-slate-900 leading-tight max-w-[180px] truncate" title={label}>
+                        {label}
+                    </span>
+                    <span className="text-[10px] text-slate-400 mt-1 block font-medium">Timer</span>
+                </div>
+
+                {/* Status Line */}
+                {!!nodeData.executionStatus && (
+                    <div className={`h-[3px] w-full ${
+                        nodeData.executionStatus === 'SUCCESS' ? 'bg-green-500' : 
+                        nodeData.executionStatus === 'FAILED' ? 'bg-red-500' : 
+                        'bg-blue-500 animate-pulse'
+                    }`} />
+                )}
+            </div>
+
+            {/* Output Handle */}
+            <Handle
+                type="source"
+                position={Position.Right}
+                isConnectable={isConnectable}
+                className="!w-2 !h-4 !bg-slate-400 !border-2 !border-white !rounded-sm transition-all hover:!bg-green-500 -right-[7px]"
+            />
+        </div>
+    );
+});

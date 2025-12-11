@@ -25,19 +25,22 @@ import { GenericNode } from '../../nodes/GenericNode';
 import { GoogleDriveNode } from '../../nodes/google-drive/GoogleDriveNode';
 import { OneDriveNode } from '../../nodes/onedrive/OneDriveNode';
 import { GmailNode } from '../../nodes/gmail/GmailNode';
+import { ScheduleNode } from '../../nodes/schedule/ScheduleNode';
+
 import { useMemo } from 'react';
 
 const nodeTypes = {
     GOOGLE_DRIVE: GoogleDriveNode,
     ONEDRIVE: OneDriveNode,
     GMAIL: GmailNode,
+    SCHEDULE: ScheduleNode,
     default: GenericNode, // Fallback
     input: GenericNode,
     webhook: GenericNode,
     api: GenericNode,
     transform: GenericNode,
     output: GenericNode,
-    schedule: GenericNode
+
 };
 
 const WorkflowCanvasInner: React.FC<WorkflowCanvasProps> = ({ onToggleDrawer, executionData }) => {

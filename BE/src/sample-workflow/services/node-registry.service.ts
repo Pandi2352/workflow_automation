@@ -7,6 +7,7 @@ import { GmailNode } from '../nodes/gmail.node';
 import { GoogleDriveService } from '../node-services/google-drive.service';
 import { OneDriveService } from '../node-services/onedrive.service';
 import { GmailService } from '../node-services/gmail.service';
+import { ScheduleNode } from '../nodes/schedule.node';
 
 export interface NodeDefinition {
     type: string;
@@ -36,6 +37,7 @@ export class NodeRegistryService {
         this.nodeInstances.set(SampleNodeType.GOOGLE_DRIVE, new GoogleDriveNode(this.googleDriveService));
         this.nodeInstances.set(SampleNodeType.ONEDRIVE, new OneDriveNode(this.oneDriveService));
         this.nodeInstances.set(SampleNodeType.GMAIL, new GmailNode(this.gmailService));
+        this.nodeInstances.set(SampleNodeType.SCHEDULE, new ScheduleNode());
 
         // Register node definitions
         this.nodeDefinitions.set(SampleNodeType.GOOGLE_DRIVE, {
@@ -124,6 +126,33 @@ export class NodeRegistryService {
                     type: 'credential',
                     provider: 'gmail',
                     description: 'Gmail Credentials'
+                }
+            }
+        });
+
+        this.nodeDefinitions.set(SampleNodeType.SCHEDULE, {
+            type: SampleNodeType.SCHEDULE,
+            name: 'Schedule Trigger',
+            description: 'Trigger workflow at specific intervals',
+            category: 'Trigger',
+            inputs: 0,
+            outputs: 1,
+            configSchema: {
+                interval: {
+                    type: 'select',
+                    options: ['seconds', 'minutes', 'hours', 'days', 'weeks', 'months', 'custom'],
+                    default: 'hours',
+                    description: 'Trigger Interval'
+                },
+                value: {
+                    type: 'number',
+                    description: 'Value (e.g., every N seconds)',
+                    condition: { interval: ['seconds', 'minutes', 'hours', 'days', 'weeks', 'months'] }
+                },
+                cronExpression: {
+                    type: 'string',
+                    description: 'Cron Expression (e.g. "*/5 * * * *")',
+                    condition: { interval: 'custom' }
                 }
             }
         });

@@ -1,4 +1,5 @@
-import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
+import { Injectable, NotFoundException, BadRequestException, Inject, forwardRef } from '@nestjs/common';
+import { SchedulerService } from './services/scheduler.service';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model, Types } from 'mongoose';
 import { SampleWorkflow, SampleWorkflowDocument } from './schemas/sample-workflow.schema';
@@ -32,6 +33,7 @@ export class SampleWorkflowService {
         private executorService: WorkflowExecutorService,
         private validatorService: WorkflowValidatorService,
         private nodeRegistry: NodeRegistryService,
+        @Inject(forwardRef(() => SchedulerService)) private schedulerService: SchedulerService,
     ) { }
 
     // ==================== WORKFLOW CRUD ====================
@@ -41,7 +43,9 @@ export class SampleWorkflowService {
         this.validatorService.validateAndThrow(createDto);
 
         const workflow = new this.workflowModel(createDto);
-        return workflow.save();
+        const savedWorkflow = await workflow.save();
+        await this.schedulerService.refreshSchedule(savedWorkflow._id.toString());
+        return savedWorkflow;
     }
 
     async findAll(
@@ -116,6 +120,7 @@ export class SampleWorkflowService {
             throw new NotFoundException(`Workflow with ID ${id} not found`);
         }
 
+        await this.schedulerService.refreshSchedule(id);
         return updated;
     }
 

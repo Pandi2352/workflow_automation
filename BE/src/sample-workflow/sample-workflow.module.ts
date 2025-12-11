@@ -15,6 +15,7 @@ import { ConfigModule } from '@nestjs/config';
 import { GoogleDriveService } from './node-services/google-drive.service';
 import { OneDriveService } from './node-services/onedrive.service';
 import { GmailService } from './node-services/gmail.service';
+import { SchedulerService } from './services/scheduler.service';
 
 @Module({
     imports: [
@@ -35,6 +36,7 @@ import { GmailService } from './node-services/gmail.service';
         GoogleDriveService,
         OneDriveService,
         GmailService,
+        SchedulerService,
     ],
     exports: [SampleWorkflowService, NodeRegistryService, ExpressionEvaluatorService],
 })

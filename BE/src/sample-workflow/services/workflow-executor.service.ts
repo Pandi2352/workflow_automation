@@ -157,6 +157,11 @@ export class WorkflowExecutorService {
         triggerData?: any,
         clientInfo?: ClientInfo,
     ): Promise<string> {
+        if (workflow.isActive === false) {
+            this.logger.warn(`Attempted to execute inactive workflow ${workflow._id}`);
+            throw new Error('Cannot execute an inactive workflow');
+        }
+
         const executionId = await this.createExecutionEntry(workflow, options, triggerData, clientInfo);
         this.runExecution(executionId, workflow, options);
         return executionId;

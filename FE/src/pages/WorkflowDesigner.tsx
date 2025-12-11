@@ -7,6 +7,7 @@ import { WorkflowCanvas } from '../components/designer/WorkflowCanvas';
 import { NodeConfigPanel } from '../nodes/google-drive/NodeConfigPanel';
 import { NodeConfigPanel as OneDriveNodeConfigPanel } from '../nodes/onedrive/NodeConfigPanel';
 import { NodeConfigPanel as GmailNodeConfigPanel } from '../nodes/gmail/NodeConfigPanel';
+import { NodeConfigPanel as ScheduleNodeConfigPanel } from '../nodes/schedule/NodeConfigPanel';
 import { DesignerHeader } from '../components/designer/DesignerHeader';
 import { ExecutionModeView } from '../components/execution/ExecutionModeView';
 import { useWorkflowStore } from '../store/workflowStore';
@@ -110,7 +111,7 @@ export const WorkflowDesigner: React.FC = () => {
             const payload = {
                 name: workflowName || 'Untitled Workflow',
                 description: workflowDescription || '',
-                active: isWorkflowActive,
+                isActive: isWorkflowActive,
                 nodes: nodes.map(n => ({ 
                     ...n, 
                     nodeName: n.data?.label || n.id,
@@ -266,6 +267,12 @@ export const WorkflowDesigner: React.FC = () => {
                             />
                         ) : selectedNode && selectedNode.type === 'GMAIL' ? (
                             <GmailNodeConfigPanel
+                                nodeExecutionData={currentExecution?.nodeExecutions?.find(
+                                    (ex: any) => ex.nodeId === selectedNode?.id
+                                )} 
+                            />
+                        ) : selectedNode && selectedNode.type === 'SCHEDULE' ? (
+                            <ScheduleNodeConfigPanel 
                                 nodeExecutionData={currentExecution?.nodeExecutions?.find(
                                     (ex: any) => ex.nodeId === selectedNode?.id
                                 )} 
