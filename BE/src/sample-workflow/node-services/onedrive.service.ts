@@ -2,8 +2,12 @@ import { Injectable, NotFoundException } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import axios from 'axios';
 import { CredentialsService } from '../../credentials/credentials.service';
-
 import { URLSearchParams } from 'url';
+import { Readable } from 'stream';
+import * as path from 'path';
+import { promisify } from 'util';
+
+const pipeline = promisify(require('stream').pipeline);
 
 @Injectable()
 export class OneDriveService {
@@ -20,11 +24,8 @@ export class OneDriveService {
             throw new NotFoundException(`Credential with ID ${credentialId} not found`);
         }
 
-        // Check if token is expired (expiryDate is in milliseconds usually, or seconds dependent on provider implementation)
-        // Google usually stores as Date.now() + expires_in * 1000.
-        // Assuming OneDrive stores similar or same.
         const now = Date.now();
-        if (credential.expiryDate && now >= credential.expiryDate - 60000) { // Refresh if within 1 minute of expiring
+        if (credential.expiryDate && now >= credential.expiryDate - 60000) {
             return this.refreshAccessToken(credential);
         }
 
@@ -34,13 +35,12 @@ export class OneDriveService {
     private async refreshAccessToken(credential: any): Promise<string> {
         const clientId = this.configService.get<string>('MICROSOFT_CLIENT_ID') || '';
         const clientSecret = this.configService.get<string>('MICROSOFT_CLIENT_SECRET') || '';
-        const redirectUri = this.configService.get<string>('MICROSOFT_CALLBACK_URL');
 
         try {
             const tokenUrl = 'https://login.microsoftonline.com/common/oauth2/v2.0/token';
             const params = new URLSearchParams();
             params.append('client_id', clientId);
-            params.append('scope', 'offline_access user.read files.read.all'); // Scopes should match initial auth
+            params.append('scope', 'offline_access user.read files.read.all');
             params.append('refresh_token', credential.refreshToken);
             params.append('grant_type', 'refresh_token');
             params.append('client_secret', clientSecret);
@@ -51,10 +51,9 @@ export class OneDriveService {
 
             const { access_token, refresh_token, expires_in } = response.data;
 
-            // Update credential in DB
             await this.credentialsService.update(credential._id, {
                 accessToken: access_token,
-                refreshToken: refresh_token || credential.refreshToken, // detailed refreshing behavior
+                refreshToken: refresh_token || credential.refreshToken,
                 expiryDate: Date.now() + (expires_in * 1000),
             });
 
@@ -68,7 +67,6 @@ export class OneDriveService {
     async fetchFiles(credentialId: string, folderId?: string): Promise<any[]> {
         const accessToken = await this.getAccessToken(credentialId);
 
-        // If folderId is provided, list children of that folder. Otherwise root.
         const endpoint = folderId
             ? `/me/drive/items/${folderId}/children`
             : '/me/drive/root/children';
@@ -85,11 +83,8 @@ export class OneDriveService {
                 }
             });
 
-            // Filter for files only (exclude folders if exact same behavior as GDrive 'list_files' defaults? 
-            // GDrive service query: "mimeType != 'application/vnd.google-apps.folder'"
-            // So we should filter out folders here too.
             const items = response.data.value || [];
-            return items.filter((item: any) => item.file); // items with 'file' property are files
+            return items.filter((item: any) => item.file);
         } catch (error: any) {
             console.error('OneDrive fetchFiles error:', error.response?.data || error.message);
             if (error.response?.data?.error?.code === 'itemNotFound') {
@@ -119,13 +114,30 @@ export class OneDriveService {
             });
 
             const items = response.data.value || [];
-            return items.filter((item: any) => item.folder); // items with 'folder' property
+            return items.filter((item: any) => item.folder);
         } catch (error: any) {
             console.error('OneDrive fetchFolders error:', error.response?.data || error.message);
             if (error.response?.data?.error?.code === 'itemNotFound') {
                 throw new NotFoundException('The specified folder or item was not found in OneDrive.');
             }
             throw new Error(`Failed to fetch OneDrive folders: ${error.response?.data?.error?.message || error.message}`);
+        }
+    }
+
+    async getFileStream(credentialId: string, fileId: string): Promise<Readable> {
+        const accessToken = await this.getAccessToken(credentialId);
+        const endpoint = `/me/drive/items/${fileId}/content`;
+
+        try {
+            const response = await axios.get(`${this.GRAPH_API_URL}${endpoint}`, {
+                headers: { Authorization: `Bearer ${accessToken}` },
+                responseType: 'stream'
+            });
+
+            return response.data;
+        } catch (error: any) {
+            console.error(`Failed to get OneDrive stream ${fileId}:`, error.response?.data || error.message);
+            throw new Error(`Failed to get file stream: ${error.message}`);
         }
     }
 }

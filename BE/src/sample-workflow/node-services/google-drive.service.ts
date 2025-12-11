@@ -2,6 +2,10 @@ import { Injectable, NotFoundException } from '@nestjs/common';
 import { google, drive_v3 } from 'googleapis';
 import { CredentialsService } from '../../credentials/credentials.service';
 import { ConfigService } from '@nestjs/config';
+import * as fs from 'fs';
+import * as path from 'path';
+import { pipeline } from 'stream/promises';
+import { Readable } from 'stream';
 
 @Injectable()
 export class GoogleDriveService {
@@ -27,8 +31,6 @@ export class GoogleDriveService {
             refresh_token: credential.refreshToken,
             expiry_date: credential.expiryDate,
         });
-
-        // The google library handles token refresh automatically if refresh_token and client ID/secret are present
 
         return google.drive({ version: 'v3', auth: authClient });
     }
@@ -64,5 +66,21 @@ export class GoogleDriveService {
         });
 
         return res.data.files || [];
+    }
+
+    async getFileStream(credentialId: string, fileId: string): Promise<Readable> {
+        const client = await this.getClient(credentialId);
+
+        try {
+            const res = await client.files.get(
+                { fileId: fileId, alt: 'media' },
+                { responseType: 'stream' }
+            );
+
+            return res.data;
+        } catch (error: any) {
+            console.error(`Failed to get stream for file ${fileId}:`, error.message);
+            throw new Error(`Failed to get file stream: ${error.message}`);
+        }
     }
 }
