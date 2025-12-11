@@ -25,8 +25,16 @@ const FolderSelectorField = ({ credentialId, value, onFolderSelect }: any) => {
         })
         .catch(err => {
             console.error('Failed to fetch folders', err);
-            setError('Failed to load folders');
+            const msg = err.response?.data?.message || 'Failed to load folders';
+            setError(msg);
             setLoading(false);
+            
+            // If 404 (Not Found), it means the parent folder might be invalid. 
+            // We might want to clear the selection or just show the error.
+            if (err.response?.status === 404) {
+                 // Optional: Auto-clear invalid selection? 
+                 // For now, showing the error is safer.
+            }
         });
     };
 

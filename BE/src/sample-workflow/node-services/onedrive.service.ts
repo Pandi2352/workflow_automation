@@ -92,6 +92,9 @@ export class OneDriveService {
             return items.filter((item: any) => item.file); // items with 'file' property are files
         } catch (error: any) {
             console.error('OneDrive fetchFiles error:', error.response?.data || error.message);
+            if (error.response?.data?.error?.code === 'itemNotFound') {
+                throw new NotFoundException('The specified folder or item was not found in OneDrive.');
+            }
             throw new Error(`Failed to fetch OneDrive files: ${error.response?.data?.error?.message || error.message}`);
         }
     }
@@ -119,6 +122,9 @@ export class OneDriveService {
             return items.filter((item: any) => item.folder); // items with 'folder' property
         } catch (error: any) {
             console.error('OneDrive fetchFolders error:', error.response?.data || error.message);
+            if (error.response?.data?.error?.code === 'itemNotFound') {
+                throw new NotFoundException('The specified folder or item was not found in OneDrive.');
+            }
             throw new Error(`Failed to fetch OneDrive folders: ${error.response?.data?.error?.message || error.message}`);
         }
     }
