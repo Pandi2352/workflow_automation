@@ -6,6 +6,7 @@ import { NodeDrawer } from '../components/designer/NodeDrawer';
 import { WorkflowCanvas } from '../components/designer/WorkflowCanvas';
 import { NodeConfigPanel } from '../nodes/google-drive/NodeConfigPanel';
 import { NodeConfigPanel as OneDriveNodeConfigPanel } from '../nodes/onedrive/NodeConfigPanel';
+import { NodeConfigPanel as GmailNodeConfigPanel } from '../nodes/gmail/NodeConfigPanel';
 import { DesignerHeader } from '../components/designer/DesignerHeader';
 import { ExecutionModeView } from '../components/execution/ExecutionModeView';
 import { useWorkflowStore } from '../store/workflowStore';
@@ -259,6 +260,12 @@ export const WorkflowDesigner: React.FC = () => {
                         {/* Overlays */}
                         {selectedNode && selectedNode.type === 'ONEDRIVE' ? (
                             <OneDriveNodeConfigPanel
+                                nodeExecutionData={currentExecution?.nodeExecutions?.find(
+                                    (ex: any) => ex.nodeId === selectedNode?.id
+                                )} 
+                            />
+                        ) : selectedNode && selectedNode.type === 'GMAIL' ? (
+                            <GmailNodeConfigPanel
                                 nodeExecutionData={currentExecution?.nodeExecutions?.find(
                                     (ex: any) => ex.nodeId === selectedNode?.id
                                 )} 

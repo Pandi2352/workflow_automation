@@ -3,8 +3,10 @@ import { SampleNodeType } from '../enums/node-type.enum';
 import { BaseWorkflowNode } from '../nodes/workflow-node.interface';
 import { GoogleDriveNode } from '../nodes/google-drive.node';
 import { OneDriveNode } from '../nodes/onedrive.node';
+import { GmailNode } from '../nodes/gmail.node';
 import { GoogleDriveService } from '../node-services/google-drive.service';
 import { OneDriveService } from '../node-services/onedrive.service';
+import { GmailService } from '../node-services/gmail.service';
 
 export interface NodeDefinition {
     type: string;
@@ -23,7 +25,8 @@ export class NodeRegistryService {
 
     constructor(
         private readonly googleDriveService: GoogleDriveService,
-        private readonly oneDriveService: OneDriveService
+        private readonly oneDriveService: OneDriveService,
+        private readonly gmailService: GmailService
     ) {
         this.registerDefaultNodes();
     }
@@ -32,6 +35,7 @@ export class NodeRegistryService {
         // Register node instances
         this.nodeInstances.set(SampleNodeType.GOOGLE_DRIVE, new GoogleDriveNode(this.googleDriveService));
         this.nodeInstances.set(SampleNodeType.ONEDRIVE, new OneDriveNode(this.oneDriveService));
+        this.nodeInstances.set(SampleNodeType.GMAIL, new GmailNode(this.gmailService));
 
         // Register node definitions
         this.nodeDefinitions.set(SampleNodeType.GOOGLE_DRIVE, {
@@ -94,6 +98,32 @@ export class NodeRegistryService {
                     type: 'credential',
                     provider: 'microsoft',
                     description: 'OneDrive (Microsoft) Credentials'
+                }
+            }
+        });
+
+        this.nodeDefinitions.set(SampleNodeType.GMAIL, {
+            type: SampleNodeType.GMAIL,
+            name: 'Gmail (Trigger)',
+            description: 'Fetch emails and attachments from Gmail',
+            category: 'Google',
+            inputs: 0,
+            outputs: 1,
+            configSchema: {
+                query: {
+                    type: 'string',
+                    description: 'Search Query (e.g. "subject:invoice has:attachment")',
+                    default: ''
+                },
+                maxResults: {
+                    type: 'number',
+                    description: 'Max emails to fetch',
+                    default: 5
+                },
+                credentials: {
+                    type: 'credential',
+                    provider: 'gmail',
+                    description: 'Gmail Credentials'
                 }
             }
         });

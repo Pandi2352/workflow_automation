@@ -38,7 +38,8 @@ export class AuthService {
         const scopes = [
             'https://www.googleapis.com/auth/drive.readonly',
             'https://www.googleapis.com/auth/userinfo.profile',
-            'https://www.googleapis.com/auth/userinfo.email'
+            'https://www.googleapis.com/auth/userinfo.email',
+            'https://www.googleapis.com/auth/gmail.readonly'
         ];
 
         const redirectUri = this.configService.get<string>('GOOGLE_CALLBACK_URL') || 'http://localhost:4000/api/auth/google/callback';
@@ -70,12 +71,59 @@ export class AuthService {
                 refreshToken: tokens.refresh_token,
                 expiryDate: tokens.expiry_date,
                 metadata: userInfo.data,
-            }) as any; // Cast to any to avoid strict check issues temporarily
+            }) as any;
 
             return credential._id.toString();
         } catch (error) {
             console.error('Error in Google Callback:', error);
             throw new InternalServerErrorException('Failed to authenticate with Google');
+        }
+    }
+
+    getGmailAuthUrl(): string {
+        const scopes = [
+            'https://www.googleapis.com/auth/userinfo.profile',
+            'https://www.googleapis.com/auth/userinfo.email',
+            'https://www.googleapis.com/auth/gmail.readonly'
+        ];
+
+        const redirectUri = this.configService.get<string>('GOOGLE_CALLBACK_URL') || 'http://localhost:4000/api/auth/google/callback';
+
+        // Note: Using the same oauth2Client as Google Drive since it shares Client ID/Secret
+        // But we generate a URL with DIFFERENT scopes.
+        return this.oauth2Client.generateAuthUrl({
+            access_type: 'offline',
+            scope: scopes,
+            prompt: 'consent',
+            redirect_uri: redirectUri,
+            state: 'gmail' // We can use state to distinguish in callback if needed, but we can also just use a separate callback route that calls a specific handler
+        });
+    }
+
+    async handleGmailCallback(code: string): Promise<string> {
+        try {
+            const { tokens } = await this.oauth2Client.getToken(code);
+            this.oauth2Client.setCredentials(tokens);
+
+            const oauth2 = google.oauth2({ version: 'v2', auth: this.oauth2Client });
+            const userInfo = await oauth2.userinfo.get();
+
+            const name = (userInfo.data.name || userInfo.data.email || 'Gmail Account') + ' (Gmail)';
+
+            // Save with provider 'gmail'
+            const credential = await this.credentialsService.create({
+                name: name,
+                provider: 'gmail', // Distinct provider
+                accessToken: tokens.access_token,
+                refreshToken: tokens.refresh_token,
+                expiryDate: tokens.expiry_date,
+                metadata: userInfo.data,
+            }) as any;
+
+            return credential._id.toString();
+        } catch (error) {
+            console.error('Error in Gmail Callback:', error);
+            throw new InternalServerErrorException('Failed to authenticate with Gmail');
         }
     }
 

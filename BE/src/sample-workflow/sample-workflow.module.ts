@@ -14,6 +14,7 @@ import { CredentialsModule } from '../credentials/credentials.module';
 import { ConfigModule } from '@nestjs/config';
 import { GoogleDriveService } from './node-services/google-drive.service';
 import { OneDriveService } from './node-services/onedrive.service';
+import { GmailService } from './node-services/gmail.service';
 
 @Module({
     imports: [
@@ -33,6 +34,7 @@ import { OneDriveService } from './node-services/onedrive.service';
         ExpressionEvaluatorService,
         GoogleDriveService,
         OneDriveService,
+        GmailService,
     ],
     exports: [SampleWorkflowService, NodeRegistryService, ExpressionEvaluatorService],
 })
