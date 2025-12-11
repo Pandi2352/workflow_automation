@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
-import { Search, X, MousePointerClick, ChevronRight, HardDrive } from 'lucide-react';
+import { Search, X, MousePointerClick, ChevronRight } from 'lucide-react';
+import googleDriveIcon from '../../assets/nodeIcons/google-drive-svgrepo-com.svg';
 import { Input } from '../../common/Input';
 import { Button } from '../../common/Button';
 
@@ -23,7 +24,7 @@ const availableNodes: NodeType[] = [
     { type: 'input', label: 'Manual Trigger', description: 'Starts the workflow manually', icon: MousePointerClick, color: 'text-slate-600', category: 'trigger' },
     
     // Actions
-    { type: 'GOOGLE_DRIVE', label: 'Google Drive', description: 'Interact with Google Drive', icon: HardDrive, color: 'text-green-600', category: 'action' },
+    { type: 'GOOGLE_DRIVE', label: 'Google Drive', description: 'Interact with Google Drive', icon: ({size}: any) => <img src={googleDriveIcon} style={{width: size, height: size}} />, color: 'text-green-600', category: 'action' },
 ];
 
 export const NodeDrawer: React.FC<NodeDrawerProps> = ({ isOpen, onClose, onNodeSelect }) => {

@@ -51,9 +51,9 @@ const WorkflowCanvasInner: React.FC<WorkflowCanvasProps> = ({ onToggleDrawer, ex
           if (!execution) return node;
 
           let statusClass = '';
-          if (execution.status === 'SUCCESS') statusClass = '!border-green-500 !ring-2 !ring-green-200 !shadow-lg';
-          else if (execution.status === 'FAILED') statusClass = '!border-red-500 !ring-2 !ring-red-200 !shadow-lg';
-          else if (execution.status === 'RUNNING') statusClass = '!border-blue-500 !ring-2 !ring-blue-200 !shadow-lg';
+          if (execution.status === 'SUCCESS') statusClass = '!border-gray-500 !rounded-sm';
+          else if (execution.status === 'FAILED') statusClass = '!border-gray-500';
+          else if (execution.status === 'RUNNING') statusClass = '!border-gray-500';
 
           return {
               ...node,
@@ -121,6 +121,10 @@ const WorkflowCanvasInner: React.FC<WorkflowCanvasProps> = ({ onToggleDrawer, ex
         onDrop={onDrop}
         onDragOver={onDragOver}
         fitView
+        fitViewOptions={{ padding: 0.2, maxZoom: 1.1 }}
+        defaultViewport={{ x: 0, y: 0, zoom: 1.2 }}
+        minZoom={0.5}
+        maxZoom={2}
         className="bg-slate-50"
         proOptions={proOptions}
       >
