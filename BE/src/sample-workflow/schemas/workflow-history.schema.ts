@@ -284,10 +284,22 @@ export class NodeExecutionEntry {
     inputs?: any;
 
     /**
+     * Snapshot of the node configuration data at execution time
+     */
+    @Prop({ type: Object })
+    data?: any;
+
+    /**
      * Simplified outputs (raw result from the node)
      */
     @Prop({ type: Object })
     outputs?: any;
+
+    @Prop({ type: [Number] })
+    position?: number[];
+
+    @Prop({ type: Object })
+    measured?: { width: number; height: number };
 
     // Node-level error details
     @Prop({ type: ErrorDetail })
@@ -298,11 +310,6 @@ export class NodeExecutionEntry {
 
     @Prop({ type: [ExecutionLogEntry], default: [] })
     logs: ExecutionLogEntry[];
-
-    /**
-     * Additional metadata about the execution
-     * Can store node-specific information
-     */
 }
 
 // ==================== NODE PERFORMANCE INFO ====================

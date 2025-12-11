@@ -80,6 +80,8 @@ export class WorkflowExecutorService {
                 retryCount: 0,
                 logs: [],
                 data: node.data, // Initial snapshot of configuration
+                position: node.position, // Saved position
+                measured: node.measured, // Saved dimensions
             })),
             nodeOutputs: [],
             logs: [],

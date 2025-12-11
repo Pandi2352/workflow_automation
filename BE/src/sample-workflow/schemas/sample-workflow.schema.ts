@@ -280,6 +280,15 @@ export class NodeData {
 }
 
 @Schema({ _id: false })
+export class NodeMeasured {
+    @Prop()
+    width: number;
+
+    @Prop()
+    height: number;
+}
+
+@Schema({ _id: false })
 export class WorkflowNode {
     @Prop({ required: true })
     id: string;
@@ -293,8 +302,17 @@ export class WorkflowNode {
     @Prop({ type: NodeData, default: {} })
     data: NodeData;
 
-    @Prop({ type: NodePosition, default: { x: 0, y: 0 } })
-    position: NodePosition;
+    @Prop({ type: [Number], default: [0, 0] })
+    position: number[];
+
+    @Prop({ type: NodeMeasured })
+    measured?: NodeMeasured;
+
+    @Prop({ default: false })
+    selected?: boolean;
+
+    @Prop({ default: false })
+    dragging?: boolean;
 
     @Prop()
     description?: string;

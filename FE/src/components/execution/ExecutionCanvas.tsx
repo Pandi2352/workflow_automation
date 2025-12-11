@@ -38,30 +38,68 @@ const ExecutionCanvasInner: React.FC<ExecutionCanvasProps> = ({ executionData, o
 
   // Merge nodes with execution status
   const nodesWithStatus = useMemo(() => {
-      if (!executionData || !executionData.nodeExecutions) return nodes;
+    if (!executionData || !executionData.nodeExecutions) return nodes;
 
-      return nodes.map(node => {
-          const execution = executionData.nodeExecutions.find((ex: any) => ex.nodeId === node.id);
-          
-          let statusClass = '';
-          if (execution) {
-             if (execution.status === 'SUCCESS') statusClass = '!border-green-500 !ring-2 !ring-green-200 !shadow-lg';
-             else if (execution.status === 'FAILED') statusClass = '!border-red-500 !ring-2 !ring-red-200 !shadow-lg';
-             else if (execution.status === 'RUNNING') statusClass = '!border-blue-500 !ring-2 !ring-blue-200 !shadow-lg';
-          }
+    // Check if we have embedded positions (New Backend Format)
+    const hasEmbeddedPositions = executionData.nodeExecutions.some((ex: any) => ex.position && (Array.isArray(ex.position) || ex.position.x !== undefined));
 
-          // If this node was unrelated to the execution (e.g. added later), it stays default.
-          return {
-              ...node,
-              className: `${node.className || ''} ${statusClass}`,
-              data: {
-                  ...node.data,
-                  label: execution?.nodeName || node.data.label,
-                  executionStatus: execution ? execution.status : undefined,
-                  executionDuration: execution ? execution.duration : undefined
-              }
-          };
-      });
+    if (hasEmbeddedPositions) {
+        // Reconstruct nodes entirely from execution history
+        return executionData.nodeExecutions.map((ex: any) => {
+            let statusClass = '';
+            if (ex.status === 'SUCCESS') statusClass = '!border-green-500 !ring-2 !ring-green-200 !shadow-lg';
+            else if (ex.status === 'FAILED') statusClass = '!border-red-500 !ring-2 !ring-red-200 !shadow-lg';
+            else if (ex.status === 'RUNNING') statusClass = '!border-blue-500 !ring-2 !ring-blue-200 !shadow-lg';
+
+            // Handle both legacy object and new array format
+            let pos = { x: 0, y: 0 };
+            if (Array.isArray(ex.position)) {
+                pos = { x: ex.position[0], y: ex.position[1] };
+            } else if (ex.position) {
+                pos = ex.position;
+            }
+
+            return {
+                id: ex.nodeId,
+                type: ex.nodeType,
+                position: pos,
+                measured: ex.measured,
+                draggable: false,
+                connectable: false,
+                className: `${statusClass} bg-white rounded-xl`, // Ensure basic styling
+                data: {
+                    ...ex.data, // Use the data snapshot from execution
+                    label: ex.nodeName,
+                    executionStatus: ex.status,
+                    executionDuration: ex.duration,
+                }
+            };
+        });
+    }
+
+    // Fallback for legacy executions: Overlay status on CURRENT workflow nodes
+    return nodes.map(node => {
+        const execution = executionData.nodeExecutions.find((ex: any) => ex.nodeId === node.id);
+        
+        let statusClass = '';
+        if (execution) {
+            if (execution.status === 'SUCCESS') statusClass = '!border-green-500 !ring-2 !ring-green-200 !shadow-lg';
+            else if (execution.status === 'FAILED') statusClass = '!border-red-500 !ring-2 !ring-red-200 !shadow-lg';
+            else if (execution.status === 'RUNNING') statusClass = '!border-blue-500 !ring-2 !ring-blue-200 !shadow-lg';
+        }
+
+        // If this node was unrelated to the execution (e.g. added later), it stays default.
+        return {
+            ...node,
+            className: `${node.className || ''} ${statusClass}`,
+            data: {
+                ...node.data,
+                label: execution?.nodeName || node.data.label,
+                executionStatus: execution ? execution.status : undefined,
+                executionDuration: execution ? execution.duration : undefined
+            }
+        };
+    });
   }, [nodes, executionData]);
 
   const handleNodeClick = useCallback((_: React.MouseEvent, node: any) => {
@@ -77,6 +115,7 @@ const ExecutionCanvasInner: React.FC<ExecutionCanvasProps> = ({ executionData, o
         edges={edges}
         onNodeClick={handleNodeClick}
         fitView
+        fitViewOptions={{ padding: 0.2, maxZoom: 1, duration: 200 }}
         nodesDraggable={false}
         nodesConnectable={false}
         elementsSelectable={true}

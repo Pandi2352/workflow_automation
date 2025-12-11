@@ -130,6 +130,18 @@ class NodeDataDto {
     parameters?: Record<string, any>;
 }
 
+class NodeMeasuredDto {
+    @ApiPropertyOptional()
+    @IsNumber()
+    @IsOptional()
+    width?: number;
+
+    @ApiPropertyOptional()
+    @IsNumber()
+    @IsOptional()
+    height?: number;
+}
+
 class NodeDto {
     @ApiProperty({ description: 'Unique node identifier' })
     @IsString()
@@ -149,11 +161,27 @@ class NodeDto {
     @IsOptional()
     data?: NodeDataDto;
 
+    @ApiPropertyOptional({ type: [Number], example: [100, 200] })
+    @IsArray()
+    @IsNumber({}, { each: true })
+    @IsOptional()
+    position?: number[];
+
     @ApiPropertyOptional()
     @ValidateNested()
-    @Type(() => NodePositionDto)
+    @Type(() => NodeMeasuredDto)
     @IsOptional()
-    position?: NodePositionDto;
+    measured?: NodeMeasuredDto;
+
+    @ApiPropertyOptional()
+    @IsBoolean()
+    @IsOptional()
+    selected?: boolean;
+
+    @ApiPropertyOptional()
+    @IsBoolean()
+    @IsOptional()
+    dragging?: boolean;
 
     @ApiPropertyOptional()
     @IsString()

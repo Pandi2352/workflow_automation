@@ -52,6 +52,10 @@ export const WorkflowDesigner: React.FC = () => {
             if (workflow) {
                 const hydratedNodes = (workflow.nodes || []).map((n: any) => ({
                     ...n,
+                    // Map backend array [x,y] to ReactFlow object {x,y}
+                    position: Array.isArray(n.position) 
+                        ? { x: n.position[0], y: n.position[1] } 
+                        : (n.position || { x: 0, y: 0 }),
                     data: {
                         ...n.data,
                         label: n.nodeName || n.id
@@ -105,7 +109,16 @@ export const WorkflowDesigner: React.FC = () => {
                 name: workflowName || 'Untitled Workflow',
                 description: workflowDescription || '',
                 active: isWorkflowActive,
-                nodes: nodes.map(n => ({ ...n, nodeName: n.data?.label || n.id })) as any,
+                nodes: nodes.map(n => ({ 
+                    ...n, 
+                    nodeName: n.data?.label || n.id,
+                    // Map ReactFlow object {x,y} to backend array [x,y]
+                    position: [n.position.x, n.position.y],
+                    // Ensure measured is passed if present
+                    measured: n.measured,
+                    selected: n.selected,
+                    dragging: n.dragging
+                })) as any,
                 edges: edges as any
             };
 
