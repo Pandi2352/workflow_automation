@@ -22,27 +22,19 @@ export const WorkflowDesigner: React.FC = () => {
     const navigate = useNavigate();
     const { 
         nodes, edges, setNodes, setEdges, selectedNode, addNode, activeTab,
-        setWorkflowMetadata, workflowName, workflowDescription, isWorkflowActive
+        setWorkflowMetadata, workflowName, workflowDescription, isWorkflowActive,
+        toast, showToast, hideToast, executionTrigger
     } = useWorkflowStore(); 
     
     const [isMetadataModalOpen, setIsMetadataModalOpen] = useState(false);
     const [currentExecution, setCurrentExecution] = useState<any>(null);
     
-    // Toast state
-    const [toastConfig, setToastConfig] = useState<{ 
-        message: string; 
-        description?: string; 
-        variant: 'success' | 'error' | 'info'; 
-        isVisible: boolean 
-    }>({
-        message: '',
-        variant: 'success',
-        isVisible: false
-    });
-
-    const showToast = (message: string, variant: 'success' | 'error' | 'info' = 'success', description?: string) => {
-        setToastConfig({ message, variant, description, isVisible: true });
-    };
+    // Listen for execution triggers from nodes
+    useEffect(() => {
+        if (executionTrigger > 0) {
+            executeWorkflow();
+        }
+    }, [executionTrigger]);
 
     useEffect(() => {
         if (id === 'new') {
@@ -269,11 +261,11 @@ export const WorkflowDesigner: React.FC = () => {
             </div>
             
             <Toast 
-                message={toastConfig.message}
-                description={toastConfig.description}
-                variant={toastConfig.variant} 
-                isVisible={toastConfig.isVisible} 
-                onClose={() => setToastConfig(prev => ({ ...prev, isVisible: false }))} 
+                message={toast.message}
+                description={toast.description}
+                variant={toast.variant} 
+                isVisible={toast.isVisible} 
+                onClose={hideToast} 
             />
 
             <WorkflowMetadataModal 

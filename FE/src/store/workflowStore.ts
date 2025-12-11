@@ -50,6 +50,22 @@ interface WorkflowState {
 
     credentials: any[];
     fetchCredentials: (provider?: string) => Promise<void>;
+
+    // Toast
+    toast: { message: string; variant: 'success' | 'error' | 'info'; description?: string; isVisible: boolean };
+    showToast: (message: string, variant?: 'success' | 'error' | 'info', description?: string) => void;
+    hideToast: () => void;
+
+    // Execution
+    currentExecution: any;
+    isExecuting: boolean;
+    setCurrentExecution: (execution: any) => void;
+    executionTrigger: number;
+    triggerWorkflowExecution: () => void;
+    // runWorkflow: () => Promise<void>; // Deferred
+
+    // Helpers
+    deleteNode: (id: string) => void;
 }
 
 export const useWorkflowStore = create<WorkflowState>((set, get) => ({
@@ -151,5 +167,38 @@ export const useWorkflowStore = create<WorkflowState>((set, get) => ({
             console.error('Failed to fetch credentials:', error);
         }
     },
+
+    // Toast State
+    toast: { message: '', variant: 'success', isVisible: false },
+    showToast: (message, variant = 'success', description) => set({
+        toast: { message, variant, description, isVisible: true }
+    }),
+    hideToast: () => set((state) => ({ toast: { ...state.toast, isVisible: false } })),
+
+    // Execution State
+    currentExecution: null,
+    isExecuting: false,
+    setCurrentExecution: (execution) => set({ currentExecution: execution }),
+    runWorkflow: async () => {
+        const { id } = get().selectedNode?.data || { id: null }; // Not used for runWorkflow, we use current workflow ID
+        // Note: runWorkflow logic requires saving first, which needs nodes/edges. 
+        // Ideally we move the FULL logic here, but for now let's expose specific helpers or rely on the component.
+        // Actually, let's keep running logic in Designer for now to avoid massive refactor of 'handleSave' which depends on component routing.
+        // Instead, we will expose a TRIGGER flag.
+    },
+    // Execution Trigger (to request execution from components)
+    executionTrigger: 0,
+    triggerWorkflowExecution: () => set({ executionTrigger: Date.now() }),
+
+    // Simplified Execution Starter (if backend allows generic start)
+    // We will just expose 'setNodes' which we already have. 
+    // Deletion helper
+    deleteNode: (id: string) => {
+        const { nodes, edges } = get();
+        set({
+            nodes: nodes.filter(n => n.id !== id),
+            edges: edges.filter(e => e.source !== id && e.target !== id)
+        });
+    }
 }));
 
