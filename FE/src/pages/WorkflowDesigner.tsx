@@ -5,6 +5,7 @@ import { Zap, Plus } from 'lucide-react';
 import { NodeDrawer } from '../components/designer/NodeDrawer';
 import { WorkflowCanvas } from '../components/designer/WorkflowCanvas';
 import { NodeConfigPanel } from '../nodes/google-drive/NodeConfigPanel';
+import { NodeConfigPanel as OneDriveNodeConfigPanel } from '../nodes/onedrive/NodeConfigPanel';
 import { DesignerHeader } from '../components/designer/DesignerHeader';
 import { ExecutionModeView } from '../components/execution/ExecutionModeView';
 import { useWorkflowStore } from '../store/workflowStore';
@@ -256,7 +257,13 @@ export const WorkflowDesigner: React.FC = () => {
                         </div>
 
                         {/* Overlays */}
-                        {selectedNode && (
+                        {selectedNode && selectedNode.type === 'ONEDRIVE' ? (
+                            <OneDriveNodeConfigPanel
+                                nodeExecutionData={currentExecution?.nodeExecutions?.find(
+                                    (ex: any) => ex.nodeId === selectedNode?.id
+                                )} 
+                            />
+                        ) : selectedNode && (
                             <NodeConfigPanel 
                                 nodeExecutionData={currentExecution?.nodeExecutions?.find(
                                     (ex: any) => ex.nodeId === selectedNode?.id

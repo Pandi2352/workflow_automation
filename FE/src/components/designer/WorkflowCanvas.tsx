@@ -23,10 +23,12 @@ interface WorkflowCanvasProps {
 
 import { GenericNode } from '../../nodes/GenericNode';
 import { GoogleDriveNode } from '../../nodes/google-drive/GoogleDriveNode';
+import { OneDriveNode } from '../../nodes/onedrive/OneDriveNode';
 import { useMemo } from 'react';
 
 const nodeTypes = {
     GOOGLE_DRIVE: GoogleDriveNode,
+    ONEDRIVE: OneDriveNode,
     default: GenericNode, // Fallback
     input: GenericNode,
     webhook: GenericNode,

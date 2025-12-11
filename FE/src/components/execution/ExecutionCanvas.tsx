@@ -11,6 +11,7 @@ import {
 import { useWorkflowStore } from '../../store/workflowStore';
 import { GenericNode } from '../../nodes/GenericNode';
 import { GoogleDriveNode } from '../../nodes/google-drive/GoogleDriveNode';
+import { OneDriveNode } from '../../nodes/onedrive/OneDriveNode';
 
 interface ExecutionCanvasProps {
     executionData?: any;
@@ -19,6 +20,7 @@ interface ExecutionCanvasProps {
 
 const nodeTypes = {
     GOOGLE_DRIVE: GoogleDriveNode,
+    ONEDRIVE: OneDriveNode,
     default: GenericNode, 
     input: GenericNode,
     webhook: GenericNode,

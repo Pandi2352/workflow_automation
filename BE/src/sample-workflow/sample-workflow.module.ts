@@ -9,9 +9,11 @@ import { ExpressionEvaluatorService } from './services/expression-evaluator.serv
 import { SampleWorkflowService } from './sample-workflow.service';
 import { WorkflowHistory, WorkflowHistorySchema } from './schemas/workflow-history.schema';
 import { GoogleDriveController } from './controllers/google-drive.controller';
+import { OneDriveController } from './controllers/onedrive.controller';
 import { CredentialsModule } from '../credentials/credentials.module';
 import { ConfigModule } from '@nestjs/config';
 import { GoogleDriveService } from './node-services/google-drive.service';
+import { OneDriveService } from './node-services/onedrive.service';
 
 @Module({
     imports: [
@@ -22,7 +24,7 @@ import { GoogleDriveService } from './node-services/google-drive.service';
         CredentialsModule,
         ConfigModule,
     ],
-    controllers: [SampleWorkflowController, GoogleDriveController],
+    controllers: [SampleWorkflowController, GoogleDriveController, OneDriveController],
     providers: [
         SampleWorkflowService,
         WorkflowExecutorService,
@@ -30,6 +32,7 @@ import { GoogleDriveService } from './node-services/google-drive.service';
         NodeRegistryService,
         ExpressionEvaluatorService,
         GoogleDriveService,
+        OneDriveService,
     ],
     exports: [SampleWorkflowService, NodeRegistryService, ExpressionEvaluatorService],
 })

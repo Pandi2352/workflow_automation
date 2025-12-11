@@ -2,7 +2,9 @@ import { Injectable } from '@nestjs/common';
 import { SampleNodeType } from '../enums/node-type.enum';
 import { BaseWorkflowNode } from '../nodes/workflow-node.interface';
 import { GoogleDriveNode } from '../nodes/google-drive.node';
+import { OneDriveNode } from '../nodes/onedrive.node';
 import { GoogleDriveService } from '../node-services/google-drive.service';
+import { OneDriveService } from '../node-services/onedrive.service';
 
 export interface NodeDefinition {
     type: string;
@@ -19,13 +21,17 @@ export class NodeRegistryService {
     private nodeInstances: Map<string, BaseWorkflowNode> = new Map();
     private nodeDefinitions: Map<string, NodeDefinition> = new Map();
 
-    constructor(private readonly googleDriveService: GoogleDriveService) {
+    constructor(
+        private readonly googleDriveService: GoogleDriveService,
+        private readonly oneDriveService: OneDriveService
+    ) {
         this.registerDefaultNodes();
     }
 
     private registerDefaultNodes(): void {
         // Register node instances
         this.nodeInstances.set(SampleNodeType.GOOGLE_DRIVE, new GoogleDriveNode(this.googleDriveService));
+        this.nodeInstances.set(SampleNodeType.ONEDRIVE, new OneDriveNode(this.oneDriveService));
 
         // Register node definitions
         this.nodeDefinitions.set(SampleNodeType.GOOGLE_DRIVE, {
@@ -56,6 +62,38 @@ export class NodeRegistryService {
                     type: 'credential',
                     provider: 'google',
                     description: 'Google Drive Credentials'
+                }
+            }
+        });
+
+        this.nodeDefinitions.set(SampleNodeType.ONEDRIVE, {
+            type: SampleNodeType.ONEDRIVE,
+            name: 'OneDrive (Microsoft)',
+            description: 'Fetch files and folders from OneDrive',
+            category: 'Microsoft',
+            inputs: 0,
+            outputs: 1,
+            configSchema: {
+                operation: {
+                    type: 'select',
+                    options: ['fetch_files', 'fetch_folders'],
+                    default: 'fetch_files',
+                    description: 'Operation to perform'
+                },
+                folderId: {
+                    type: 'string', // Eventually could be folder_selector if UI supports it for OneDrive
+                    description: 'Folder ID to list files from (optional)',
+                    condition: { operation: 'fetch_files' }
+                },
+                parentId: {
+                    type: 'string',
+                    description: 'Parent Folder ID to list folders from (optional)',
+                    condition: { operation: 'fetch_folders' }
+                },
+                credentials: {
+                    type: 'credential',
+                    provider: 'microsoft',
+                    description: 'OneDrive (Microsoft) Credentials'
                 }
             }
         });

@@ -13,6 +13,9 @@ export const API_ENDPOINTS = {
     GOOGLE_DRIVE: {
         LIST: '/google-drive/list',
     },
+    ONEDRIVE: {
+        LIST: '/onedrive/list',
+    },
     CREDENTIALS: {
         LIST: '/credentials',
     },

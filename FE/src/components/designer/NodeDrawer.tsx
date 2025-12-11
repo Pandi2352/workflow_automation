@@ -1,6 +1,7 @@
 import React, { useState, useMemo } from 'react';
 import { Search, X, ChevronRight, Zap, Split, ArrowUpRight } from 'lucide-react';
 import googleDriveIcon from '../../assets/nodeIcons/google-drive-svgrepo-com.svg';
+import oneDriveIcon from '../../assets/nodeIcons/ms-onedrive-svgrepo-com.svg';
 import { Input } from '../../common/Input';
 import { Button } from '../../common/Button';
 
@@ -28,6 +29,7 @@ const availableNodes: NodeType[] = [
 
     // Actions
     { type: 'GOOGLE_DRIVE', label: 'Google Drive', description: 'Interact with Google Drive', icon: ({size}: any) => <img src={googleDriveIcon} style={{width: size, height: size}} />, color: 'text-green-600', category: 'ACTION' },
+    { type: 'ONEDRIVE', label: 'OneDrive', description: 'Interact with Microsoft OneDrive', icon: ({size}: any) => <img src={oneDriveIcon} style={{width: size, height: size}} />, color: 'text-blue-600', category: 'ACTION' },
     
     // Logic/Conditional
     { type: 'IF_ELSE', label: 'If / Else', description: 'Branch workflow based on conditions', icon: Split, color: 'text-indigo-500', category: 'CONDITIONAL' },
