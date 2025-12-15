@@ -26,6 +26,8 @@ export interface NodeDefinition {
     configSchema?: Record<string, any>;
 }
 
+import { ProcessedItemService } from '../../sample-workflow/services/processed-item.service';
+
 @Injectable()
 export class NodeRegistryService {
     private nodeInstances: Map<string, BaseWorkflowNode> = new Map();
@@ -37,7 +39,8 @@ export class NodeRegistryService {
         private readonly gmailService: GmailService,
         private readonly ocrService: OCRService,
         private readonly parsingService: ParsingService,
-        private readonly mongoService: MongoDBService
+        private readonly mongoService: MongoDBService,
+        private readonly processedItemService: ProcessedItemService
     ) {
         this.registerDefaultNodes();
         this.registerParsingNodes();
@@ -49,7 +52,7 @@ export class NodeRegistryService {
         this.nodeInstances.set(SampleNodeType.ONEDRIVE, new OneDriveNode(this.oneDriveService));
         this.nodeInstances.set(SampleNodeType.GMAIL, new GmailNode(this.gmailService));
         this.nodeInstances.set(SampleNodeType.SCHEDULE, new ScheduleNode());
-        this.nodeInstances.set(SampleNodeType.OCR, new OCRNodeStrategy(this.ocrService));
+        this.nodeInstances.set(SampleNodeType.OCR, new OCRNodeStrategy(this.ocrService, this.processedItemService));
         this.nodeInstances.set(SampleNodeType.IF_ELSE, new IfElseNodeStrategy());
         this.nodeInstances.set(SampleNodeType.PARSING, new ParsingNodeStrategy(this.parsingService));
         this.nodeInstances.set(SampleNodeType.MONGODB, new MongoDBNodeStrategy(this.mongoService));

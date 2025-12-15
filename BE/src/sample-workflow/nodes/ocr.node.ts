@@ -4,8 +4,13 @@ import { OCRService } from '../node-services/ocr.service';
 import * as path from 'path';
 
 
+import { ProcessedItemService } from '../services/processed-item.service';
+
 export class OCRNodeStrategy extends BaseWorkflowNode {
-    constructor(private ocrService: OCRService) {
+    constructor(
+        private ocrService: OCRService,
+        private processedItemService: ProcessedItemService
+    ) {
         super();
     }
 
@@ -13,6 +18,7 @@ export class OCRNodeStrategy extends BaseWorkflowNode {
         const config = data?.config || {};
         const apiKey = config.apiKey || process.env.GEMINI_API_KEY;
         const modelName = config.modelName || 'gemini-1.5-flash';
+        const forceProcess = config.forceProcess === true; // Allow overriding deduplication
 
         if (!apiKey) {
             throw new Error('Gemini API Key is required');
@@ -66,31 +72,57 @@ export class OCRNodeStrategy extends BaseWorkflowNode {
             return [];
         }
 
-        this.log('INFO', `Found ${filesToProcess.length} files to process`);
+        this.log('INFO', `Found ${filesToProcess.length} candidate files`);
 
         const results: any[] = [];
 
         for (const file of filesToProcess) {
-            try {
-                // Determine path: 'key' (local path relative to root/uploads), 'path' (absolute), or 'url' (remote)
-                let fileIdentifier = file.key || file.path || file.url;
+            // Determine path: 'key' (local path relative to root/uploads), 'path' (absolute), or 'url' (remote)
+            const fileIdentifier = file.key || file.path || file.url;
+            // Use file_id for persistent tracking if available, falling back to identifier
+            const persistentId = file.file_id || file.id || file.key || file.path || file.url;
 
+            if (!persistentId) {
+                this.log('WARN', `Skipping file without identifier: ${JSON.stringify(file)}`);
+                continue;
+            }
+
+            // DEDUPLICATION CHECK
+            if (!forceProcess) {
+                const shouldProcess = await this.processedItemService.shouldProcess(persistentId, 'OCR');
+                if (!shouldProcess) {
+                    this.log('INFO', `Skipping duplicate file (already processed): ${file.name || persistentId}`);
+                    // Optionally push a dummy/cached result if needed, but for now we skip to save cost
+                    continue;
+                }
+            }
+
+            try {
                 // If it's a 'key' from our upload system, ensure it maps to absolute path
+                let processPath = fileIdentifier;
                 if (file.key && !file.path) {
-                    // Assumption: Uploads are in 'uploads' dir
-                    fileIdentifier = path.join(process.cwd(), 'uploads', file.key);
+                    processPath = path.join(process.cwd(), 'uploads', file.key);
                 }
 
-                if (!fileIdentifier) {
+                if (!processPath) {
                     this.log('WARN', `Skipping invalid file object: ${JSON.stringify(file)}`);
                     continue;
                 }
 
                 this.log('INFO', `Analyzing file: ${file.name || 'Unknown'}`);
 
-                const result = await this.ocrService.processFile(fileIdentifier, {
+                // Mark as PENDING
+                await this.processedItemService.markPending(persistentId, 'OCR', { fileName: file.name });
+
+                const result = await this.ocrService.processFile(processPath, {
                     apiKey,
                     modelName,
+                });
+
+                // Mark as COMPLETED
+                await this.processedItemService.markCompleted(persistentId, 'OCR', {
+                    fileName: file.name,
+                    timestamp: new Date()
                 });
 
                 results.push({
@@ -102,6 +134,10 @@ export class OCRNodeStrategy extends BaseWorkflowNode {
 
             } catch (error: any) {
                 this.log('ERROR', `Failed to process file ${file.name}: ${error.message}`);
+
+                // Mark as FAILED
+                await this.processedItemService.markFailed(persistentId, 'OCR', error.message);
+
                 results.push({
                     fileName: file.name,
                     status: 'FAILED',
@@ -110,6 +146,7 @@ export class OCRNodeStrategy extends BaseWorkflowNode {
             }
         }
 
+        this.log('INFO', `OCR Processing complete. Processed ${results.length} new items.`);
         return results;
     }
 

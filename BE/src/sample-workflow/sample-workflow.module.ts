@@ -18,9 +18,11 @@ import { GmailService } from './node-services/gmail.service';
 import { OCRService } from './node-services/ocr.service';
 import { SchedulerService } from './services/scheduler.service';
 import { GmailPollingService } from './services/gmail-polling.service';
+import { ProcessedItem, ProcessedItemSchema } from './schemas/processed-item.schema';
+import { ProcessedItemService } from './services/processed-item.service';
 import { TriggerState, TriggerStateSchema } from './schemas/trigger-state.schema';
-import { ParsingService } from '../node-services/parsing.service';
-import { MongoDBService } from '../node-services/mongodb.service';
+import { ParsingService } from 'src/node-services/parsing.service';
+import { MongoDBService } from 'src/node-services/mongodb.service';
 
 @Module({
     imports: [
@@ -28,6 +30,7 @@ import { MongoDBService } from '../node-services/mongodb.service';
             { name: SampleWorkflow.name, schema: SampleWorkflowSchema },
             { name: WorkflowHistory.name, schema: WorkflowHistorySchema },
             { name: TriggerState.name, schema: TriggerStateSchema },
+            { name: ProcessedItem.name, schema: ProcessedItemSchema },
         ]),
         CredentialsModule,
         ConfigModule,
@@ -47,6 +50,7 @@ import { MongoDBService } from '../node-services/mongodb.service';
         MongoDBService,
         SchedulerService,
         GmailPollingService,
+        ProcessedItemService,
     ],
     exports: [SampleWorkflowService, NodeRegistryService, ExpressionEvaluatorService],
 })

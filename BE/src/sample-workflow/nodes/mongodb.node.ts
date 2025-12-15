@@ -19,22 +19,41 @@ export class MongoDBNodeStrategy extends BaseWorkflowNode {
             this.log('WARN', 'No connection string provided, running in MOCK mode');
         }
 
-        // Data to insert: usage of inputs
-        const documentToInsert = inputs.length > 0 ? inputs[0] : { info: 'No input data' };
+        // Data to insert
+        let documentsToInsert: any[] = [];
 
-        try {
-            const resultId = await this.mongoService.insertOne(connectionString, dbName, collectionName, documentToInsert);
-
-            this.log('INFO', `Document inserted with ID: ${resultId}`);
-
-            return {
-                success: true,
-                insertedId: resultId,
-                collection: collectionName
-            };
-        } catch (error: any) {
-            this.log('ERROR', `MongoDB operation failed: ${error.message}`);
-            throw error;
+        if (inputs.length > 0) {
+            const input = inputs[0];
+            if (Array.isArray(input)) {
+                // Batch insert
+                documentsToInsert = input;
+            } else {
+                documentsToInsert = [input];
+            }
+        } else {
+            documentsToInsert = [{ info: 'No input data' }];
         }
+
+        const results: any[] = [];
+        for (const doc of documentsToInsert) {
+            try {
+                // If the doc has a 'parsedData' wrapper (from parsing node), extract it
+                const actualDoc = doc.parsedData || doc;
+
+                const resultId = await this.mongoService.insertOne(connectionString, dbName, collectionName, actualDoc);
+                results.push({ success: true, insertedId: resultId });
+            } catch (e: any) {
+                this.log('ERROR', `Failed to insert doc: ${e.message}`);
+                results.push({ success: false, error: e.message });
+            }
+        }
+
+        this.log('INFO', `Batch operation complete. Inserted ${results.filter(r => r.success).length} documents.`);
+
+        return {
+            success: true,
+            collection: collectionName,
+            results
+        };
     }
 }
