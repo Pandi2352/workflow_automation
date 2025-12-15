@@ -1,4 +1,4 @@
-import { Controller, Get, Post, Body, Query } from '@nestjs/common';
+import { Controller, Get, Post, Body, Query, Delete, Param } from '@nestjs/common';
 import { CredentialsService } from './credentials.service';
 
 @Controller('credentials')
@@ -17,5 +17,10 @@ export class CredentialsController {
     @Post()
     async create(@Body() createCredentialDto: any) {
         return this.credentialsService.create(createCredentialDto);
+    }
+
+    @Delete(':id')
+    async remove(@Param('id') id: string) {
+        return this.credentialsService.delete(id);
     }
 }

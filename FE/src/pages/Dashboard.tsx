@@ -10,6 +10,8 @@ import { Button } from '../common/Button';
 import { Switch } from '../common/Switch';
 import { Modal } from '../common/Modal';
 
+import { CredentialsList } from '../components/credentials/CredentialsList';
+
 export const Dashboard: React.FC = () => {
   const navigate = useNavigate();
   const [workflows, setWorkflows] = useState<SampleWorkflow[]>([]);
@@ -17,6 +19,9 @@ export const Dashboard: React.FC = () => {
   const [searchQuery, setSearchQuery] = useState('');
   const [viewMode, setViewMode] = useState<'table' | 'grid'>('grid');
   const [menuOpenId, setMenuOpenId] = useState<string | null>(null);
+  
+  // View State (Workflows | Credentials)
+  const [currentView, setCurrentView] = useState<'workflows' | 'credentials'>('workflows');
   
   // Delete Modal State
   const [deleteId, setDeleteId] = useState<string | null>(null);
@@ -122,9 +127,24 @@ export const Dashboard: React.FC = () => {
             <h1 className="text-lg font-bold text-slate-900 tracking-tight">Automation Kit</h1>
         </div>
         <div className="ml-8 hidden md:flex items-center gap-6 text-sm font-medium text-slate-500">
-             <span className="text-slate-900">Workflows</span>
-             <span className="hover:text-slate-900 cursor-pointer transition-colors">Executions</span>
-             <span className="hover:text-slate-900 cursor-pointer transition-colors">Settings</span>
+             <button 
+                onClick={() => setCurrentView('workflows')}
+                className={`${currentView === 'workflows' ? 'text-slate-900 font-semibold' : 'hover:text-slate-900'} transition-colors`}
+             >
+                Workflows
+             </button>
+             <button 
+                className="hover:text-slate-900 cursor-pointer transition-colors"
+                // Implement Executions view later
+             >
+                Executions
+             </button>
+             <button 
+                onClick={() => setCurrentView('credentials')}
+                className={`${currentView === 'credentials' ? 'text-slate-900 font-semibold' : 'hover:text-slate-900'} transition-colors`}
+             >
+                Credentials
+             </button>
         </div>
         <div className="ml-auto flex items-center gap-3">
              <div className="w-8 h-8 rounded-full bg-slate-100 border border-slate-200 flex items-center justify-center text-slate-500 text-xs font-bold">
@@ -133,6 +153,7 @@ export const Dashboard: React.FC = () => {
         </div>
       </div>
 
+      {currentView === 'workflows' && (
       <div className="relative bg-emerald-50/50 border-b border-emerald-100/50 pt-16 pb-20 px-6 md:px-10">
         <div className="max-w-3xl mx-auto text-center space-y-6">
             <h1 className="text-3xl font-bold text-slate-900 tracking-tight">
@@ -165,95 +186,146 @@ export const Dashboard: React.FC = () => {
             </div>
         </div>
       </div>
+      )}
 
       <div className="p-6 md:p-10 max-w-7xl mx-auto -mt-10 relative z-10">
-         <div className="flex items-center justify-between mb-6">
-             <div className="flex items-center gap-2 text-sm text-slate-500 font-medium bg-white/50 backdrop-blur-md px-3 py-1.5 rounded-full border border-slate-200/50 shadow-sm">
-                <span>{workflows.length} workflows</span>
-                <span className="w-1 h-1 bg-slate-300 rounded-full" />
-                <span className="text-emerald-700">{workflows.filter(w => w.isActive).length} active</span>
-            </div>
+       {currentView === 'credentials' ? (
+           <CredentialsList />
+       ) : (
+           <>
+            {/* Workflow List Header */}
+             <div className="flex items-center justify-between mb-6">
+                 <div className="flex items-center gap-2 text-sm text-slate-500 font-medium bg-white/50 backdrop-blur-md px-3 py-1.5 rounded-full border border-slate-200/50 shadow-sm">
+                    <span>{workflows.length} workflows</span>
+                    <span className="w-1 h-1 bg-slate-300 rounded-full" />
+                    <span className="text-emerald-700">{workflows.filter(w => w.isActive).length} active</span>
+                </div>
 
-            <div className="flex bg-white rounded-lg p-1 border border-slate-200 shadow-sm">
-                <button 
-                    onClick={() => setViewMode('table')}
-                    className={`p-1.5 rounded-md transition-all cursor-pointer ${viewMode === 'table' ? 'bg-slate-100 text-slate-900' : 'text-slate-400 hover:text-slate-600'}`}
-                    title="List View"
-                >
-                    <List size={16} />
-                </button>
-                <div className="w-px bg-slate-100 mx-1" />
-                <button 
-                    onClick={() => setViewMode('grid')}
-                    className={`p-1.5 rounded-md transition-all cursor-pointer ${viewMode === 'grid' ? 'bg-slate-100 text-slate-900' : 'text-slate-400 hover:text-slate-600'}`}
-                    title="Grid View"
-                >
-                    <LayoutGrid size={16} />
-                </button>
-            </div>
-         </div>
+                <div className="flex bg-white rounded-lg p-1 border border-slate-200 shadow-sm">
+                    <button 
+                        onClick={() => setViewMode('table')}
+                        className={`p-1.5 rounded-md transition-all cursor-pointer ${viewMode === 'table' ? 'bg-slate-100 text-slate-900' : 'text-slate-400 hover:text-slate-600'}`}
+                        title="List View"
+                    >
+                        <List size={16} />
+                    </button>
+                    <div className="w-px bg-slate-100 mx-1" />
+                    <button 
+                        onClick={() => setViewMode('grid')}
+                        className={`p-1.5 rounded-md transition-all cursor-pointer ${viewMode === 'grid' ? 'bg-slate-100 text-slate-900' : 'text-slate-400 hover:text-slate-600'}`}
+                        title="Grid View"
+                    >
+                        <LayoutGrid size={16} />
+                    </button>
+                </div>
+             </div>
 
-      {loading ? (
-        <div className="animate-pulse space-y-4">
-            {[1,2,3,4].map(i => <div key={i} className="h-12 bg-slate-200 rounded-lg" />)}
-        </div>
-      ) : filteredWorkflows.length === 0 ? (
-        <div className="text-center py-24 border-2 border-dashed border-slate-200 rounded-xl bg-slate-50/50">
-            <div className="w-16 h-16 bg-white rounded-2xl flex items-center justify-center mx-auto mb-4 shadow-sm border border-slate-100">
-                <Command size={24} className="text-slate-400" />
+          {loading ? (
+            <div className="animate-pulse space-y-4">
+                {[1,2,3,4].map(i => <div key={i} className="h-12 bg-slate-200 rounded-lg" />)}
             </div>
-            <h3 className="text-slate-900 font-medium mb-1">No workflows found</h3>
-            <p className="text-slate-500 text-sm mb-6">Create a new workflow to get started.</p>
-            <Button onClick={handleCreateWorkflow} size="sm">Create Workflow</Button>
-        </div>
-      ) : viewMode === 'table' ? (
-        // TABLE VIEW
-        <div className="bg-white border border-slate-200 rounded-xl shadow-sm overflow-visible">
-            <div className="grid grid-cols-12 gap-4 border-b border-slate-100 bg-slate-50/80 px-6 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wider backdrop-blur-sm sticky top-0 rounded-t-xl z-20">
-                <div className="col-span-5">Name</div>
-                <div className="col-span-2">Status</div>
-                <div className="col-span-3">Last Modified</div>
-                <div className="col-span-2 text-right">Actions</div>
+          ) : filteredWorkflows.length === 0 ? (
+            <div className="text-center py-24 border-2 border-dashed border-slate-200 rounded-xl bg-slate-50/50">
+                <div className="w-16 h-16 bg-white rounded-2xl flex items-center justify-center mx-auto mb-4 shadow-sm border border-slate-100">
+                    <Command size={24} className="text-slate-400" />
+                </div>
+                <h3 className="text-slate-900 font-medium mb-1">No workflows found</h3>
+                <p className="text-slate-500 text-sm mb-6">Create a new workflow to get started.</p>
+                <Button onClick={handleCreateWorkflow} size="sm">Create Workflow</Button>
             </div>
-            <div className="divide-y divide-slate-100">
+          ) : viewMode === 'table' ? (
+            // TABLE VIEW
+            <div className="bg-white border border-slate-200 rounded-xl shadow-sm overflow-visible">
+                <div className="grid grid-cols-12 gap-4 border-b border-slate-100 bg-slate-50/80 px-6 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wider backdrop-blur-sm sticky top-0 rounded-t-xl z-20">
+                    <div className="col-span-5">Name</div>
+                    <div className="col-span-2">Status</div>
+                    <div className="col-span-3">Last Modified</div>
+                    <div className="col-span-2 text-right">Actions</div>
+                </div>
+                <div className="divide-y divide-slate-100">
+                    {filteredWorkflows.map((workflow) => (
+                        <div 
+                            key={workflow._id}
+                            onClick={() => navigate(`/workflow/${workflow._id}`)}
+                            className="grid grid-cols-12 gap-4 px-6 py-3.5 items-center hover:bg-slate-50 transition-colors cursor-pointer group relative"
+                        >
+                            <div className="col-span-5 flex items-center gap-3">
+                                <div className={`p-1.5 rounded-lg border ${workflow.isActive ? 'bg-emerald-50 border-emerald-100 text-emerald-600' : 'bg-slate-50 border-slate-200 text-slate-400'}`}>
+                                    <Zap size={14} fill={workflow.isActive ? "currentColor" : "none"} />
+                                </div>
+                                <div>
+                                    <h4 className="text-sm font-medium text-slate-900 group-hover:text-emerald-700 transition-colors">{workflow.name}</h4>
+                                    <p className="text-xs text-slate-500 truncate max-w-[200px]">{workflow.description || 'No description'}</p>
+                                </div>
+                            </div>
+                            <div className="col-span-2" onClick={(e) => e.stopPropagation()}>
+                                 <Switch 
+                                    checked={workflow.isActive} 
+                                    onChange={() => handleToggleActive(workflow)} 
+                                    size="sm"
+                                 />
+                            </div>
+                            <div className="col-span-3 text-xs text-slate-500 font-mono">
+                                {new Date(workflow.updatedAt).toLocaleDateString()} <span className="text-slate-300 mx-1">•</span> {new Date(workflow.updatedAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                            </div>
+                            <div className="col-span-2 flex justify-end gap-2 relative">
+                                <div className="relative">
+                                    <button 
+                                        onClick={(e) => {
+                                            e.stopPropagation();
+                                            setMenuOpenId(menuOpenId === workflow._id ? null : workflow._id);
+                                        }}
+                                        className="p-1.5 hover:bg-slate-200 cursor-pointer rounded text-slate-400 hover:text-slate-700 transition-colors"
+                                    >
+                                        <MoreHorizontal size={14} />
+                                    </button>
+                                    
+                                    {menuOpenId === workflow._id && (
+                                        <div className="absolute right-0 top-full mt-1 w-40 bg-white border border-slate-200 rounded-lg shadow-xl z-50 animate-in fade-in zoom-in-95 duration-100 overflow-hidden">
+                                            <button 
+                                                onClick={(e) => handleViewExecutions(e, workflow._id)}
+                                                className="w-full text-left px-3 py-2 text-xs font-medium text-slate-600 hover:bg-slate-50 hover:text-slate-900 flex items-center gap-2"
+                                            >
+                                                <Play size={12} /> Executions
+                                            </button>
+                                            <button 
+                                                onClick={(e) => handleClickDelete(e, workflow._id)}
+                                                className="w-full text-left px-3 py-2 text-xs font-medium text-red-600 hover:bg-red-50 flex items-center gap-2 border-t border-slate-100"
+                                            >
+                                                <Trash2 size={12} /> Delete
+                                            </button>
+                                        </div>
+                                    )}
+                                </div>
+                            </div>
+                        </div>
+                    ))}
+                </div>
+            </div>
+          ) : (
+            // GRID VIEW {Compact)
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
                 {filteredWorkflows.map((workflow) => (
                     <div 
                         key={workflow._id}
                         onClick={() => navigate(`/workflow/${workflow._id}`)}
-                        className="grid grid-cols-12 gap-4 px-6 py-3.5 items-center hover:bg-slate-50 transition-colors cursor-pointer group relative"
+                        className="group bg-white border border-slate-200 rounded-xl p-4 hover:border-slate-300 hover:shadow-lg hover:shadow-slate-200/50 transition-all cursor-pointer relative overflow-visible flex flex-col justify-between h-[160px]"
                     >
-                        <div className="col-span-5 flex items-center gap-3">
-                            <div className={`p-1.5 rounded-lg border ${workflow.isActive ? 'bg-emerald-50 border-emerald-100 text-emerald-600' : 'bg-slate-50 border-slate-200 text-slate-400'}`}>
-                                <Zap size={14} fill={workflow.isActive ? "currentColor" : "none"} />
+                        <div className="flex justify-between items-start mb-3">
+                             <div className={`p-2 rounded-lg border ${workflow.isActive ? 'bg-emerald-50 border-emerald-100 text-emerald-600' : 'bg-slate-50 border-slate-200 text-slate-400'}`}>
+                                <Zap size={16} fill={workflow.isActive ? "currentColor" : "none"} />
                             </div>
-                            <div>
-                                <h4 className="text-sm font-medium text-slate-900 group-hover:text-emerald-700 transition-colors">{workflow.name}</h4>
-                                <p className="text-xs text-slate-500 truncate max-w-[200px]">{workflow.description || 'No description'}</p>
-                            </div>
-                        </div>
-                        <div className="col-span-2" onClick={(e) => e.stopPropagation()}>
-                             <Switch 
-                                checked={workflow.isActive} 
-                                onChange={() => handleToggleActive(workflow)} 
-                                size="sm"
-                             />
-                        </div>
-                        <div className="col-span-3 text-xs text-slate-500 font-mono">
-                            {new Date(workflow.updatedAt).toLocaleDateString()} <span className="text-slate-300 mx-1">•</span> {new Date(workflow.updatedAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                        </div>
-                        <div className="col-span-2 flex justify-end gap-2 relative">
                             <div className="relative">
                                 <button 
                                     onClick={(e) => {
                                         e.stopPropagation();
                                         setMenuOpenId(menuOpenId === workflow._id ? null : workflow._id);
                                     }}
-                                    className="p-1.5 hover:bg-slate-200 cursor-pointer rounded text-slate-400 hover:text-slate-700 transition-colors"
+                                    className={`p-1.5 rounded-md transition-colors cursor-pointer ${menuOpenId === workflow._id ? 'bg-slate-100 text-slate-900' : 'text-slate-400 hover:bg-slate-100 hover:text-slate-600'}`}
                                 >
-                                    <MoreHorizontal size={14} />
+                                    <MoreHorizontal size={16} />
                                 </button>
-                                
-                                {menuOpenId === workflow._id && (
+                                 {menuOpenId === workflow._id && (
                                     <div className="absolute right-0 top-full mt-1 w-40 bg-white border border-slate-200 rounded-lg shadow-xl z-50 animate-in fade-in zoom-in-95 duration-100 overflow-hidden">
                                         <button 
                                             onClick={(e) => handleViewExecutions(e, workflow._id)}
@@ -271,84 +343,41 @@ export const Dashboard: React.FC = () => {
                                 )}
                             </div>
                         </div>
+                        
+                        <div>
+                            <h4 className="font-semibold text-slate-900 mb-1 group-hover:text-emerald-700 transition-colors line-clamp-1">{workflow.name}</h4>
+                            <div className="flex items-center justify-between mt-1" onClick={(e) => e.stopPropagation()}>
+                                 <span className="text-xs text-slate-500 line-clamp-1">{workflow.description || 'No description'}</span>
+                            </div>
+                        </div>
+
+                        <div className="mt-4 pt-3 border-t border-slate-50 flex items-center justify-between text-[10px] text-slate-400 font-medium uppercase tracking-wide">
+                            <span>Updated {new Date(workflow.updatedAt).toLocaleDateString()}</span>
+                            <div onClick={(e) => e.stopPropagation()}>
+                                <Switch 
+                                    checked={workflow.isActive}
+                                    onChange={() => handleToggleActive(workflow)}
+                                    size="sm"
+                                />
+                            </div>
+                        </div>
                     </div>
                 ))}
+                 
+                 {/* Add New Card (Ghost) */}
+                 <div 
+                    onClick={handleCreateWorkflow}
+                    className="border-2 border-dashed border-slate-200 rounded-xl p-4 flex flex-col items-center justify-center text-slate-400 hover:border-slate-300 hover:bg-slate-50/50 hover:text-slate-600 transition-all cursor-pointer h-[160px]"
+                 >
+                    <div className="w-10 h-10 rounded-full bg-slate-100 flex items-center justify-center mb-2 group-hover:bg-white group-hover:shadow-sm">
+                        <Plus size={20} />
+                    </div>
+                    <span className="text-sm font-medium">Create New</span>
+                 </div>
             </div>
-        </div>
-      ) : (
-        // GRID VIEW {Compact)
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-            {filteredWorkflows.map((workflow) => (
-                <div 
-                    key={workflow._id}
-                    onClick={() => navigate(`/workflow/${workflow._id}`)}
-                    className="group bg-white border border-slate-200 rounded-xl p-4 hover:border-slate-300 hover:shadow-lg hover:shadow-slate-200/50 transition-all cursor-pointer relative overflow-visible flex flex-col justify-between h-[160px]"
-                >
-                    <div className="flex justify-between items-start mb-3">
-                         <div className={`p-2 rounded-lg border ${workflow.isActive ? 'bg-emerald-50 border-emerald-100 text-emerald-600' : 'bg-slate-50 border-slate-200 text-slate-400'}`}>
-                            <Zap size={16} fill={workflow.isActive ? "currentColor" : "none"} />
-                        </div>
-                        <div className="relative">
-                            <button 
-                                onClick={(e) => {
-                                    e.stopPropagation();
-                                    setMenuOpenId(menuOpenId === workflow._id ? null : workflow._id);
-                                }}
-                                className={`p-1.5 rounded-md transition-colors cursor-pointer ${menuOpenId === workflow._id ? 'bg-slate-100 text-slate-900' : 'text-slate-400 hover:bg-slate-100 hover:text-slate-600'}`}
-                            >
-                                <MoreHorizontal size={16} />
-                            </button>
-                             {menuOpenId === workflow._id && (
-                                <div className="absolute right-0 top-full mt-1 w-40 bg-white border border-slate-200 rounded-lg shadow-xl z-50 animate-in fade-in zoom-in-95 duration-100 overflow-hidden">
-                                    <button 
-                                        onClick={(e) => handleViewExecutions(e, workflow._id)}
-                                        className="w-full text-left px-3 py-2 text-xs font-medium text-slate-600 hover:bg-slate-50 hover:text-slate-900 flex items-center gap-2"
-                                    >
-                                        <Play size={12} /> Executions
-                                    </button>
-                                    <button 
-                                        onClick={(e) => handleClickDelete(e, workflow._id)}
-                                        className="w-full text-left px-3 py-2 text-xs font-medium text-red-600 hover:bg-red-50 flex items-center gap-2 border-t border-slate-100"
-                                    >
-                                        <Trash2 size={12} /> Delete
-                                    </button>
-                                </div>
-                            )}
-                        </div>
-                    </div>
-                    
-                    <div>
-                        <h4 className="font-semibold text-slate-900 mb-1 group-hover:text-emerald-700 transition-colors line-clamp-1">{workflow.name}</h4>
-                        <div className="flex items-center justify-between mt-1" onClick={(e) => e.stopPropagation()}>
-                             <span className="text-xs text-slate-500 line-clamp-1">{workflow.description || 'No description'}</span>
-                        </div>
-                    </div>
-
-                    <div className="mt-4 pt-3 border-t border-slate-50 flex items-center justify-between text-[10px] text-slate-400 font-medium uppercase tracking-wide">
-                        <span>Updated {new Date(workflow.updatedAt).toLocaleDateString()}</span>
-                        <div onClick={(e) => e.stopPropagation()}>
-                            <Switch 
-                                checked={workflow.isActive}
-                                onChange={() => handleToggleActive(workflow)}
-                                size="sm"
-                            />
-                        </div>
-                    </div>
-                </div>
-            ))}
-             
-             {/* Add New Card (Ghost) */}
-             <div 
-                onClick={handleCreateWorkflow}
-                className="border-2 border-dashed border-slate-200 rounded-xl p-4 flex flex-col items-center justify-center text-slate-400 hover:border-slate-300 hover:bg-slate-50/50 hover:text-slate-600 transition-all cursor-pointer h-[160px]"
-             >
-                <div className="w-10 h-10 rounded-full bg-slate-100 flex items-center justify-center mb-2 group-hover:bg-white group-hover:shadow-sm">
-                    <Plus size={20} />
-                </div>
-                <span className="text-sm font-medium">Create New</span>
-             </div>
-        </div>
-      )}
+          )}
+          </>
+       )}
 
       {/* Delete Confirmation Modal */}
       <Modal

@@ -1,4 +1,4 @@
-import React, { useCallback, useRef } from 'react';
+import React, { useCallback, useRef, useMemo } from 'react';
 import {
   ReactFlow,
   MiniMap,
@@ -7,28 +7,28 @@ import {
   useReactFlow,
   ReactFlowProvider,
   BackgroundVariant,
+  ConnectionLineType,
 } from '@xyflow/react';
 import { useWorkflowStore } from '../../store/workflowStore';
-
-// Initial logic for drop
-let id = 0;
-const getId = () => `dndnode_${id++}`;
-
 import { Plus } from 'lucide-react';
-
-interface WorkflowCanvasProps {
-    onToggleDrawer?: () => void;
-    executionData?: any;
-}
 
 import { GenericNode } from '../../nodes/GenericNode';
 import { GoogleDriveNode } from '../../nodes/google-drive/GoogleDriveNode';
 import { OneDriveNode } from '../../nodes/onedrive/OneDriveNode';
 import { GmailNode } from '../../nodes/gmail/GmailNode';
 import { ScheduleNode } from '../../nodes/schedule/ScheduleNode';
-
 import { OCRNode } from '../../nodes/ocr/OCRNode';
-import { useMemo } from 'react';
+
+import { DeletableEdge } from './DeletableEdge';
+
+// Initial logic for drop
+let id = 0;
+const getId = () => `dndnode_${id++}`;
+
+interface WorkflowCanvasProps {
+    onToggleDrawer?: () => void;
+    executionData?: any;
+}
 
 const nodeTypes = {
     GOOGLE_DRIVE: GoogleDriveNode,
@@ -42,7 +42,16 @@ const nodeTypes = {
     api: GenericNode,
     transform: GenericNode,
     output: GenericNode,
+};
 
+const edgeTypes = {
+  deletable: DeletableEdge,
+};
+
+const defaultEdgeOptions = {
+    type: 'deletable',
+    animated: false,
+    style: { strokeWidth: 2, stroke: '#64748b' }, // slate-500 equivalent
 };
 
 const WorkflowCanvasInner: React.FC<WorkflowCanvasProps> = ({ onToggleDrawer, executionData }) => {
@@ -121,7 +130,10 @@ const WorkflowCanvasInner: React.FC<WorkflowCanvasProps> = ({ onToggleDrawer, ex
       <ReactFlow
         nodes={nodesWithStatus}
         nodeTypes={nodeTypes}
+        edgeTypes={edgeTypes}
         edges={edges}
+        defaultEdgeOptions={defaultEdgeOptions}
+        connectionLineType={ConnectionLineType.SmoothStep}
         onNodesChange={onNodesChange}
         onEdgesChange={onEdgesChange}
         onConnect={onConnect}

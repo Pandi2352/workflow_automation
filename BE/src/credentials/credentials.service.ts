@@ -25,4 +25,8 @@ export class CredentialsService {
     async update(id: string, updateData: Partial<Credential>): Promise<Credential | null> {
         return this.credentialModel.findByIdAndUpdate(id, updateData, { new: true }).exec();
     }
+
+    async delete(id: string): Promise<Credential | null> {
+        return this.credentialModel.findByIdAndDelete(id).exec();
+    }
 }
