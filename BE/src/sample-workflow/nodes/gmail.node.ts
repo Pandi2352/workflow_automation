@@ -23,8 +23,22 @@ export class GmailNode extends BaseWorkflowNode {
         }
 
         try {
-            const messages = await this.gmailService.fetchMessages(credentialId, maxResults, query);
-            this.log('INFO', `Found ${messages.length} messages`);
+            // Check if we were triggered by a specific email event
+            const triggerData = data?._triggerData;
+            let messages: any[] = [];
+
+            if (triggerData && triggerData.source === 'gmail' && triggerData.email) {
+                this.log('INFO', `Processing triggered execution for message: ${triggerData.email.id}`);
+                // Use the email directly provided by the trigger service
+                // Wrap it in a structure that matches the list response stub, but we already have the full details?
+                // FetchMessages returns {id, threadId}. triggerData.email IS the full message usually.
+                // But let's be safe. If we have the ID, let's treat it as the message list.
+                messages = [{ id: triggerData.email.id, threadId: triggerData.email.threadId }];
+            } else {
+                // Normal "Action" mode or manual test: Fetch recent messages based on query
+                messages = await this.gmailService.fetchMessages(credentialId, maxResults, query);
+                this.log('INFO', `Found ${messages.length} messages from query`);
+            }
 
             const processedItems: any[] = [];
             const uploadsDir = path.join(process.cwd(), 'uploads');

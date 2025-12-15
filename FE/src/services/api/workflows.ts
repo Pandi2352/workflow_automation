@@ -41,6 +41,11 @@ export const workflowService = {
         return response.data;
     },
 
+    getLatestExecution: async (id: string): Promise<any> => {
+        const response = await axiosInstance.get(API_ENDPOINTS.WORKFLOWS.GET(id) + '/executions/latest');
+        return response.data;
+    },
+
     getExecution: async (executionId: string): Promise<any> => {
         const response = await axiosInstance.get(API_ENDPOINTS.EXECUTIONS.GET(executionId));
         return response.data;

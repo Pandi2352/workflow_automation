@@ -1,8 +1,11 @@
 export interface NodeInput {
-    sourceNodeId: string;
-    sourceNodeName: string;
+    nodeId: string;
+    nodeName: string;
     value: any;
-    edgeId: string;
+    type?: string;
+    edgeId?: string; // Optional now as per usage
+    sourceNodeId?: string; // Optional for compatibility
+    sourceNodeName?: string; // Optional for compatibility
 }
 
 export interface NodeExecutionContext {
@@ -12,7 +15,8 @@ export interface NodeExecutionContext {
     nodeName: string;
     nodeType: string;
     inputs: NodeInput[];
-    data: Record<string, any>;
+    data?: any;
+    triggerData?: any; // Data passed from the trigger event (e.g. email)
     retryCount: number;
     maxRetries: number;
 }

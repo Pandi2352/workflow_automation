@@ -31,9 +31,23 @@ export abstract class BaseWorkflowNode implements WorkflowNode {
                 inputValues = context.inputs.map(input => input.value);
             }
 
+            // Pass triggerData in the execution data if available
+            if (context.triggerData) {
+                // We inject it into the data object so the node's execute method can access it
+                if (!context.data) context.data = {};
+                context.data._triggerData = context.triggerData;
+            }
+
+            // Pass triggerData in the execution data if available
+            if (context.triggerData) {
+                // We inject it into the data object so the node's execute method can access it
+                if (!context.data) context.data = {};
+                context.data._triggerData = context.triggerData;
+            }
+
             const result = await this.execute(inputValues, context.data);
 
-            this.log('INFO', `Node executed successfully with result: ${result}`);
+            this.log('INFO', `Node executed successfully`); // Removed result from log (too verbose)
 
             return {
                 success: true,

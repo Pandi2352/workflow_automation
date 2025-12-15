@@ -481,10 +481,12 @@ export class WorkflowExecutorService {
         }
 
         const inputs: NodeInput[] = inputEdges.map(edge => ({
-            sourceNodeId: edge.source,
-            sourceNodeName: nodeMap.get(edge.source)?.nodeName || edge.source,
+            nodeId: edge.source,
+            nodeName: nodeMap.get(edge.source)?.nodeName || edge.source,
             value: nodeOutputs[edge.source],
             edgeId: edge.id,
+            sourceNodeId: edge.source, // Keep for legacy if needed
+            sourceNodeName: nodeMap.get(edge.source)?.nodeName || edge.source,
         }));
 
         let simplifiedInputs: any = {};

@@ -71,6 +71,13 @@ export const BaseNode = memo(({ data, isConnectable, selected, label, icon: Icon
                  )}
             </div>
 
+            {/* Spinner Overlay */}
+            {data.executionStatus === 'RUNNING' && (
+                <div className="absolute inset-0 bg-white/50 z-40 flex items-center justify-center rounded-xl backdrop-blur-[1px]">
+                     <div className="w-6 h-6 border-2 border-indigo-600 border-t-transparent rounded-full animate-spin"></div>
+                </div>
+            )}
+
             {/* Output Handle */}
             <Handle
                 type="source"

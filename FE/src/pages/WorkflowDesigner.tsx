@@ -39,6 +39,46 @@ export const WorkflowDesigner: React.FC = () => {
         }
     }, [executionTrigger]);
 
+    // Polling for latest execution (Background)
+    useEffect(() => {
+        if (!id || id === 'new') return;
+
+        const pollLatestExecution = async () => {
+             try {
+                // 1. Lightweight check
+                const latestMeta = await workflowService.getLatestExecution(id);
+                
+                if (latestMeta) {
+                    // Check if we need to update based on ID change, Status change, or Timestamp change
+                    // Logic:
+                    // - No current execution -> Fetch
+                    // - Different execution ID -> Fetch
+                    // - Status changed -> Fetch
+                    // - UpdatedAt changed (and running) -> Fetch
+                    
+                    const shouldFetch = 
+                        !currentExecution || 
+                        latestMeta._id !== currentExecution._id || 
+                        latestMeta.status !== currentExecution.status ||
+                        (latestMeta.updatedAt !== currentExecution.updatedAt);
+
+                    if (shouldFetch) {
+                         // 2. Heavy fetch only if needed
+                        const fullExecution = await workflowService.getExecution(latestMeta._id);
+                        setCurrentExecution(fullExecution);
+                    }
+                }
+             } catch (error) {
+                 console.error('Background polling failed', error);
+             }
+        };
+
+        // Poll more frequently if active logic implies we expect triggers, or if currently viewing a running one
+        const intervalId = setInterval(pollLatestExecution, 3000); 
+
+        return () => clearInterval(intervalId);
+    }, [id, currentExecution?.status, currentExecution?._id]);
+
     useEffect(() => {
         if (id === 'new') {
              setNodes([]);
@@ -102,22 +142,20 @@ export const WorkflowDesigner: React.FC = () => {
         });
     };
 
-    const handleSave = async (): Promise<string | null> => {
+    const handleSave = async (overrideData?: Partial<any>): Promise<string | null> => {
         setIsSaving(true);
         try {
             let currentId: string | null = id || null;
             
-            // Use store values for save
+            // Use store values for save, but allow overrides (e.g. for immediate toggle)
             const payload = {
-                name: workflowName || 'Untitled Workflow',
-                description: workflowDescription || '',
-                isActive: isWorkflowActive,
+                name: overrideData?.name ?? (workflowName || 'Untitled Workflow'),
+                description: overrideData?.description ?? (workflowDescription || ''),
+                isActive: overrideData?.isActive ?? isWorkflowActive,
                 nodes: nodes.map(n => ({ 
                     ...n, 
                     nodeName: n.data?.label || n.id,
-                    // Map ReactFlow object {x,y} to backend array [x,y]
                     position: [n.position.x, n.position.y],
-                    // Ensure measured is passed if present
                     measured: n.measured,
                     selected: n.selected,
                     dragging: n.dragging
@@ -138,15 +176,14 @@ export const WorkflowDesigner: React.FC = () => {
         } catch (error: any) {
             console.error('Failed to save workflow', error);
             
-            // Extract detailed error message from backend response
             const errorData = error.response?.data;
             const validationError = errorData?.error?.errors?.[0]?.message;
-            const mainMessage = errorData?.message || 'Failed to save workflow';
+            // const mainMessage = errorData?.message || 'Failed to save workflow';
             
             showToast(
                 validationError ? 'Validation Failed' : 'Save Failed', 
                 'error', 
-                validationError || mainMessage
+                validationError || error.message
             );
             return null;
         } finally {
@@ -221,8 +258,12 @@ export const WorkflowDesigner: React.FC = () => {
             {/* Header */}
             <DesignerHeader 
                 workflowId={id || 'new'} 
-                onSave={handleSave}
+                onSave={() => handleSave()}
                 isSaving={isSaving}
+                onActiveChange={(active) => {
+                    setWorkflowMetadata({ isWorkflowActive: active });
+                    handleSave({ isActive: active }); // Key fix: Save immediately with new state
+                }}
             />
 
             <div className="flex flex-1 overflow-hidden relative">

@@ -369,6 +369,20 @@ export class SampleWorkflowService {
         });
     }
 
+    async getLatestExecutionMetadata(workflowId: string) {
+        if (!Types.ObjectId.isValid(workflowId)) {
+            throw new BadRequestException('Invalid workflow ID');
+        }
+
+        const latest = await this.historyModel
+            .findOne({ workflowId: new Types.ObjectId(workflowId) })
+            .sort({ updatedAt: -1 })
+            .select('_id status updatedAt workflowId')
+            .exec();
+
+        return latest;
+    }
+
     async getExecutionLogs(executionId: string) {
         const history = await this.getHistory(executionId);
         return {

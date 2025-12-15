@@ -83,4 +83,19 @@ export class GoogleDriveService {
             throw new Error(`Failed to get file stream: ${error.message}`);
         }
     }
+
+    async fetchFilesAfter(credentialId: string, folderId: string, date: Date): Promise<any[]> {
+        const client = await this.getClient(credentialId);
+        const timeString = date.toISOString();
+        const q = `'${folderId}' in parents and trashed = false and createdTime > '${timeString}' and mimeType != 'application/vnd.google-apps.folder'`;
+
+        const res = await client.files.list({
+            pageSize: 100,
+            fields: 'files(id, name, mimeType, webViewLink, parents, size, createdTime, modifiedTime)',
+            q: q,
+            orderBy: 'createdTime asc' // Process oldest to newest
+        });
+
+        return res.data.files || [];
+    }
 }

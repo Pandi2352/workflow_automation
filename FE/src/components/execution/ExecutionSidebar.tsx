@@ -16,16 +16,29 @@ interface ExecutionSidebarProps {
     workflowId: string;
     onSelectExecution: (execution: any) => void;
     activeExecutionId?: string | null;
+    updatedExecution?: any;
 }
 
 export const ExecutionSidebar: React.FC<ExecutionSidebarProps> = ({ 
     workflowId, 
     onSelectExecution,
-    activeExecutionId
+    activeExecutionId,
+    updatedExecution
 }) => {
     const [executions, setExecutions] = useState<any[]>([]);
     const [isLoading, setIsLoading] = useState(false);
     const [selectedId, setSelectedId] = useState<string | null>(activeExecutionId || null);
+
+    // Sync updated execution into the list
+    useEffect(() => {
+        if (updatedExecution) {
+            setExecutions(prev => prev.map(ex => 
+                ex._id === updatedExecution._id 
+                ? { ...ex, ...updatedExecution } // Merge updates
+                : ex
+            ));
+        }
+    }, [updatedExecution]);
 
     const fetchExecutions = async () => {
         setIsLoading(true);
@@ -43,6 +56,34 @@ export const ExecutionSidebar: React.FC<ExecutionSidebarProps> = ({
         fetchExecutions();
     }, [workflowId]);
 
+    // Poll for list updates (new executions)
+    useEffect(() => {
+        if (!workflowId) return;
+
+        const interval = setInterval(async () => {
+            try {
+                // Lightweight check for latest execution
+                const latestMeta = await workflowService.getLatestExecution(workflowId);
+                
+                if (latestMeta && executions.length > 0) {
+                    const currentLatestId = executions[0]._id;
+                    if (latestMeta._id !== currentLatestId) {
+                         // New execution detected! Refresh list.
+                         console.log('New execution detected, refreshing list...');
+                         fetchExecutions();
+                    }
+                } else if (latestMeta && executions.length === 0) {
+                    // First execution ever
+                    fetchExecutions();
+                }
+            } catch (error) {
+                // Fail silently on poll error
+            }
+        }, 3000);
+
+        return () => clearInterval(interval);
+    }, [workflowId, executions]); // Depend on executions to compare against latest
+
     // Handle initial selection and prop updates
     useEffect(() => {
         if (activeExecutionId && activeExecutionId !== selectedId) {
@@ -54,6 +95,8 @@ export const ExecutionSidebar: React.FC<ExecutionSidebarProps> = ({
             handleSelect(executions[0]);
         }
     }, [activeExecutionId, executions, selectedId]);
+
+    // List sync handled above by [updatedExecution] effect
 
     const handleSelect = (execution: any) => {
         setSelectedId(execution._id);

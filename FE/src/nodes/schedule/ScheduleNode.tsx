@@ -121,6 +121,13 @@ export const ScheduleNode = memo(({ id, data, isConnectable, selected }: NodePro
                         'bg-blue-500 animate-pulse'
                     }`} />
                 )}
+
+                {/* Loading Spinner Overlay */}
+                {nodeData.executionStatus === 'RUNNING' && (
+                    <div className="absolute inset-0 bg-white/50 z-40 flex items-center justify-center rounded-lg backdrop-blur-[1px]">
+                         <div className="w-6 h-6 border-2 border-indigo-600 border-t-transparent rounded-full animate-spin"></div>
+                    </div>
+                )}
             </div>
 
             {/* Output Handle */}

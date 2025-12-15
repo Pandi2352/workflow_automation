@@ -9,10 +9,11 @@ interface DesignerHeaderProps {
     workflowId: string;
     onSave: () => void;
     isSaving: boolean;
+    onActiveChange?: (active: boolean) => void;
 }
 
 // @ts-ignore
-export const DesignerHeader: React.FC<DesignerHeaderProps> = ({ workflowId, onSave, isSaving }) => {
+export const DesignerHeader: React.FC<DesignerHeaderProps> = ({ workflowId, onSave, isSaving, onActiveChange }) => {
     const navigate = useNavigate();
     const { 
         workflowName, 
@@ -126,9 +127,15 @@ export const DesignerHeader: React.FC<DesignerHeaderProps> = ({ workflowId, onSa
                 <div className="flex items-center gap-4 min-w-[300px] justify-end">
                     <div className="flex items-center gap-2">
                          <span className="text-xs text-slate-500 font-medium">{isWorkflowActive ? 'Active' : 'Inactive'}</span>
-                         <Switch 
+                        <Switch 
                             checked={isWorkflowActive} 
-                            onChange={(checked) => setWorkflowMetadata({ isWorkflowActive: checked })} 
+                            onChange={(checked) => {
+                                if (onActiveChange) {
+                                    onActiveChange(checked);
+                                } else {
+                                    setWorkflowMetadata({ isWorkflowActive: checked });
+                                }
+                            }} 
                             size="md"
                         />
                     </div>

@@ -170,6 +170,13 @@ export class SampleWorkflowController {
         );
     }
 
+    @Get(':id/executions/latest')
+    @ApiOperation({ summary: 'Get lightweight metadata of the latest execution' })
+    @ApiParam({ name: 'id', description: 'Workflow ID' })
+    getLatestExecution(@Param('id') id: string) {
+        return this.sampleWorkflowService.getLatestExecutionMetadata(id);
+    }
+
     @Get(':id/stats')
     @ApiOperation({ summary: 'Get execution statistics for a workflow' })
     @ApiParam({ name: 'id', description: 'Workflow ID' })

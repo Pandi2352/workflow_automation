@@ -16,12 +16,15 @@ import { GoogleDriveService } from './node-services/google-drive.service';
 import { OneDriveService } from './node-services/onedrive.service';
 import { GmailService } from './node-services/gmail.service';
 import { SchedulerService } from './services/scheduler.service';
+import { GmailPollingService } from './services/gmail-polling.service';
+import { TriggerState, TriggerStateSchema } from './schemas/trigger-state.schema';
 
 @Module({
     imports: [
         MongooseModule.forFeature([
             { name: SampleWorkflow.name, schema: SampleWorkflowSchema },
             { name: WorkflowHistory.name, schema: WorkflowHistorySchema },
+            { name: TriggerState.name, schema: TriggerStateSchema },
         ]),
         CredentialsModule,
         ConfigModule,
@@ -37,6 +40,7 @@ import { SchedulerService } from './services/scheduler.service';
         OneDriveService,
         GmailService,
         SchedulerService,
+        GmailPollingService,
     ],
     exports: [SampleWorkflowService, NodeRegistryService, ExpressionEvaluatorService],
 })

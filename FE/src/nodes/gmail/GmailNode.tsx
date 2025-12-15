@@ -8,6 +8,11 @@ import gmailIcon from '../../assets/nodeIcons/gmail-icon-logo-svgrepo-com.svg';
 interface GmailNodeData extends Record<string, unknown> {
     label?: string;
     executionStatus?: string;
+    config?: {
+        mode?: 'action' | 'trigger';
+        query?: string;
+        [key: string]: any;
+    };
 }
 
 const GmailLogo = () => (
@@ -24,7 +29,7 @@ export const GmailNode = memo(({ id, data, isConnectable, selected }: NodeProps)
         try {
             const response = await axiosInstance.post('/sample-workflows/nodes/test', {
                 nodeType: 'GMAIL',
-                nodeData: data.config || {},
+                nodeData: nodeData.config || {},
                 inputs: [] 
             });
             console.log(response);
@@ -44,6 +49,17 @@ export const GmailNode = memo(({ id, data, isConnectable, selected }: NodeProps)
         deleteNode(id);
     };
     
+    const mode = nodeData.config?.mode || 'action';
+    const isTrigger = mode === 'trigger';
+
+    let displayLabel = nodeData.label || (isTrigger ? 'Watch Emails' : 'Fetch Emails');
+    if (isTrigger && nodeData.config?.query) {
+        // e.g. "from:boss" -> "Watch from:boss"
+        // Truncate to keep UI clean
+        const q = nodeData.config.query;
+        displayLabel = `Watch ${q.length > 10 ? q.slice(0, 10) + '...' : q}`;
+    }
+
     return (
         <div className="relative group min-w-[180px]">
         
@@ -90,16 +106,20 @@ export const GmailNode = memo(({ id, data, isConnectable, selected }: NodeProps)
                         <span className="text-[10px] font-bold text-slate-600 uppercase tracking-wider">Gmail</span>
                     </div>
 
-                    <div className="flex items-center gap-1.5 px-2 py-0.5 bg-red-50 text-red-600 rounded text-[8px] font-bold tracking-tight border border-red-100">
+                    <div className={`flex items-center gap-1.5 px-2 py-0.5 rounded text-[8px] font-bold tracking-tight border ${
+                         isTrigger 
+                         ? 'bg-red-50 text-red-600 border-red-100' 
+                         : 'bg-slate-50 text-slate-600 border-slate-100'
+                    }`}>
                         <Zap size={8} fill="currentColor" />
-                        <span>TRIGGER</span>
+                        <span>{isTrigger ? 'TRIGGER' : 'ACTION'}</span>
                     </div>
                 </div>
 
                 {/* Body Content */}
                 <div className="px-3 py-3 bg-white">
-                     <span className="block text-sm font-bold text-slate-900 leading-tight max-w-[180px] truncate" title={nodeData.label || 'Fetch Emails'}>
-                        {nodeData.label || 'Fetch Emails'}
+                     <span className="block text-sm font-bold text-slate-900 leading-tight max-w-[180px] truncate" title={displayLabel}>
+                        {displayLabel}
                     </span>
                     <span className="text-[10px] text-slate-400 mt-1 block font-medium">Google Workspace</span>
                 </div>
@@ -109,8 +129,15 @@ export const GmailNode = memo(({ id, data, isConnectable, selected }: NodeProps)
                     <div className={`h-[3px] w-full ${
                         nodeData.executionStatus === 'SUCCESS' ? 'bg-green-500' : 
                         nodeData.executionStatus === 'FAILED' ? 'bg-red-500' : 
-                        'bg-blue-500 animate-pulse'
+                        'bg-blue-500'
                     }`} />
+                )}
+
+                {/* Loading Spinner Overlay */}
+                {nodeData.executionStatus === 'RUNNING' && (
+                    <div className="absolute inset-0 bg-white/50 z-40 flex items-center justify-center rounded-lg backdrop-blur-[1px]">
+                         <div className="w-6 h-6 border-2 border-indigo-600 border-t-transparent rounded-full animate-spin"></div>
+                    </div>
                 )}
             </div>
 
