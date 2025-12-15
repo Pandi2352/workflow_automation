@@ -166,7 +166,13 @@ export class WorkflowExecutorService {
         }
 
         const executionId = await this.createExecutionEntry(workflow, options, triggerData, clientInfo);
-        this.runExecution(executionId, workflow, options);
+
+        if (options.waitForCompletion) {
+            await this.runExecution(executionId, workflow, options);
+        } else {
+            this.runExecution(executionId, workflow, options);
+        }
+
         return executionId;
     }
 
@@ -718,34 +724,34 @@ export class WorkflowExecutorService {
 
     private async addWorkflowError(executionId: string, error: ErrorDetail): Promise<void> {
         await this.historyModel.findByIdAndUpdate(executionId, {
-            $push: { 'errors.workflowErrors': error },
-            $inc: { 'errors.totalErrors': 1 },
-            $set: { 'errors.primaryError': error },
+            $push: { 'issueDetails.workflowErrors': error },
+            $inc: { 'issueDetails.totalErrors': 1 },
+            $set: { 'issueDetails.primaryError': error },
             errorMessage: error.message,
         });
     }
 
     private async addExecutionError(executionId: string, error: ErrorDetail): Promise<void> {
         await this.historyModel.findByIdAndUpdate(executionId, {
-            $push: { 'errors.executionErrors': error },
-            $inc: { 'errors.totalErrors': 1 },
-            $set: { 'errors.primaryError': error },
+            $push: { 'issueDetails.executionErrors': error },
+            $inc: { 'issueDetails.totalErrors': 1 },
+            $set: { 'issueDetails.primaryError': error },
             errorMessage: error.message,
         });
     }
 
     private async addNodeError(executionId: string, nodeId: string, error: ErrorDetail): Promise<void> {
         await this.historyModel.findByIdAndUpdate(executionId, {
-            $push: { 'errors.nodeErrors': error },
-            $inc: { 'errors.totalErrors': 1 },
+            $push: { 'issueDetails.nodeErrors': error },
+            $inc: { 'issueDetails.totalErrors': 1 },
             errorNodeId: nodeId,
         });
 
         // Also check if this is the first/primary error
         const history = await this.historyModel.findById(executionId);
-        if (history && !history.errors?.primaryError) {
+        if (history && !history.issueDetails?.primaryError) {
             await this.historyModel.findByIdAndUpdate(executionId, {
-                $set: { 'errors.primaryError': error },
+                $set: { 'issueDetails.primaryError': error },
                 errorMessage: error.message,
             });
         }

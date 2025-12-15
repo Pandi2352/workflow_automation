@@ -105,7 +105,29 @@ export class OCRNodeStrategy extends BaseWorkflowNode {
                 }
 
                 if (!processPath) {
-                    this.log('WARN', `Skipping invalid file object: ${JSON.stringify(file)}`);
+                    if (file.file_type === 'email/message') {
+                        this.log('INFO', `Processing email body (no attachment): ${file.email_subject || file.file_id}`);
+
+                        // Mark as COMPLETED so we don't re-process this email "event"
+                        await this.processedItemService.markCompleted(persistentId, 'OCR', {
+                            fileName: 'Email Body',
+                            timestamp: new Date(),
+                            note: 'No attachment'
+                        });
+
+                        results.push({
+                            fileId: file.file_id || file.id,
+                            fileName: 'Email Context', // Placeholder name
+                            status: 'SUCCESS', // Changed to SUCCESS so downstream nodes treat it as valid
+                            // Parsers look for 'text', so map the body there
+                            text: file.email_body || file.email_snippet || '',
+                            // Pass through all original metadata (subject, from, body, etc.)
+                            ...file,
+                            message: 'No attachment available for this message'
+                        });
+                    } else {
+                        this.log('WARN', `Skipping invalid file object (no key/path/url): ${JSON.stringify(file)}`);
+                    }
                     continue;
                 }
 
@@ -146,8 +168,50 @@ export class OCRNodeStrategy extends BaseWorkflowNode {
             }
         }
 
-        this.log('INFO', `OCR Processing complete. Processed ${results.length} new items.`);
-        return results;
+        this.log('INFO', `OCR Processing complete. Processed ${results.length} items (before grouping).`);
+
+        // GROUPING LOGIC:
+        // User wants multiple attachments from the same email (same fileId/messageId)
+        // to be grouped into ONE output item with an array of files.
+        const groupedResults = new Map<string, any>();
+
+        for (const res of results) {
+            const id = res.fileId || 'unknown';
+
+            if (!groupedResults.has(id)) {
+                // Initialize group with the first item's metadata
+                groupedResults.set(id, {
+                    ...res, // Copy metadata
+                    files: [],
+                    // Initialize text with the Email Body (common to all items in this group)
+                    text: res.email_body || ''
+                });
+            }
+
+            const group = groupedResults.get(id);
+
+            // Add this file result to the 'files' array
+            if (res.status === 'SUCCESS' && res.fileName !== 'Email Context') {
+                group.files.push({
+                    fileName: res.fileName,
+                    text: res.text,
+                    data: res.data
+                });
+
+                // Append attachment text to the master text
+                if (res.text) {
+                    group.text = (group.text ? group.text + '\n\n' : '') + `--- Attachment: ${res.fileName} ---\n` + res.text;
+                }
+            } else if (res.status === 'NO_ATTACHMENT' || res.fileName === 'Email Context') {
+                // It's the body-only item. Body is already in 'group.text' via init or shared metadata.
+                // No action needed for text, just ensure it exists.
+            }
+        }
+
+        const finalOutput = Array.from(groupedResults.values());
+        this.log('INFO', `Returning ${finalOutput.length} grouped message(s).`);
+
+        return finalOutput;
     }
 
     async executeWithContext(context: NodeExecutionContext): Promise<NodeExecutionResult> {

@@ -33,16 +33,25 @@ export class GmailService {
     }
 
     async fetchMessages(credentialId: string, maxResults: number = 10, q: string = ''): Promise<gmail_v1.Schema$Message[]> {
+        const res = await this.listMessages(credentialId, maxResults, q);
+        return res.messages || [];
+    }
+
+    async listMessages(credentialId: string, maxResults: number = 10, q: string = '', pageToken?: string): Promise<{ messages?: gmail_v1.Schema$Message[], nextPageToken?: string }> {
         const gmail = await this.getClient(credentialId);
 
         try {
             const res = await gmail.users.messages.list({
                 userId: 'me',
                 maxResults,
-                q: q // query format: "subject:hello has:attachment" etc.
+                q: q,
+                pageToken,
             });
 
-            return res.data.messages || [];
+            return {
+                messages: res.data.messages,
+                nextPageToken: res.data.nextPageToken || undefined
+            };
         } catch (error: any) {
             console.error(`Failed to fetch Gmail messages:`, error.message);
             throw new Error(`Failed to fetch messages: ${error.message}`);

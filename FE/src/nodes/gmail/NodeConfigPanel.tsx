@@ -180,6 +180,15 @@ export const NodeConfigPanel: React.FC<{ nodeExecutionData?: any }> = ({ nodeExe
     // Determine which config component to render
     const ConfigComponent = NODE_CONFIGS[selectedNode.type || ''] || GenericNodeConfig;
 
+    const nodeConfig = (selectedNode.data?.config || {}) as Record<string, any>;
+
+    const handlePanelConfigChange = (key: string, value: any) => {
+        const currentConfig = selectedNode.data?.config || {};
+        updateNodeData(selectedNode.id, {
+            config: { ...currentConfig, [key]: value }
+        });
+    };
+
     return (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm animate-in fade-in duration-200">
             <div 
@@ -195,6 +204,9 @@ export const NodeConfigPanel: React.FC<{ nodeExecutionData?: any }> = ({ nodeExe
                          <div>
                             <h3 className="text-xl font-bold text-slate-900">{definition?.name || selectedNode.type}</h3>
                             <p className="text-sm text-slate-500">Configure parameters</p>
+                            <div className="mt-4">
+
+                            </div>
                          </div>
                     </div>
                     <button 

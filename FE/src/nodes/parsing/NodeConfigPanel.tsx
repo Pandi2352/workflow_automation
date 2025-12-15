@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { useWorkflowStore } from '../../store/workflowStore';
-import { Cpu, AlertTriangle } from 'lucide-react';
+import { Cpu, AlertTriangle, X } from 'lucide-react';
+import { NodeDataSidebar } from '../../components/designer/NodeDataSidebar';
 
 interface NodeConfigPanelProps {
     nodeExecutionData?: {
@@ -14,12 +15,30 @@ interface NodeConfigPanelProps {
 }
 
 export const NodeConfigPanel: React.FC<NodeConfigPanelProps> = ({ nodeExecutionData }) => {
-    const { selectedNode, updateNodeData } = useWorkflowStore();
+    const { selectedNode, updateNodeData, setSelectedNode, nodes, edges, currentExecution } = useWorkflowStore();
     const [config, setConfig] = useState<any>({ 
         schema: '{}',
         modelName: 'gemini-1.5-flash'
     });
     const [jsonError, setJsonError] = useState<string | null>(null);
+
+    // Compute Input Data from Previous Nodes
+    const inputData = React.useMemo(() => {
+        if (!selectedNode) return [];
+        const incomingEdges = edges.filter(edge => edge.target === selectedNode.id);
+        return incomingEdges.map(edge => {
+            const sourceNode = nodes.find(n => n.id === edge.source);
+            const sourceExecution = currentExecution?.nodeExecutions?.find((ex: any) => ex.nodeId === edge.source);
+            const sourceOutput = currentExecution?.nodeOutputs?.find((out: any) => out.nodeId === edge.source);
+            
+            return {
+                nodeId: edge.source,
+                nodeLabel: (sourceNode?.data?.label as string) || sourceNode?.id || 'Unknown Node',
+                outputs: sourceExecution?.outputs || sourceOutput?.value || sourceExecution?.value || null,
+                status: sourceExecution?.status || 'NOT_RUN'
+            };
+        });
+    }, [selectedNode, edges, nodes, currentExecution]);
 
     useEffect(() => {
         if (selectedNode?.data?.config) {
@@ -45,7 +64,6 @@ export const NodeConfigPanel: React.FC<NodeConfigPanelProps> = ({ nodeExecutionD
         const newConfig = { ...config, [key]: value };
         setConfig(newConfig);
         
-        // Validate JSON
         if (key === 'schema') {
             try {
                 const parsed = JSON.parse(value);
@@ -55,7 +73,6 @@ export const NodeConfigPanel: React.FC<NodeConfigPanelProps> = ({ nodeExecutionD
                 });
             } catch (e) {
                 setJsonError('Invalid JSON format');
-                // Only update local state
             }
         } else {
             updateNodeData(selectedNode.id, { config: newConfig });
@@ -65,114 +82,96 @@ export const NodeConfigPanel: React.FC<NodeConfigPanelProps> = ({ nodeExecutionD
     if (!selectedNode) return null;
 
     return (
-        <div className="h-full flex flex-col">
-            <div className="p-4 border-b border-gray-100 flex-shrink-0 bg-white">
-                 <div className="flex items-center gap-2 mb-1">
-                    <div className="p-1.5 rounded-md bg-indigo-50 text-indigo-600">
-                        <Cpu size={16} />
-                    </div>
-                    <span className="text-xs font-semibold uppercase tracking-wider text-indigo-600">
-                        AI Parsing
-                    </span>
-                 </div>
-                 <h2 className="text-lg font-bold text-gray-900">
-                     {selectedNode.data.label as string}
-                 </h2>
-            </div>
-            
-            <div className="flex-1 overflow-y-auto p-4 space-y-6">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm animate-in fade-in duration-200">
+            <div className="bg-white rounded-xl shadow-2xl w-[1100px] h-[85vh] flex flex-col overflow-hidden" onClick={e => e.stopPropagation()}>
                 
-                {/* Model Selection */}
-                <div className="space-y-3">
-                    <label className="text-sm font-medium text-gray-700 flex items-center justify-between">
-                        AI Model
-                        <span className="text-xs text-gray-400 font-normal">Select the model to use</span>
-                    </label>
-                    <select
-                        value={config.modelName || 'gemini-1.5-flash'}
-                        onChange={(e) => handleConfigChange('modelName', e.target.value)}
-                        className="w-full px-3 py-2 bg-white border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 transition-all appearance-none"
+                {/* Header */}
+                <div className="p-4 border-b border-gray-100 flex justify-between items-center bg-white shrink-0">
+                    <div className="flex items-center gap-2">
+                        <div className="p-1.5 rounded-md bg-indigo-50 text-indigo-600">
+                            <Cpu size={16} />
+                        </div>
+                        <div>
+                            <h2 className="text-lg font-bold text-gray-900">{selectedNode.data.label as string}</h2>
+                            <p className="text-xs text-slate-500">AI Parsing Configuration</p>
+                        </div>
+                    </div>
+                    <button 
+                        onClick={() => setSelectedNode(null)}
+                        className="p-1.5 hover:bg-slate-100 rounded-full text-slate-400"
                     >
-                        <option value="gemini-2.5-flash">gemini-2.5-flash</option>
-                        <option value="gemini-1.5-flash">gemini-1.5-flash</option>
-                        <option value="gemini-1.5-pro">gemini-1.5-pro</option>
-                    </select>
+                        <X size={20} />
+                    </button>
                 </div>
 
-                {/* Schema Editor */}
-                <div className="space-y-3">
-                    <label className="text-sm font-medium text-gray-700 flex items-center justify-between">
-                        Extraction Schema (JSON)
-                        <span className="text-xs text-gray-400 font-normal">Define fields to extract</span>
-                    </label>
-                    <div className="relative">
-                        <textarea
-                            value={config.schema}
-                            onChange={(e) => handleConfigChange('schema', e.target.value)}
-                            className={`w-full h-64 p-3 pr-10 text-xs font-mono bg-slate-800 text-green-400 rounded-lg border focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-all resize-none shadow-sm ${
-                                jsonError ? 'border-red-500 ring-1 ring-red-500' : 'border-gray-200'
-                            }`}
-                            placeholder='{ "field": "type" }'
+                <div className="flex flex-1 overflow-hidden">
+                    {/* LEFT: Sidebar */}
+                    <div className="w-1/3 border-r border-slate-200 bg-slate-50 flex flex-col overflow-hidden">
+                        <NodeDataSidebar 
+                            availableNodes={inputData.map(d => ({
+                                nodeId: d.nodeId,
+                                nodeName: d.nodeLabel,
+                                data: d.outputs,
+                                status: d.status
+                            }))}
+                            onDragStart={(e, path) => console.log('Drag:', path)}
                         />
-                        {jsonError && (
-                            <div className="absolute top-2 right-2 flex items-center gap-1 text-red-400 bg-red-900/20 px-2 py-1 rounded text-xs">
-                                <AlertTriangle size={12} />
-                                <span>Invalid JSON</span>
-                            </div>
-                        )}
                     </div>
-                    <p className="text-xs text-gray-500">
-                        Define expected output structure. Example:
-                        <code className="block bg-gray-100 p-1.5 rounded mt-1 text-gray-600">
-                            {`{
-  "invoiceNumber": "string",
-  "totalAmount": "number",
-  "date": "date"
-}`}
-                        </code>
-                    </p>
-                </div>
-            </div>
 
-             {/* Footer / Results */}
-             <div className="border-t border-gray-100 bg-gray-50 p-4 space-y-4">
-                <div className="flex items-center justify-between">
-                    <span className="text-xs font-semibold text-gray-500 uppercase tracking-wider">
-                        Execution Results
-                    </span>
-                    {nodeExecutionData?.status && (
-                        <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${
-                            nodeExecutionData.status === 'SUCCESS' ? 'bg-green-100 text-green-700' :
-                            nodeExecutionData.status === 'FAILED' ? 'bg-red-100 text-red-700' :
-                            'bg-blue-100 text-blue-700'
-                        }`}>
-                            {nodeExecutionData.status}
-                        </span>
-                    )}
-                </div>
-                
-                 {nodeExecutionData?.result?.confidenceScore && (
-                    <div className="bg-white rounded-lg border border-gray-200 p-3 shadow-sm">
-                        <div className="flex items-center justify-between mb-2">
-                            <span className="text-sm text-gray-600">Confidence Score</span>
-                            <span className={`text-sm font-bold ${
-                                nodeExecutionData.result.confidenceScore > 0.8 ? 'text-green-600' : 
-                                nodeExecutionData.result.confidenceScore > 0.5 ? 'text-amber-600' : 'text-red-600'
-                            }`}>
-                                {(nodeExecutionData.result.confidenceScore * 100).toFixed(1)}%
-                            </span>
+                    {/* RIGHT: Config */}
+                    <div className="w-2/3 flex flex-col bg-white overflow-hidden p-6 space-y-6 overflow-y-auto">
+                        
+                        {/* Model Selection */}
+                        <div className="space-y-3">
+                            <label className="text-sm font-medium text-gray-700 flex items-center justify-between">
+                                AI Model
+                            </label>
+                            <select
+                                value={config.modelName || 'gemini-1.5-flash'}
+                                onChange={(e) => handleConfigChange('modelName', e.target.value)}
+                                className="w-full px-3 py-2 bg-white border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 transition-all appearance-none"
+                            >
+                                <option value="gemini-2.5-flash">gemini-2.5-flash</option>
+                                <option value="gemini-1.5-flash">gemini-1.5-flash</option>
+                                <option value="gemini-1.5-pro">gemini-1.5-pro</option>
+                            </select>
                         </div>
-                        <div className="w-full bg-gray-100 rounded-full h-1.5">
-                            <div 
-                                className={`h-1.5 rounded-full ${
-                                    nodeExecutionData.result.confidenceScore > 0.8 ? 'bg-green-500' : 
-                                    nodeExecutionData.result.confidenceScore > 0.5 ? 'bg-amber-500' : 'bg-red-500'
-                                }`}
-                                style={{ width: `${nodeExecutionData.result.confidenceScore * 100}%` }}
-                            />
+
+                        {/* Schema Editor */}
+                        <div className="space-y-3 flex-1 flex flex-col">
+                            <label className="text-sm font-medium text-gray-700 flex items-center justify-between">
+                                Extraction Schema (JSON)
+                            </label>
+                            <div className="relative flex-1">
+                                <textarea
+                                    value={config.schema}
+                                    onChange={(e) => handleConfigChange('schema', e.target.value)}
+                                    className={`w-full h-full min-h-[300px] p-3 pr-10 text-xs font-mono bg-slate-800 text-green-400 rounded-lg border focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-all resize-none shadow-sm ${
+                                        jsonError ? 'border-red-500 ring-1 ring-red-500' : 'border-gray-200'
+                                    }`}
+                                    placeholder='{ "field": "type" }'
+                                />
+                                {jsonError && (
+                                    <div className="absolute top-2 right-2 flex items-center gap-1 text-red-400 bg-red-900/20 px-2 py-1 rounded text-xs">
+                                        <AlertTriangle size={12} />
+                                        <span>Invalid JSON</span>
+                                    </div>
+                                )}
+                            </div>
                         </div>
+
                     </div>
-                 )}
+                </div>
+
+                {/* Footer */}
+                <div className="border-t border-gray-100 bg-gray-50 p-4 shrink-0 flex justify-end">
+                     <button 
+                        onClick={() => setSelectedNode(null)}
+                        className="px-6 py-2 bg-slate-900 text-white font-medium rounded-lg hover:bg-slate-800 transition-all shadow-sm text-sm"
+                    >
+                        Done
+                    </button>
+                </div>
             </div>
         </div>
     );

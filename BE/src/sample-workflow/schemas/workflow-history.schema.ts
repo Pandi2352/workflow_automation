@@ -428,7 +428,7 @@ export class WorkflowHistory {
 
     // Comprehensive error tracking
     @Prop({ type: WorkflowErrors, default: {} })
-    errors: WorkflowErrors;
+    issueDetails: WorkflowErrors;
 
     // Legacy error fields for backward compatibility
     @Prop()

@@ -42,6 +42,7 @@ export interface WorkflowExecutionOptions {
     retryFailedNodes?: boolean;
     maxRetries?: number;
     continueOnError?: boolean;
+    waitForCompletion?: boolean;
 }
 
 export interface INodeStrategy {

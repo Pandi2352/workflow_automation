@@ -2,6 +2,7 @@ import React, { useEffect, useState, useMemo } from 'react';
 import { useWorkflowStore } from '../../store/workflowStore';
 import { FileText, Key, Box, Type, X, RefreshCw, Zap, ArrowLeft, Database, Play, Plus } from 'lucide-react';
 import { axiosInstance } from '../../api/axiosConfig';
+import { NodeDataSidebar } from '../../components/designer/NodeDataSidebar';
 import { GeminiCredentialModal } from '../../components/credentials/GeminiCredentialModal';
 
 export const NodeConfigPanel: React.FC<{ nodeExecutionData?: any }> = ({ nodeExecutionData }) => {
@@ -139,76 +140,24 @@ export const NodeConfigPanel: React.FC<{ nodeExecutionData?: any }> = ({ nodeExe
                 {/* Body - Split View */}
                 <div className="flex flex-1 overflow-hidden">
                     
-                    {/* LEFT COLUMN - Input Data */}
-                    <div className="w-1/2 bg-slate-50 border-r border-slate-200 flex flex-col overflow-hidden">
-                        <div className="p-3 border-b border-slate-200 bg-slate-100/50 flex items-center justify-between">
-                            <span className="text-xs font-bold text-slate-500 uppercase tracking-wider flex items-center gap-2">
-                                <ArrowLeft size={12} />
-                                Input Data (from previous nodes)
-                            </span>
-                            <span className="text-[10px] text-slate-400">
-                                {inputData.length} Source(s)
-                            </span>
-                        </div>
-                        
-                        <div className="flex-1 overflow-y-auto p-4 custom-scrollbar">
-                            {inputData.length === 0 ? (
-                                <div className="h-full flex flex-col items-center justify-center text-slate-400 gap-2">
-                                    <Database size={24} className="opacity-20" />
-                                    <span className="text-xs">No inputs connected</span>
-                                </div>
-                            ) : (
-                                <div className="space-y-4">
-                                    {inputData.map((input) => (
-                                        <div key={input.nodeId} className="bg-white border border-slate-200 rounded-lg overflow-hidden shadow-sm">
-                                            <div className="px-3 py-2 bg-slate-50 border-b border-slate-100 flex justify-between items-center">
-                                                <div className="flex items-center gap-2">
-                                                    <span className="font-semibold text-xs text-slate-700">{input.nodeLabel}</span>
-                                                    <button 
-                                                        onClick={handleRunPrevious}
-                                                        className="p-1 hover:bg-green-100 text-slate-400 hover:text-green-600 rounded transition-colors"
-                                                        title="Execute Workflow"
-                                                    >
-                                                        <Play size={10} fill="currentColor" />
-                                                    </button>
-                                                </div>
-                                                <div className="flex items-center gap-2">
-                                                    <span className={`text-[10px] px-1.5 py-0.5 rounded font-medium ${
-                                                        input.status === 'SUCCESS' ? 'bg-green-100 text-green-700' :
-                                                        input.status === 'NOT_RUN' ? 'bg-amber-100 text-amber-700' :
-                                                        'bg-red-100 text-red-700'
-                                                    }`}>
-                                                        {input.status}
-                                                    </span>
-                                                </div>
-                                            </div>
-                                            <div className="max-h-[300px] overflow-auto">
-                                                {input.outputs ? (
-                                                    <pre className="p-3 text-[10px] font-mono text-slate-600 leading-relaxed whitespace-pre-wrap">
-                                                        {JSON.stringify(input.outputs, null, 2)}
-                                                    </pre>
-                                                ) : (
-                                                    <div className="p-4 flex flex-col items-center justify-center text-center gap-2">
-                                                        <span className="text-xs text-slate-400 italic">No output data available yet.</span>
-                                                        <button 
-                                                            onClick={handleRunPrevious}
-                                                            className="text-[10px] bg-slate-100 hover:bg-slate-200 text-slate-600 px-2 py-1 rounded flex items-center gap-1 transition-colors"
-                                                        >
-                                                            <Play size={8} />
-                                                            Run Previous Node
-                                                        </button>
-                                                    </div>
-                                                )}
-                                            </div>
-                                        </div>
-                                    ))}
-                                </div>
-                            )}
-                        </div>
+                    {/* LEFT COLUMN - Input Data Sidebar */}
+                    <div className="w-1/3 border-r border-slate-200 flex flex-col overflow-hidden">
+                        <NodeDataSidebar 
+                            availableNodes={inputData.map(d => ({
+                                nodeId: d.nodeId,
+                                nodeName: d.nodeLabel,
+                                data: d.outputs,
+                                status: d.status
+                            }))}
+                            onDragStart={(e, variablePath) => {
+                                // Additional logic if needed, e.g. highlight valid drop zones
+                                console.log('Dragging:', variablePath);
+                            }}
+                        />
                     </div>
 
                     {/* RIGHT COLUMN - Configuration */}
-                    <div className="w-1/2 flex flex-col bg-white overflow-hidden">
+                    <div className="w-2/3 flex flex-col bg-white overflow-hidden">
                          <div className="p-3 border-b border-slate-100 bg-white flex items-center">
                             <span className="text-xs font-bold text-slate-500 uppercase tracking-wider flex items-center gap-2">
                                 <Key size={12} />

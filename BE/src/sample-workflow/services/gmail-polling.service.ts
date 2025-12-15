@@ -85,54 +85,124 @@ export class GmailPollingService implements OnModuleInit {
 
             // Search Query
             const userQuery = config.query || '';
+            // Search Query: We just ask for "newer than X"
+            // Note: Gmail API "after:X" returns list in default order (usually Date DESC).
+            // We must fetch pages until we find messages <= lastPollTime to catch the full backlog gap.
+
             const afterSeconds = Math.floor(lastPollTime / 1000);
             const finalQuery = `${userQuery} after:${afterSeconds}`.trim();
 
-            // this.logger.debug(`[${workflow.name}] Querying Gmail: "${finalQuery}"`); 
+            const allNewMessages: gmail_v1.Schema$Message[] = [];
+            let pageToken: string | undefined = undefined;
+            let keepFetching = true;
 
-            const messages = await this.gmailService.fetchMessages(
-                config.credentialId,
-                20, // Limit check to 20 to avoid overload
-                finalQuery
-            );
+            while (keepFetching) {
+                // Fetch next page
+                const response: any = await this.gmailService.listMessages(
+                    config.credentialId,
+                    50, // Larger batch size
+                    finalQuery,
+                    pageToken
+                );
 
-            // Filter strictly by internalDate to be precise
-            const recentMessages: gmail_v1.Schema$Message[] = [];
-            let maxInternalDate = lastPollTime;
+                const messagesStub = response.messages || [];
+                pageToken = response.nextPageToken;
 
-            for (const msgStub of messages) {
-                const details = await this.gmailService.getMessageDetails(config.credentialId, msgStub.id!);
-                const internalDate = parseInt(details.internalDate || '0');
+                if (messagesStub.length === 0) {
+                    keepFetching = false;
+                    break;
+                }
 
-                if (internalDate > lastPollTime) {
-                    recentMessages.push(details);
-                    if (internalDate > maxInternalDate) {
-                        maxInternalDate = internalDate;
+                // We need details to check internalDate
+                // Optimization: In a real system, we might batch request details. 
+                // Here we fetch one by one but in parallel for the batch.
+                const detailsPromises = messagesStub.map((stub: any) =>
+                    this.gmailService.getMessageDetails(config.credentialId, stub.id!)
+                );
+                const batchDetails = await Promise.all(detailsPromises);
+
+                let foundOldMessage = false;
+
+                for (const details of batchDetails) {
+                    const internalDate = parseInt(details.internalDate || '0');
+                    if (internalDate > lastPollTime) {
+                        allNewMessages.push(details);
+                    } else {
+                        // We reached messages older than our high-water mark.
+                        // Assuming the API returns somewhat ordered list, we *could* stop.
+                        // But Gmail order isn't strictly guaranteed by time. 
+                        // However, 'after:X' query usually filters them out server side.
+                        // So technically we shouldn't receive any <= lastPollTime if the query worked.
+                        // BUT if we rely purely on query, and there are 1000 messages, we need to page all of them.
+                        // We rely on pageToken.
                     }
+                }
+
+                if (!pageToken) {
+                    keepFetching = false;
+                }
+
+                // Safety break for massive backlogs to avoid infinite loop in one tick
+                if (allNewMessages.length >= 200) {
+                    this.logger.warn(`Fetched 200 new messages. Pausing fetch to process backlog.`);
+                    keepFetching = false;
                 }
             }
 
-            if (recentMessages.length > 0) {
-                this.logger.log(`[${workflow.name}] Found ${recentMessages.length} new emails. Triggering executions...`);
+            if (allNewMessages.length > 0) {
+                // SORT CHRONOLOGICALLY (Oldest First)
+                // This ensures we process "backlog" in order and don't skip "middle" messages if we crash/stop.
+                allNewMessages.sort((a, b) => {
+                    return parseInt(a.internalDate || '0') - parseInt(b.internalDate || '0');
+                });
 
-                // Execute Workflow for EACH email
-                for (const msg of recentMessages) {
+                this.logger.log(`[${workflow.name}] Found ${allNewMessages.length} new emails. Triggering executions (Oldest First)...`);
+
+                // FORCE SERIAL EXECUTION (One by One)
+                // We no longer read config.processingMode. It is always serial.
+                const waitForCompletion = true;
+
+                let maxInternalDate = lastPollTime;
+
+                for (const msg of allNewMessages) {
                     const triggerData = {
                         source: 'gmail',
                         event: 'email_received',
                         email: msg
                     };
 
-                    // START EXECUTION
-                    this.logger.log(`Triggering workflow ${workflow._id} for message ${msg.id}`);
-                    await this.workflowExecutorService.startExecution(
-                        workflow,
-                        {}, // options
-                        triggerData
-                    );
+                    const msgTime = parseInt(msg.internalDate || '0');
+
+                    try {
+                        // START EXECUTION
+                        this.logger.log(`Triggering workflow ${workflow._id} for message ${msg.id} (Mode: serial)`);
+                        await this.workflowExecutorService.startExecution(
+                            workflow,
+                            { waitForCompletion },
+                            triggerData
+                        );
+
+                        // Update Checkpoint AFTER successful trigger (or attempt)
+                        // If we are serial, we wait. If parallel, we just launch.
+                        // We track the latest time we have *launched*.
+                        if (msgTime > maxInternalDate) {
+                            maxInternalDate = msgTime;
+                        }
+
+                        // Update state incrementally in Serial mode to save progress
+                        if (waitForCompletion) {
+                            stateDoc.state = { lastPollTime: maxInternalDate };
+                            stateDoc.markModified('state');
+                            await stateDoc.save();
+                        }
+
+                    } catch (execErr) {
+                        this.logger.error(`Failed to trigger workflow for message ${msg.id}`, execErr);
+                        // Continue usage? Yes, try next message.
+                    }
                 }
 
-                // Save new state
+                // Final Save
                 stateDoc.state = { lastPollTime: maxInternalDate };
                 stateDoc.markModified('state');
                 await stateDoc.save();
