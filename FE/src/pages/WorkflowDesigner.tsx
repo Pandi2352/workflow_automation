@@ -8,6 +8,8 @@ import { NodeConfigPanel as GmailNodeConfigPanel } from '../nodes/gmail/NodeConf
 import { NodeConfigPanel as ScheduleNodeConfigPanel } from '../nodes/schedule/NodeConfigPanel';
 import { NodeConfigPanel as OCRNodeConfigPanel } from '../nodes/ocr/NodeConfigPanel';
 import { NodeConfigPanel as IfElseNodeConfigPanel } from '../nodes/if-else/NodeConfigPanel';
+import { NodeConfigPanel as ParsingNodeConfigPanel } from '../nodes/parsing/NodeConfigPanel';
+import { NodeConfigPanel as MongoDBNodeConfigPanel } from '../nodes/mongodb/NodeConfigPanel';
 
 import { DesignerHeader } from '../components/designer/DesignerHeader';
 import { ExecutionModeView } from '../components/execution/ExecutionModeView';
@@ -324,6 +326,18 @@ export const WorkflowDesigner: React.FC = () => {
                             />
                         ) : selectedNode && selectedNode.type === 'IF_ELSE' ? (
                             <IfElseNodeConfigPanel
+                                nodeExecutionData={currentExecution?.nodeExecutions?.find(
+                                    (ex: any) => ex.nodeId === selectedNode?.id
+                                )} 
+                            />
+                        ) : selectedNode && selectedNode.type === 'PARSING' ? (
+                            <ParsingNodeConfigPanel
+                                nodeExecutionData={currentExecution?.nodeExecutions?.find(
+                                    (ex: any) => ex.nodeId === selectedNode?.id
+                                )} 
+                            />
+                        ) : selectedNode && selectedNode.type === 'MONGODB' ? (
+                            <MongoDBNodeConfigPanel
                                 nodeExecutionData={currentExecution?.nodeExecutions?.find(
                                     (ex: any) => ex.nodeId === selectedNode?.id
                                 )} 

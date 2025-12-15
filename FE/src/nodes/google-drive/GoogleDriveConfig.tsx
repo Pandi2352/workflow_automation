@@ -82,6 +82,13 @@ const FolderSelectorField = ({ credentialId, value, onFolderSelect }: any) => {
 export const GoogleDriveConfig = ({ selectedNode }: { selectedNode: any }) => {
     const { updateNodeData, credentials } = useWorkflowStore();
     const config = selectedNode.data?.config || {};
+    const operation = config.operation || 'fetch_files';
+
+    const handleUpdate = (key: string, value: any) => {
+         updateNodeData(selectedNode.id, {
+            config: { ...config, [key]: value }
+         });
+    };
 
     return (
         <div className="space-y-6">
@@ -105,16 +112,7 @@ export const GoogleDriveConfig = ({ selectedNode }: { selectedNode: any }) => {
                                         `width=${width},height=${height},top=${top},left=${left}`
                                     );
                                 } else {
-                                    const newConfig = { 
-                                        ...config, 
-                                        credentialId: val,
-                                        operation: 'list_files'
-                                    };
-                                    if (val !== config.credentialId) {
-                                        newConfig.folderId = null;
-                                        newConfig.folderId_name = null;
-                                    }
-                                    updateNodeData(selectedNode.id, { config: newConfig });
+                                    handleUpdate('credentialId', val);
                                 }
                             }}
                             className="w-full bg-slate-50 border border-slate-300 rounded-lg p-2.5 text-sm text-slate-900 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent appearance-none"
@@ -132,25 +130,65 @@ export const GoogleDriveConfig = ({ selectedNode }: { selectedNode: any }) => {
                 </div>
             </div>
 
-            {/* Folder Selector (Always shown if Credential Selected) */}
-            {config.credentialId && (
+            {/* Operation Selector */}
+            <div className="mb-5">
+                <label className="block text-sm font-semibold text-slate-700 mb-1.5">Operation</label>
+                <select
+                    value={operation}
+                    onChange={(e) => handleUpdate('operation', e.target.value)}
+                    className="w-full bg-slate-50 border border-slate-300 rounded-lg p-2.5 text-sm text-slate-900 focus:outline-none focus:ring-2 focus:ring-indigo-500 transition-all"
+                >
+                    <option value="fetch_files">Fetch Files (List)</option>
+                    <option value="fetch_folders">Fetch Folders</option>
+                    <option value="upload_file">Upload File</option>
+                </select>
+            </div>
+
+            {/* Source Folder Selector (For Fetch Operations) */}
+            {config.credentialId && (operation === 'fetch_files' || operation === 'fetch_folders') && (
                 <div className="animate-in fade-in slide-in-from-top-2 duration-300">
                      <FolderSelectorField 
                         credentialId={config.credentialId}
                         value={config.folderId}
                         onFolderSelect={(id: string, name: string) => {
-                            updateNodeData(selectedNode.id, {
+                             updateNodeData(selectedNode.id, {
                                 config: { ...config, folderId: id, folderId_name: name }
                             });
                         }}
                     />
                     <p className="text-xs text-slate-500 mt-2 flex items-center gap-1">
                         <span className="inline-block w-1.5 h-1.5 rounded-full bg-indigo-500"></span>
-                        Files from the selected folder will be outputted as a list.
+                        {operation === 'fetch_files' ? 'Files from this folder will be listed.' : 'Subfolders will be listed.'}
                     </p>
+                </div>
+            )}
+
+            {/* Upload Configuration */}
+            {config.credentialId && operation === 'upload_file' && (
+                <div className="space-y-5 animate-in fade-in slide-in-from-top-2 duration-300">
+                    <div>
+                        <label className="block text-sm font-semibold text-slate-700 mb-1.5">Target Folder</label>
+                        <FolderSelectorField 
+                            credentialId={config.credentialId}
+                            value={config.targetFolderId}
+                            onFolderSelect={(id: string, name: string) => {
+                                handleUpdate('targetFolderId', id);
+                            }}
+                        />
+                    </div>
+                    <div>
+                        <label className="block text-sm font-semibold text-slate-700 mb-1.5">Target Filename (Optional)</label>
+                        <input
+                            type="text"
+                            value={config.fileName || ''}
+                            onChange={(e) => handleUpdate('fileName', e.target.value)}
+                            className="w-full bg-slate-50 border border-slate-300 rounded-lg p-2.5 text-sm text-slate-900 focus:outline-none focus:ring-2 focus:ring-indigo-500 transition-all"
+                            placeholder="e.g. invoice_final.pdf"
+                        />
+                         <p className="text-xs text-slate-400 mt-1">If empty, uses original filename.</p>
+                    </div>
                 </div>
             )}
         </div>
     );
-
 };

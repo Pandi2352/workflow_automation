@@ -11,6 +11,10 @@ import { ScheduleNode } from '../nodes/schedule.node';
 import { OCRService } from '../node-services/ocr.service';
 import { IfElseNodeStrategy } from '../nodes/if-else.node';
 import { OCRNodeStrategy } from '../nodes/ocr.node';
+import { ParsingNodeStrategy } from '../nodes/parsing.node';
+import { MongoDBNodeStrategy } from '../nodes/mongodb.node';
+import { ParsingService } from '../../node-services/parsing.service';
+import { MongoDBService } from '../../node-services/mongodb.service';
 
 export interface NodeDefinition {
     type: string;
@@ -31,9 +35,12 @@ export class NodeRegistryService {
         private readonly googleDriveService: GoogleDriveService,
         private readonly oneDriveService: OneDriveService,
         private readonly gmailService: GmailService,
-        private readonly ocrService: OCRService
+        private readonly ocrService: OCRService,
+        private readonly parsingService: ParsingService,
+        private readonly mongoService: MongoDBService
     ) {
         this.registerDefaultNodes();
+        this.registerParsingNodes();
     }
 
     private registerDefaultNodes(): void {
@@ -44,6 +51,8 @@ export class NodeRegistryService {
         this.nodeInstances.set(SampleNodeType.SCHEDULE, new ScheduleNode());
         this.nodeInstances.set(SampleNodeType.OCR, new OCRNodeStrategy(this.ocrService));
         this.nodeInstances.set(SampleNodeType.IF_ELSE, new IfElseNodeStrategy());
+        this.nodeInstances.set(SampleNodeType.PARSING, new ParsingNodeStrategy(this.parsingService));
+        this.nodeInstances.set(SampleNodeType.MONGODB, new MongoDBNodeStrategy(this.mongoService));
 
 
         // Register node definitions
@@ -57,7 +66,7 @@ export class NodeRegistryService {
             configSchema: {
                 operation: {
                     type: 'select',
-                    options: ['fetch_files', 'fetch_folders'],
+                    options: ['fetch_files', 'fetch_folders', 'upload_file'],
                     default: 'fetch_files',
                     description: 'Operation to perform'
                 },
@@ -70,6 +79,16 @@ export class NodeRegistryService {
                     type: 'string',
                     description: 'Parent Folder ID to list folders from (optional)',
                     condition: { operation: 'fetch_folders' }
+                },
+                targetFolderId: {
+                    type: 'string',
+                    description: 'Target Folder ID for upload',
+                    condition: { operation: 'upload_file' }
+                },
+                fileName: {
+                    type: 'string',
+                    description: 'Target Filename (Optional, defaults to input name)',
+                    condition: { operation: 'upload_file' }
                 },
                 credentials: {
                     type: 'credential',
@@ -208,6 +227,50 @@ export class NodeRegistryService {
         });
 
 
+    }
+
+    private registerParsingNodes() {
+        this.nodeDefinitions.set(SampleNodeType.PARSING, {
+            type: SampleNodeType.PARSING,
+            name: 'AI Parsing',
+            description: 'Extract structured data from text using AI',
+            category: 'AI / Machine Learning',
+            inputs: 1,
+            outputs: 1,
+            configSchema: {
+                schema: {
+                    type: 'json',
+                    default: '{}',
+                    description: 'Schema Definition (JSON keys and types)'
+                }
+            }
+        });
+
+        this.nodeDefinitions.set(SampleNodeType.MONGODB, {
+            type: SampleNodeType.MONGODB,
+            name: 'MongoDB',
+            description: 'Store data in MongoDB',
+            category: 'Database',
+            inputs: 1,
+            outputs: 1,
+            configSchema: {
+                connectionString: {
+                    type: 'string',
+                    description: 'MongoDB Connection String',
+                    default: ''
+                },
+                dbName: {
+                    type: 'string',
+                    description: 'Database Name',
+                    default: 'automation_db'
+                },
+                collectionName: {
+                    type: 'string',
+                    description: 'Collection Name',
+                    default: 'data'
+                }
+            }
+        });
     }
 
     getNode(type: string): BaseWorkflowNode | undefined {

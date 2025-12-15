@@ -4,6 +4,8 @@ export enum SampleNodeType {
     GMAIL = 'GMAIL',
     SCHEDULE = 'SCHEDULE',
     OCR = 'OCR',
-    IF_ELSE = 'IF_ELSE'
+    IF_ELSE = 'IF_ELSE',
+    PARSING = 'PARSING',
+    MONGODB = 'MONGODB'
 }
 // Force recompile

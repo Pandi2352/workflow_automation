@@ -19,6 +19,8 @@ import { OCRService } from './node-services/ocr.service';
 import { SchedulerService } from './services/scheduler.service';
 import { GmailPollingService } from './services/gmail-polling.service';
 import { TriggerState, TriggerStateSchema } from './schemas/trigger-state.schema';
+import { ParsingService } from '../node-services/parsing.service';
+import { MongoDBService } from '../node-services/mongodb.service';
 
 @Module({
     imports: [
@@ -41,6 +43,8 @@ import { TriggerState, TriggerStateSchema } from './schemas/trigger-state.schema
         OneDriveService,
         GmailService,
         OCRService,
+        ParsingService,
+        MongoDBService,
         SchedulerService,
         GmailPollingService,
     ],

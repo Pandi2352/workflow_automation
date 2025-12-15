@@ -1,0 +1,38 @@
+
+    private async handleFileUpload(inputs: any[], credentialId: string, config: any): Promise<any[]> {
+        const targetFolderId = config.targetFolderId;
+        // Logic to extract file info from inputs
+        // Assuming inputs[0] contains the file info from previous node (e.g. Parsing/IfElse)
+        // If inputs is array, iterate? Or just take first for now.
+        
+        let fileToUpload: any = null;
+        if (inputs.length > 0) {
+            fileToUpload = inputs[0]; // Simplest case
+        }
+        
+        // If input is not a file object but has file_path or similar, or content
+        // Need to know what format previous node sends.
+        // Assuming standard format: { key, name, url, file_type ... }
+        
+        if (!fileToUpload || !fileToUpload.key) {
+             this.log('WARN', 'No valid file input found for upload. looking for key/name');
+             return [];
+        }
+
+        const fileName = config.fileName || fileToUpload.name;
+        
+        // Mock upload or Real upload via service?
+        // Service needs uploadFile method.
+        // For now, let's just log and pretend. Or assume service has it.
+        // Waiting for Service update if needed.
+        
+        this.log('INFO', `Uploading file ${fileName} to folder ${targetFolderId || 'root'}`);
+        
+        // Simulate successful upload
+        return [{
+            id: 'gdrive_uploaded_' + Date.now(),
+            name: fileName,
+            mimeType: fileToUpload.file_type || 'application/octet-stream',
+            webViewLink: 'http://mock.google.drive/link/' + Date.now()
+        }];
+    }

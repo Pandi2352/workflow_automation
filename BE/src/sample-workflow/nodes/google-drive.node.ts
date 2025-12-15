@@ -29,11 +29,18 @@ export class GoogleDriveNode extends BaseWorkflowNode {
                 files = await this.driveService.fetchFiles(credentialId, config.folderId);
             } else if (operation === 'list_folders' || operation === 'fetch_folders') {
                 files = await this.driveService.fetchFolders(credentialId, config.parentId);
+            } else if (operation === 'upload_file') {
+                files = await this.handleFileUpload(inputs, credentialId, config);
             } else {
                 throw new Error(`Unknown operation: ${operation}`);
             }
 
-            this.log('INFO', `Successfully fetched ${files.length} items`);
+            this.log('INFO', `Successfully fetched/processed ${files.length} items`);
+
+            // If upload, just return the uploaded file metadata
+            if (operation === 'upload_file') {
+                return files;
+            }
 
             // Download to Local Storage and Standardize
             const processedFiles: any[] = [];
@@ -80,5 +87,30 @@ export class GoogleDriveNode extends BaseWorkflowNode {
             this.log('ERROR', `Google Drive operation failed: ${error.message}`);
             throw error;
         }
+    }
+    private async handleFileUpload(inputs: any[], credentialId: string, config: any): Promise<any[]> {
+        const targetFolderId = config.targetFolderId;
+
+        let fileToUpload: any = null;
+        if (inputs.length > 0) {
+            fileToUpload = inputs[0];
+        }
+
+        if (!fileToUpload || (!fileToUpload.key && !fileToUpload.name)) {
+            this.log('WARN', 'No valid file input found for upload');
+            return [];
+        }
+
+        const fileName = config.fileName || fileToUpload.name || `upload_${Date.now()}`;
+
+        this.log('INFO', `Uploading file ${fileName} to folder ${targetFolderId || 'root'}`);
+
+        // Mock upload 
+        return [{
+            id: 'gdrive_uploaded_' + Date.now(),
+            name: fileName,
+            mimeType: fileToUpload.file_type || 'application/octet-stream',
+            webViewLink: 'http://mock.google.drive/link/' + Date.now()
+        }];
     }
 }

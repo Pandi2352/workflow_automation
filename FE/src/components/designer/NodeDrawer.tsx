@@ -1,5 +1,5 @@
 import React, { useState, useMemo } from 'react';
-import { Search, X, ChevronRight, Zap, Split, ArrowUpRight, Clock, FileText } from 'lucide-react';
+import { Search, X, ChevronRight, Zap, Split, ArrowUpRight, Clock, FileText, Database, Cpu } from 'lucide-react';
 import googleDriveIcon from '../../assets/nodeIcons/google-drive-svgrepo-com.svg';
 import oneDriveIcon from '../../assets/nodeIcons/ms-onedrive-svgrepo-com.svg';
 import gmailIcon from '../../assets/nodeIcons/gmail-icon-logo-svgrepo-com.svg';
@@ -41,6 +41,8 @@ const availableNodes: NodeType[] = [
 
     // AI / ML
     { type: 'OCR', label: 'OCR Processing', description: 'Extract text using Gemini AI', icon: FileText, color: 'text-indigo-600', category: 'ACTION' },
+    { type: 'PARSING', label: 'AI Parsing', description: 'Extract structured data', icon: Cpu, color: 'text-indigo-600', category: 'ACTION' },
+    { type: 'MONGODB', label: 'MongoDB', description: 'Store data for review', icon: Database, color: 'text-green-600', category: 'ACTION' },
     
     // Export
     { type: 'HTTP_REQUEST', label: 'HTTP Request', description: 'Send data to external API', icon: ArrowUpRight, color: 'text-cyan-500', category: 'EXPORT' },

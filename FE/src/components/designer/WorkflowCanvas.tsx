@@ -19,6 +19,8 @@ import { GmailNode } from '../../nodes/gmail/GmailNode';
 import { ScheduleNode } from '../../nodes/schedule/ScheduleNode';
 import { OCRNode } from '../../nodes/ocr/OCRNode';
 import { IfElseNode } from '../../nodes/if-else/IfElseNode';
+import { ParsingNode } from '../../nodes/parsing/ParsingNode';
+import { MongoDBNode } from '../../nodes/mongodb/MongoDBNode';
 
 import { DeletableEdge } from './DeletableEdge';
 
@@ -38,6 +40,8 @@ const nodeTypes = {
     SCHEDULE: ScheduleNode,
     OCR: OCRNode,
     IF_ELSE: IfElseNode,
+    PARSING: ParsingNode,
+    MONGODB: MongoDBNode,
     default: GenericNode, // Fallback
     input: GenericNode,
     webhook: GenericNode,

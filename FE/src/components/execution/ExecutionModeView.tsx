@@ -11,6 +11,8 @@ import { NodeConfigPanel as GmailConfigPanel } from '../../nodes/gmail/NodeConfi
 import { NodeConfigPanel as ScheduleConfigPanel } from '../../nodes/schedule/NodeConfigPanel';
 import { NodeConfigPanel as OCRConfigPanel } from '../../nodes/ocr/NodeConfigPanel';
 import { NodeConfigPanel as IfElseConfigPanel } from '../../nodes/if-else/NodeConfigPanel';
+import { NodeConfigPanel as ParsingConfigPanel } from '../../nodes/parsing/NodeConfigPanel';
+import { NodeConfigPanel as MongoDBConfigPanel } from '../../nodes/mongodb/NodeConfigPanel';
 import { workflowService } from '../../services/api/workflows';
 
 export const ExecutionModeView: React.FC = () => {
@@ -88,6 +90,10 @@ export const ExecutionModeView: React.FC = () => {
                                 <OCRConfigPanel nodeExecutionData={selectedExecution?.nodeExecutions?.find((ex: any) => ex.nodeId === selectedNode.id)} />
                             ) : selectedNode.type === 'IF_ELSE' ? (
                                 <IfElseConfigPanel nodeExecutionData={selectedExecution?.nodeExecutions?.find((ex: any) => ex.nodeId === selectedNode.id)} />
+                            ) : selectedNode.type === 'PARSING' ? (
+                                <ParsingConfigPanel nodeExecutionData={selectedExecution?.nodeExecutions?.find((ex: any) => ex.nodeId === selectedNode.id)} />
+                            ) : selectedNode.type === 'MONGODB' ? (
+                                <MongoDBConfigPanel nodeExecutionData={selectedExecution?.nodeExecutions?.find((ex: any) => ex.nodeId === selectedNode.id)} />
                             ) : (
                                 <GoogleDriveConfigPanel nodeExecutionData={selectedExecution?.nodeExecutions?.find((ex: any) => ex.nodeId === selectedNode.id)} />
                             )}
