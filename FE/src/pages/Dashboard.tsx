@@ -1,19 +1,32 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { 
-    Plus, Search, Zap, Clock, ArrowRight, MoreHorizontal, 
-    Settings, Bell, User, LayoutGrid, List
+    Plus, Search, LayoutGrid, List, MoreHorizontal, 
+    Zap, Command, Trash2, Play
 } from 'lucide-react';
 import { workflowService } from '../services/api/workflows';
 import type { SampleWorkflow } from '../types/workflow.types';
 import { Button } from '../common/Button';
+import { Switch } from '../common/Switch';
+import { Modal } from '../common/Modal';
 
 export const Dashboard: React.FC = () => {
   const navigate = useNavigate();
   const [workflows, setWorkflows] = useState<SampleWorkflow[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
-  const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
+  const [viewMode, setViewMode] = useState<'table' | 'grid'>('grid');
+  const [menuOpenId, setMenuOpenId] = useState<string | null>(null);
+  
+  // Delete Modal State
+  const [deleteId, setDeleteId] = useState<string | null>(null);
+
+  // Close menu on click outside
+  useEffect(() => {
+      const handleClickOutside = () => setMenuOpenId(null);
+      document.addEventListener('click', handleClickOutside);
+      return () => document.removeEventListener('click', handleClickOutside);
+  }, []);
 
   useEffect(() => {
     loadWorkflows();
@@ -34,200 +47,334 @@ export const Dashboard: React.FC = () => {
     navigate('/workflow/new');
   };
 
+  const handleClickDelete = (e: React.MouseEvent, id: string) => {
+      e.stopPropagation();
+      setDeleteId(id);
+      setMenuOpenId(null);
+  };
+
+  const confirmDelete = async () => {
+      if (!deleteId) return;
+      
+      try {
+          await workflowService.delete(deleteId);
+          setWorkflows(prev => prev.filter(w => w._id !== deleteId));
+      } catch (error) {
+          console.error('Failed to delete workflow', error);
+          alert('Failed to delete workflow');
+      } finally {
+          setDeleteId(null);
+      }
+  };
+
+  // Simplified handler that doesn't rely on the event object being passed perfectly from Switch
+  const handleToggleActive = async (workflow: SampleWorkflow, e?: React.MouseEvent) => {
+      if (e) e.stopPropagation();
+      
+      const newStatus = !workflow.isActive; 
+      // Optimistic update
+      setWorkflows(prev => prev.map(w => w._id === workflow._id ? { ...w, isActive: newStatus } : w));
+      
+      try {
+          await workflowService.update(workflow._id, { isActive: newStatus });
+      } catch (error) {
+          console.error('Failed to update status', error);
+          // Revert on failure
+          setWorkflows(prev => prev.map(w => w._id === workflow._id ? { ...w, isActive: !newStatus } : w));
+      }
+  };
+  
+  const handleViewExecutions = (e: React.MouseEvent, id: string) => {
+      e.stopPropagation();
+      navigate(`/workflow/${id}?tab=executions`);
+  };
+
   const filteredWorkflows = workflows.filter(w => 
     w.name.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
   return (
-    <div className="min-h-screen bg-slate-50 text-slate-900 selection:bg-emerald-500/30 font-sans">
-        {/* Ambient Background Effects */}
-        <div className="fixed inset-0 overflow-hidden pointer-events-none">
-            <div className="absolute top-[-10%] left-[-10%] w-[50%] h-[50%] bg-blue-100/50 rounded-full blur-[120px]" />
-            <div className="absolute bottom-[-10%] right-[-10%] w-[50%] h-[50%] bg-emerald-100/50 rounded-full blur-[120px]" />
+    <div className="min-h-screen bg-[#f8fafc] text-slate-900 font-sans">
+      <style>{`
+        /* Custom Scrollbar */
+        ::-webkit-scrollbar {
+            width: 8px;
+            height: 8px;
+        }
+        ::-webkit-scrollbar-track {
+            background: transparent; 
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #cbd5e1; 
+            border-radius: 4px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: #94a3b8; 
+        }
+      `}</style>
+      
+      {/* Navbar */}
+      <div className="h-16 bg-white border-b border-slate-200 flex items-center px-6 md:px-10 sticky top-0 z-40">
+        <div className="flex items-center gap-3">
+            <div className="w-8 h-8 bg-black rounded-lg flex items-center justify-center text-white shadow-md">
+                <Zap size={18} fill="currentColor" />
+            </div>
+            <h1 className="text-lg font-bold text-slate-900 tracking-tight">Automation Kit</h1>
         </div>
+        <div className="ml-8 hidden md:flex items-center gap-6 text-sm font-medium text-slate-500">
+             <span className="text-slate-900">Workflows</span>
+             <span className="hover:text-slate-900 cursor-pointer transition-colors">Executions</span>
+             <span className="hover:text-slate-900 cursor-pointer transition-colors">Settings</span>
+        </div>
+        <div className="ml-auto flex items-center gap-3">
+             <div className="w-8 h-8 rounded-full bg-slate-100 border border-slate-200 flex items-center justify-center text-slate-500 text-xs font-bold">
+                MK
+             </div>
+        </div>
+      </div>
 
-        {/* Minimal Navbar */}
-        <nav className="relative z-50 flex items-center justify-between px-8 py-5">
-            <div className="flex items-center gap-3">
-                <div className="w-10 h-10 bg-gradient-to-br from-emerald-500 to-teal-600 rounded-xl flex items-center justify-center shadow-lg shadow-emerald-500/20">
-                    <Zap size={22} className="text-white" fill="currentColor" />
-                </div>
-                <span className="text-xl font-bold tracking-tight text-slate-900">AutoFlow</span>
-            </div>
-            
-            <div className="flex items-center gap-4">
-                <button className="p-2.5 rounded-full hover:bg-white hover:shadow-sm text-slate-500 hover:text-emerald-600 transition-all relative group bg-white/50 border border-transparent hover:border-slate-200">
-                    <Bell size={20} />
-                    <span className="absolute top-2 right-2.5 w-2 h-2 bg-emerald-500 rounded-full border border-white" />
-                </button>
-                <div className="h-6 w-px bg-slate-200" />
-                 <button 
-                    onClick={() => navigate('/settings')}
-                    className="p-2.5 rounded-full hover:bg-white hover:shadow-sm text-slate-500 hover:text-emerald-600 transition-all bg-white/50 border border-transparent hover:border-slate-200"
-                >
-                    <Settings size={20} />
-                </button>
-                <button 
-                    onClick={() => navigate('/profile')}
-                    className="w-10 h-10 rounded-full bg-white border border-slate-200 flex items-center justify-center text-emerald-600 font-bold hover:shadow-md hover:border-emerald-500/50 transition-all"
-                >
-                    <User size={20} />
-                </button>
-            </div>
-        </nav>
-
-        {/* Main Interface */}
-        <div className="relative z-10 max-w-7xl mx-auto px-6 mt-12 pb-20">
-            
-            {/* Hero & Search */}
-            <div className="text-center mb-16">
-                <h1 className="text-4xl md:text-5xl font-bold text-slate-900 mb-6 tracking-tight">
-                    What will you <span className="text-transparent bg-clip-text bg-gradient-to-r from-emerald-600 to-teal-600">automate</span> today?
-                </h1>
+      <div className="relative bg-emerald-50/50 border-b border-emerald-100/50 pt-16 pb-20 px-6 md:px-10">
+        <div className="max-w-3xl mx-auto text-center space-y-6">
+            <h1 className="text-3xl font-bold text-slate-900 tracking-tight">
+                What would you like to automate?
+            </h1>
+            <div className="relative max-w-[640px] mx-auto">
+                <div className="absolute inset-0 bg-emerald-200/40 blur-2xl rounded-full transform scale-95 opacity-50" />
                 
-                <div className="max-w-2xl mx-auto relative group">
-                    <div className="absolute inset-0 bg-gradient-to-r from-emerald-500/20 to-blue-500/20 rounded-2xl blur-xl group-hover:blur-2xl transition-all opacity-75" />
-                    <div className="relative flex items-center bg-white/80 backdrop-blur-xl border border-slate-200 rounded-2xl p-2 shadow-xl shadow-slate-200/50">
-                        <Search className="ml-4 text-slate-400" size={20} />
-                        <input 
-                            type="text"
-                            placeholder="Search workflows..."
-                            className="w-full bg-transparent border-none text-slate-900 placeholder-slate-400 focus:ring-0 text-lg px-4 py-2"
-                            value={searchQuery}
-                            onChange={(e) => setSearchQuery(e.target.value)}
-                        />
-                        <div className="hidden md:flex items-center gap-1 pr-2">
-                             <Button 
-                                onClick={handleCreateWorkflow}
-                                className="bg-emerald-600 hover:bg-emerald-500 text-white border-0 shadow-lg shadow-emerald-500/20"
-                            >
-                                <Plus size={18} className="mr-2" />
-                                Create
-                             </Button>
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-            {/* Content Controls */}
-            <div className="flex flex-col md:flex-row justify-between items-end md:items-center mb-8 gap-4">
-                <div className="flex items-center gap-4">
-                    <h2 className="text-xl font-semibold text-slate-800">Your Workflows</h2>
-                    <span className="px-2.5 py-0.5 rounded-full bg-emerald-100 text-xs font-medium text-emerald-700 border border-emerald-200">
-                        {workflows.length}
-                    </span>
-                </div>
-                
-                <div className="flex items-center bg-white rounded-lg p-1 border border-slate-200 shadow-sm">
-                     <button 
-                        onClick={() => setViewMode('grid')}
-                        className={`p-2 rounded-md transition-all ${viewMode === 'grid' ? 'bg-slate-100 text-slate-900 shadow-sm' : 'text-slate-400 hover:text-slate-600'}`}
-                    >
-                        <LayoutGrid size={18} />
-                    </button>
-                    <button 
-                        onClick={() => setViewMode('list')}
-                        className={`p-2 rounded-md transition-all ${viewMode === 'list' ? 'bg-slate-100 text-slate-900 shadow-sm' : 'text-slate-400 hover:text-slate-600'}`}
-                    >
-                        <List size={18} />
-                    </button>
-                </div>
-            </div>
-
-            {/* Workflow List/Grid */}
-            {loading ? (
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                    {[1,2,3].map(i => (
-                        <div key={i} className="h-48 rounded-2xl bg-white animate-pulse border border-slate-200 shadow-sm" />
-                    ))}
-                </div>
-            ) : filteredWorkflows.length === 0 ? (
-                <div className="flex flex-col items-center justify-center py-20 text-slate-500 bg-white/50 rounded-3xl border border-slate-200 border-dashed">
-                    <div className="bg-slate-100 p-4 rounded-full mb-4">
-                        <Search size={32} className="opacity-50" />
-                    </div>
-                    <p className="text-lg text-slate-600">No workflows found matching "{searchQuery}"</p>
-                    <Button 
-                        variant="secondary" 
-                        onClick={() => setSearchQuery('')}
-                        className="mt-4 border-slate-200 hover:bg-slate-50 text-slate-600"
-                    >
-                        Clear Search
-                    </Button>
-                </div>
-            ) : (
-                <div className={viewMode === 'grid' 
-                    ? "grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6" 
-                    : "flex flex-col gap-4"
-                }>
-                    {filteredWorkflows.map((workflow) => (
-                        <div 
-                            key={workflow._id}
-                            onClick={() => navigate(`/workflow/${workflow._id}`)}
-                            className={`
-                                group relative bg-white hover:bg-white/80 backdrop-blur-sm border border-slate-200 
-                                hover:border-emerald-500/30 transition-all duration-300 cursor-pointer overflow-hidden
-                                ${viewMode === 'grid' ? 'rounded-2xl p-6 hover:-translate-y-1 hover:shadow-xl hover:shadow-emerald-500/5' : 'rounded-xl p-4 flex items-center justify-between hover:translate-x-1 hover:shadow-md'}
-                            `}
+                <div className="relative flex items-center bg-white p-2 rounded-full shadow-2xl shadow-emerald-900/10 ring-1 ring-slate-900/5 group focus-within:ring-2 focus-within:ring-emerald-500/20 transition-all">
+                     <div className="pl-4 text-slate-400 group-focus-within:text-emerald-600 transition-colors">
+                        <Search size={22} />
+                     </div>
+                     <input 
+                        type="text" 
+                        placeholder="Search workflows..." 
+                        className="flex-1 min-w-0 px-4 py-3 bg-transparent text-slate-900 placeholder:text-slate-400 focus:outline-none text-base h-12"
+                        value={searchQuery}
+                        onChange={(e) => setSearchQuery(e.target.value)}
+                    />
+                    <div className="flex items-center gap-3 pr-2">
+                        <button 
+                            onClick={handleCreateWorkflow} 
+                            className="bg-slate-900 hover:bg-slate-800 text-white cursor-pointer shadow-slate-900/20 px-6 h-12 rounded-full text-sm font-semibold flex items-center gap-2 transition-all active:scale-95 whitespace-nowrap"
                         >
-                             {/* Gradient Glow */}
-                             <div className="absolute inset-0 bg-gradient-to-br from-emerald-50 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
-
-                             <div className={viewMode === 'grid' ? 'block' : 'flex items-center gap-6 flex-1'}>
-                                {/* Header / Icon */}
-                                <div className={`flex justify-between items-start ${viewMode === 'grid' ? 'mb-4' : ''}`}>
-                                    <div className={`
-                                        w-12 h-12 rounded-xl flex items-center justify-center transition-transform duration-300 group-hover:scale-105
-                                        ${workflow.active 
-                                            ? 'bg-emerald-50 text-emerald-600 border border-emerald-100' 
-                                            : 'bg-slate-50 text-slate-400 border border-slate-100'}
-                                    `}>
-                                        <Zap size={20} fill={workflow.active ? "currentColor" : "none"} />
-                                    </div>
-                                    
-                                    {viewMode === 'grid' && (
-                                        <div className="flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity transform translate-x-2 group-hover:translate-x-0">
-                                             <button onClick={(e) => { e.stopPropagation(); }} className="p-2 hover:bg-slate-100 rounded-lg text-slate-400 hover:text-slate-600 transition-colors">
-                                                <MoreHorizontal size={18} />
-                                            </button>
-                                        </div>
-                                    )}
-                                </div>
-
-                                {/* Content */}
-                                <div>
-                                    <h3 className="text-lg font-bold text-slate-800 mb-1 group-hover:text-emerald-600 transition-colors">
-                                        {workflow.name}
-                                    </h3>
-                                    <p className="text-slate-500 text-sm line-clamp-2 leading-relaxed">
-                                        {workflow.description || "No description provided."}
-                                    </p>
-                                </div>
-                             </div>
-
-                             {/* Footer / Meta */}
-                             <div className={`
-                                ${viewMode === 'grid' 
-                                    ? 'flex items-center justify-between pt-4 mt-4 border-t border-slate-100' 
-                                    : 'flex items-center gap-8 text-sm text-slate-500'}
-                             `}>
-                                <div className="flex items-center gap-2 text-xs text-slate-400 font-medium">
-                                    <Clock size={14} />
-                                    <span>{new Date(workflow.createdAt).toLocaleDateString()}</span>
-                                </div>
-
-                                <div className={`flex items-center gap-1 text-xs font-semibold text-emerald-600 
-                                    ${viewMode === 'grid' ? 'opacity-0 group-hover:opacity-100 -translate-x-2 group-hover:translate-x-0 transition-all duration-300' : 'hidden md:flex'}
-                                `}>
-                                    Open <ArrowRight size={14} />
-                                </div>
-                             </div>
-                        </div>
-                    ))}
+                            <Plus size={16} strokeWidth={3} />
+                            Create Workflow
+                        </button>
+                    </div>
                 </div>
-            )}
+            </div>
         </div>
+      </div>
+
+      <div className="p-6 md:p-10 max-w-7xl mx-auto -mt-10 relative z-10">
+         <div className="flex items-center justify-between mb-6">
+             <div className="flex items-center gap-2 text-sm text-slate-500 font-medium bg-white/50 backdrop-blur-md px-3 py-1.5 rounded-full border border-slate-200/50 shadow-sm">
+                <span>{workflows.length} workflows</span>
+                <span className="w-1 h-1 bg-slate-300 rounded-full" />
+                <span className="text-emerald-700">{workflows.filter(w => w.isActive).length} active</span>
+            </div>
+
+            <div className="flex bg-white rounded-lg p-1 border border-slate-200 shadow-sm">
+                <button 
+                    onClick={() => setViewMode('table')}
+                    className={`p-1.5 rounded-md transition-all cursor-pointer ${viewMode === 'table' ? 'bg-slate-100 text-slate-900' : 'text-slate-400 hover:text-slate-600'}`}
+                    title="List View"
+                >
+                    <List size={16} />
+                </button>
+                <div className="w-px bg-slate-100 mx-1" />
+                <button 
+                    onClick={() => setViewMode('grid')}
+                    className={`p-1.5 rounded-md transition-all cursor-pointer ${viewMode === 'grid' ? 'bg-slate-100 text-slate-900' : 'text-slate-400 hover:text-slate-600'}`}
+                    title="Grid View"
+                >
+                    <LayoutGrid size={16} />
+                </button>
+            </div>
+         </div>
+
+      {loading ? (
+        <div className="animate-pulse space-y-4">
+            {[1,2,3,4].map(i => <div key={i} className="h-12 bg-slate-200 rounded-lg" />)}
+        </div>
+      ) : filteredWorkflows.length === 0 ? (
+        <div className="text-center py-24 border-2 border-dashed border-slate-200 rounded-xl bg-slate-50/50">
+            <div className="w-16 h-16 bg-white rounded-2xl flex items-center justify-center mx-auto mb-4 shadow-sm border border-slate-100">
+                <Command size={24} className="text-slate-400" />
+            </div>
+            <h3 className="text-slate-900 font-medium mb-1">No workflows found</h3>
+            <p className="text-slate-500 text-sm mb-6">Create a new workflow to get started.</p>
+            <Button onClick={handleCreateWorkflow} size="sm">Create Workflow</Button>
+        </div>
+      ) : viewMode === 'table' ? (
+        // TABLE VIEW
+        <div className="bg-white border border-slate-200 rounded-xl shadow-sm overflow-visible">
+            <div className="grid grid-cols-12 gap-4 border-b border-slate-100 bg-slate-50/80 px-6 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wider backdrop-blur-sm sticky top-0 rounded-t-xl z-20">
+                <div className="col-span-5">Name</div>
+                <div className="col-span-2">Status</div>
+                <div className="col-span-3">Last Modified</div>
+                <div className="col-span-2 text-right">Actions</div>
+            </div>
+            <div className="divide-y divide-slate-100">
+                {filteredWorkflows.map((workflow) => (
+                    <div 
+                        key={workflow._id}
+                        onClick={() => navigate(`/workflow/${workflow._id}`)}
+                        className="grid grid-cols-12 gap-4 px-6 py-3.5 items-center hover:bg-slate-50 transition-colors cursor-pointer group relative"
+                    >
+                        <div className="col-span-5 flex items-center gap-3">
+                            <div className={`p-1.5 rounded-lg border ${workflow.isActive ? 'bg-emerald-50 border-emerald-100 text-emerald-600' : 'bg-slate-50 border-slate-200 text-slate-400'}`}>
+                                <Zap size={14} fill={workflow.isActive ? "currentColor" : "none"} />
+                            </div>
+                            <div>
+                                <h4 className="text-sm font-medium text-slate-900 group-hover:text-emerald-700 transition-colors">{workflow.name}</h4>
+                                <p className="text-xs text-slate-500 truncate max-w-[200px]">{workflow.description || 'No description'}</p>
+                            </div>
+                        </div>
+                        <div className="col-span-2" onClick={(e) => e.stopPropagation()}>
+                             <Switch 
+                                checked={workflow.isActive} 
+                                onChange={() => handleToggleActive(workflow)} 
+                                size="sm"
+                             />
+                        </div>
+                        <div className="col-span-3 text-xs text-slate-500 font-mono">
+                            {new Date(workflow.updatedAt).toLocaleDateString()} <span className="text-slate-300 mx-1">•</span> {new Date(workflow.updatedAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                        </div>
+                        <div className="col-span-2 flex justify-end gap-2 relative">
+                            <div className="relative">
+                                <button 
+                                    onClick={(e) => {
+                                        e.stopPropagation();
+                                        setMenuOpenId(menuOpenId === workflow._id ? null : workflow._id);
+                                    }}
+                                    className="p-1.5 hover:bg-slate-200 cursor-pointer rounded text-slate-400 hover:text-slate-700 transition-colors"
+                                >
+                                    <MoreHorizontal size={14} />
+                                </button>
+                                
+                                {menuOpenId === workflow._id && (
+                                    <div className="absolute right-0 top-full mt-1 w-40 bg-white border border-slate-200 rounded-lg shadow-xl z-50 animate-in fade-in zoom-in-95 duration-100 overflow-hidden">
+                                        <button 
+                                            onClick={(e) => handleViewExecutions(e, workflow._id)}
+                                            className="w-full text-left px-3 py-2 text-xs font-medium text-slate-600 hover:bg-slate-50 hover:text-slate-900 flex items-center gap-2"
+                                        >
+                                            <Play size={12} /> Executions
+                                        </button>
+                                        <button 
+                                            onClick={(e) => handleClickDelete(e, workflow._id)}
+                                            className="w-full text-left px-3 py-2 text-xs font-medium text-red-600 hover:bg-red-50 flex items-center gap-2 border-t border-slate-100"
+                                        >
+                                            <Trash2 size={12} /> Delete
+                                        </button>
+                                    </div>
+                                )}
+                            </div>
+                        </div>
+                    </div>
+                ))}
+            </div>
+        </div>
+      ) : (
+        // GRID VIEW {Compact)
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+            {filteredWorkflows.map((workflow) => (
+                <div 
+                    key={workflow._id}
+                    onClick={() => navigate(`/workflow/${workflow._id}`)}
+                    className="group bg-white border border-slate-200 rounded-xl p-4 hover:border-slate-300 hover:shadow-lg hover:shadow-slate-200/50 transition-all cursor-pointer relative overflow-visible flex flex-col justify-between h-[160px]"
+                >
+                    <div className="flex justify-between items-start mb-3">
+                         <div className={`p-2 rounded-lg border ${workflow.isActive ? 'bg-emerald-50 border-emerald-100 text-emerald-600' : 'bg-slate-50 border-slate-200 text-slate-400'}`}>
+                            <Zap size={16} fill={workflow.isActive ? "currentColor" : "none"} />
+                        </div>
+                        <div className="relative">
+                            <button 
+                                onClick={(e) => {
+                                    e.stopPropagation();
+                                    setMenuOpenId(menuOpenId === workflow._id ? null : workflow._id);
+                                }}
+                                className={`p-1.5 rounded-md transition-colors cursor-pointer ${menuOpenId === workflow._id ? 'bg-slate-100 text-slate-900' : 'text-slate-400 hover:bg-slate-100 hover:text-slate-600'}`}
+                            >
+                                <MoreHorizontal size={16} />
+                            </button>
+                             {menuOpenId === workflow._id && (
+                                <div className="absolute right-0 top-full mt-1 w-40 bg-white border border-slate-200 rounded-lg shadow-xl z-50 animate-in fade-in zoom-in-95 duration-100 overflow-hidden">
+                                    <button 
+                                        onClick={(e) => handleViewExecutions(e, workflow._id)}
+                                        className="w-full text-left px-3 py-2 text-xs font-medium text-slate-600 hover:bg-slate-50 hover:text-slate-900 flex items-center gap-2"
+                                    >
+                                        <Play size={12} /> Executions
+                                    </button>
+                                    <button 
+                                        onClick={(e) => handleClickDelete(e, workflow._id)}
+                                        className="w-full text-left px-3 py-2 text-xs font-medium text-red-600 hover:bg-red-50 flex items-center gap-2 border-t border-slate-100"
+                                    >
+                                        <Trash2 size={12} /> Delete
+                                    </button>
+                                </div>
+                            )}
+                        </div>
+                    </div>
+                    
+                    <div>
+                        <h4 className="font-semibold text-slate-900 mb-1 group-hover:text-emerald-700 transition-colors line-clamp-1">{workflow.name}</h4>
+                        <div className="flex items-center justify-between mt-1" onClick={(e) => e.stopPropagation()}>
+                             <span className="text-xs text-slate-500 line-clamp-1">{workflow.description || 'No description'}</span>
+                        </div>
+                    </div>
+
+                    <div className="mt-4 pt-3 border-t border-slate-50 flex items-center justify-between text-[10px] text-slate-400 font-medium uppercase tracking-wide">
+                        <span>Updated {new Date(workflow.updatedAt).toLocaleDateString()}</span>
+                        <div onClick={(e) => e.stopPropagation()}>
+                            <Switch 
+                                checked={workflow.isActive}
+                                onChange={() => handleToggleActive(workflow)}
+                                size="sm"
+                            />
+                        </div>
+                    </div>
+                </div>
+            ))}
+             
+             {/* Add New Card (Ghost) */}
+             <div 
+                onClick={handleCreateWorkflow}
+                className="border-2 border-dashed border-slate-200 rounded-xl p-4 flex flex-col items-center justify-center text-slate-400 hover:border-slate-300 hover:bg-slate-50/50 hover:text-slate-600 transition-all cursor-pointer h-[160px]"
+             >
+                <div className="w-10 h-10 rounded-full bg-slate-100 flex items-center justify-center mb-2 group-hover:bg-white group-hover:shadow-sm">
+                    <Plus size={20} />
+                </div>
+                <span className="text-sm font-medium">Create New</span>
+             </div>
+        </div>
+      )}
+
+      {/* Delete Confirmation Modal */}
+      <Modal
+        isOpen={!!deleteId}
+        onClose={() => setDeleteId(null)}
+        title="Delete Workflow"
+        size="sm"
+        footer={
+            <>
+                <Button variant="secondary" onClick={() => setDeleteId(null)}>Cancel</Button>
+                <Button 
+                    className="bg-red-600 hover:bg-red-700 text-white border-none" 
+                    onClick={confirmDelete}
+                >
+                    Delete Workflow
+                </Button>
+            </>
+        }
+      >
+        <div className="py-2">
+            <p className="text-slate-600 text-sm leading-relaxed">
+                Are you sure you want to delete this workflow? This action is permanent and cannot be undone. All execution history will also be removed.
+            </p>
+        </div>
+      </Modal>
+      </div>
     </div>
   );
 };
-

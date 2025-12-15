@@ -109,7 +109,7 @@ export const WorkflowDesigner: React.FC = () => {
                 setWorkflowMetadata({
                     workflowName: workflow.name,
                     workflowDescription: workflow.description,
-                    isWorkflowActive: workflow.active
+                    isWorkflowActive: workflow.isActive
                 });
 
                 // Restore latest execution context

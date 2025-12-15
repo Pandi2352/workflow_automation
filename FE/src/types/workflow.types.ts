@@ -20,7 +20,7 @@ export interface SampleWorkflow {
     variables?: Record<string, any>;
     createdAt: string;
     updatedAt: string;
-    active: boolean;
+    isActive: boolean;
 }
 
 export interface CreateWorkflowPayload {
