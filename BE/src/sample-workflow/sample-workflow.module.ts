@@ -15,6 +15,7 @@ import { ConfigModule } from '@nestjs/config';
 import { GoogleDriveService } from './node-services/google-drive.service';
 import { OneDriveService } from './node-services/onedrive.service';
 import { GmailService } from './node-services/gmail.service';
+import { OCRService } from './node-services/ocr.service';
 import { SchedulerService } from './services/scheduler.service';
 import { GmailPollingService } from './services/gmail-polling.service';
 import { TriggerState, TriggerStateSchema } from './schemas/trigger-state.schema';
@@ -39,6 +40,7 @@ import { TriggerState, TriggerStateSchema } from './schemas/trigger-state.schema
         GoogleDriveService,
         OneDriveService,
         GmailService,
+        OCRService,
         SchedulerService,
         GmailPollingService,
     ],

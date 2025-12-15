@@ -12,6 +12,8 @@ import { WorkflowValidatorService } from './services/workflow-validator.service'
 import { NodeRegistryService } from './services/node-registry.service';
 import { ExecutionStatus } from './enums/execution-status.enum';
 import { WorkflowHistory, WorkflowHistoryDocument } from './schemas/workflow-history.schema';
+import { CredentialsService } from '../credentials/credentials.service';
+import { SampleNodeType } from './enums/node-type.enum';
 
 export interface PaginatedResponse<T> {
     data: T[];
@@ -33,6 +35,7 @@ export class SampleWorkflowService {
         private executorService: WorkflowExecutorService,
         private validatorService: WorkflowValidatorService,
         private nodeRegistry: NodeRegistryService,
+        private credentialsService: CredentialsService, // Injected
         @Inject(forwardRef(() => SchedulerService)) private schedulerService: SchedulerService,
     ) { }
 
@@ -150,6 +153,21 @@ export class SampleWorkflowService {
 
         if (!strategy) {
             throw new BadRequestException(`Unknown node type: ${nodeType}`);
+        }
+
+        // Resolve Credentials if present in nodeData
+        if (nodeData?.credentialId) {
+            try {
+                const credential = await this.credentialsService.findById(nodeData.credentialId);
+                if (credential) {
+                    if (nodeType === SampleNodeType.OCR && credential.provider === 'GEMINI') {
+                        // Inject API Key into config (nodeData)
+                        nodeData.apiKey = credential.accessToken;
+                    }
+                }
+            } catch (err) {
+                console.error(`Failed to resolve credential for test execution: ${err.message}`);
+            }
         }
 
         // Mock Context

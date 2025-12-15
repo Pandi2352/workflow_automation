@@ -8,6 +8,8 @@ import { GoogleDriveService } from '../node-services/google-drive.service';
 import { OneDriveService } from '../node-services/onedrive.service';
 import { GmailService } from '../node-services/gmail.service';
 import { ScheduleNode } from '../nodes/schedule.node';
+import { OCRNodeStrategy } from '../nodes/ocr.node';
+import { OCRService } from '../node-services/ocr.service';
 
 export interface NodeDefinition {
     type: string;
@@ -27,7 +29,8 @@ export class NodeRegistryService {
     constructor(
         private readonly googleDriveService: GoogleDriveService,
         private readonly oneDriveService: OneDriveService,
-        private readonly gmailService: GmailService
+        private readonly gmailService: GmailService,
+        private readonly ocrService: OCRService
     ) {
         this.registerDefaultNodes();
     }
@@ -38,6 +41,7 @@ export class NodeRegistryService {
         this.nodeInstances.set(SampleNodeType.ONEDRIVE, new OneDriveNode(this.oneDriveService));
         this.nodeInstances.set(SampleNodeType.GMAIL, new GmailNode(this.gmailService));
         this.nodeInstances.set(SampleNodeType.SCHEDULE, new ScheduleNode());
+        this.nodeInstances.set(SampleNodeType.OCR, new OCRNodeStrategy(this.ocrService));
 
         // Register node definitions
         this.nodeDefinitions.set(SampleNodeType.GOOGLE_DRIVE, {
@@ -153,6 +157,33 @@ export class NodeRegistryService {
                     type: 'string',
                     description: 'Cron Expression (e.g. "*/5 * * * *")',
                     condition: { interval: 'custom' }
+                }
+            }
+        });
+
+        this.nodeDefinitions.set(SampleNodeType.OCR, {
+            type: SampleNodeType.OCR,
+            name: 'OCR Processing (Gemini)',
+            description: 'Extract text and analyze files using Gemini AI',
+            category: 'AI / Machine Learning',
+            inputs: 1,
+            outputs: 1,
+            configSchema: {
+                apiKey: {
+                    type: 'string',
+                    description: 'Gemini API Key',
+                    default: ''
+                },
+                modelName: {
+                    type: 'select',
+                    options: ['gemini-1.5-flash', 'gemini-1.5-pro'],
+                    default: 'gemini-1.5-flash',
+                    description: 'Model Name'
+                },
+                prompt: {
+                    type: 'string',
+                    description: 'Custom Prompt (Optional)',
+                    default: ''
                 }
             }
         });

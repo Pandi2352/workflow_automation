@@ -2,7 +2,7 @@ import React, { memo } from 'react';
 import { Handle, Position, type NodeProps } from '@xyflow/react';
 import { MoreVertical, Loader2 } from 'lucide-react';
 
-interface BaseNodeProps extends Omit<NodeProps, 'selected'> {
+export interface BaseNodeProps extends Omit<NodeProps, 'selected'> {
     label: string;
     icon?: React.ElementType;
     color?: string;

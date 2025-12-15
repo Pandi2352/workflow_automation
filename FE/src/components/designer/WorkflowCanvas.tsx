@@ -27,6 +27,7 @@ import { OneDriveNode } from '../../nodes/onedrive/OneDriveNode';
 import { GmailNode } from '../../nodes/gmail/GmailNode';
 import { ScheduleNode } from '../../nodes/schedule/ScheduleNode';
 
+import { OCRNode } from '../../nodes/ocr/OCRNode';
 import { useMemo } from 'react';
 
 const nodeTypes = {
@@ -34,6 +35,7 @@ const nodeTypes = {
     ONEDRIVE: OneDriveNode,
     GMAIL: GmailNode,
     SCHEDULE: ScheduleNode,
+    OCR: OCRNode,
     default: GenericNode, // Fallback
     input: GenericNode,
     webhook: GenericNode,

@@ -1,4 +1,4 @@
-import { Controller, Get, Query } from '@nestjs/common';
+import { Controller, Get, Post, Body, Query } from '@nestjs/common';
 import { CredentialsService } from './credentials.service';
 
 @Controller('credentials')
@@ -12,5 +12,10 @@ export class CredentialsController {
             return credentials.filter(c => c.provider === provider);
         }
         return credentials;
+    }
+
+    @Post()
+    async create(@Body() createCredentialDto: any) {
+        return this.credentialsService.create(createCredentialDto);
     }
 }

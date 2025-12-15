@@ -14,6 +14,7 @@ import { GoogleDriveNode } from '../../nodes/google-drive/GoogleDriveNode';
 import { ScheduleNode } from '../../nodes/schedule/ScheduleNode';
 import { GmailNode } from '../../nodes/gmail/GmailNode';
 import { OneDriveNode } from '../../nodes/onedrive/OneDriveNode';
+import { OCRNode } from '../../nodes/ocr/OCRNode';
 
 interface ExecutionCanvasProps {
     executionData?: any;
@@ -25,6 +26,8 @@ const nodeTypes = {
     ONEDRIVE: OneDriveNode,
     GMAIL: GmailNode,
     SCHEDULE: ScheduleNode,
+    OCR: OCRNode, // Registered
+    ocr: OCRNode, // Lowercase alias
     default: GenericNode, 
     input: GenericNode,
     webhook: GenericNode,

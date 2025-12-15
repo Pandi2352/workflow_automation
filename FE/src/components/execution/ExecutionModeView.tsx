@@ -5,7 +5,12 @@ import { ExecutionSidebar } from './ExecutionSidebar';
 import { ExecutionDetailsPanel } from './ExecutionDetailsPanel';
 import { ExecutionCanvas } from './ExecutionCanvas';
 import { useWorkflowStore } from '../../store/workflowStore';
-import { NodeConfigPanel } from '../../nodes/google-drive/NodeConfigPanel';
+import { NodeConfigPanel as GoogleDriveConfigPanel } from '../../nodes/google-drive/NodeConfigPanel';
+import { NodeConfigPanel as OneDriveConfigPanel } from '../../nodes/onedrive/NodeConfigPanel';
+import { NodeConfigPanel as GmailConfigPanel } from '../../nodes/gmail/NodeConfigPanel';
+import { NodeConfigPanel as ScheduleConfigPanel } from '../../nodes/schedule/NodeConfigPanel';
+import { NodeConfigPanel as OCRConfigPanel } from '../../nodes/ocr/NodeConfigPanel';
+import { NodeConfigPanel as DefaultConfigPanel } from '../../nodes/google-drive/NodeConfigPanel'; // Temporarily fallback or generic
 import { workflowService } from '../../services/api/workflows';
 
 export const ExecutionModeView: React.FC = () => {
@@ -71,7 +76,21 @@ export const ExecutionModeView: React.FC = () => {
                     />
                     
                     {/* Node Config Popup Overlay */}
-                    {selectedNode && <NodeConfigPanel />}
+                    {selectedNode && (
+                        <>
+                            {selectedNode.type === 'ONEDRIVE' ? (
+                                <OneDriveConfigPanel nodeExecutionData={selectedExecution?.nodeExecutions?.find((ex: any) => ex.nodeId === selectedNode.id)} />
+                            ) : selectedNode.type === 'GMAIL' ? (
+                                <GmailConfigPanel nodeExecutionData={selectedExecution?.nodeExecutions?.find((ex: any) => ex.nodeId === selectedNode.id)} />
+                            ) : selectedNode.type === 'SCHEDULE' ? (
+                                <ScheduleConfigPanel nodeExecutionData={selectedExecution?.nodeExecutions?.find((ex: any) => ex.nodeId === selectedNode.id)} />
+                            ) : selectedNode.type === 'OCR' ? (
+                                <OCRConfigPanel nodeExecutionData={selectedExecution?.nodeExecutions?.find((ex: any) => ex.nodeId === selectedNode.id)} />
+                            ) : (
+                                <GoogleDriveConfigPanel nodeExecutionData={selectedExecution?.nodeExecutions?.find((ex: any) => ex.nodeId === selectedNode.id)} />
+                            )}
+                        </>
+                    )}
                 </div>
 
                 {/* Bottom Panel: Logs/Data - Always show workflow level output now */}

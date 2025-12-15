@@ -43,3 +43,8 @@ export interface WorkflowExecutionOptions {
     maxRetries?: number;
     continueOnError?: boolean;
 }
+
+export interface INodeStrategy {
+    execute(context: NodeExecutionContext): Promise<NodeExecutionResult>;
+    executeWithContext(context: NodeExecutionContext): Promise<NodeExecutionResult>;
+}

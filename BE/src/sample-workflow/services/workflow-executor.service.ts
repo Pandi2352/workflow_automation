@@ -8,6 +8,8 @@ import { NodeRegistryService } from './node-registry.service';
 import { NodeInput, WorkflowExecutionOptions } from '../interfaces/execution-context.interface';
 import { ClientInfo } from '../../common/utils/client-info.util';
 import { ExpressionEvaluatorService, NodeData, ExpressionContext } from './expression-evaluator.service';
+import { CredentialsService } from '../../credentials/credentials.service';
+import { SampleNodeType } from '../enums/node-type.enum';
 
 interface NodeOutputMap {
     [nodeId: string]: any;
@@ -53,6 +55,7 @@ export class WorkflowExecutorService {
         @InjectModel(WorkflowHistory.name) private historyModel: Model<WorkflowHistoryDocument>,
         private nodeRegistry: NodeRegistryService,
         private expressionEvaluator: ExpressionEvaluatorService,
+        private credentialsService: CredentialsService, // Injected here
     ) { }
 
     async createExecutionEntry(
@@ -431,6 +434,36 @@ export class WorkflowExecutorService {
                 const nodeDataForHistory = nodeDataMap.get(node.id);
                 if (nodeDataForHistory?.input) {
                     nodeDataForHistory.input.resolved = resolvedMappings;
+                }
+            }
+
+            // Resolve Credentials if present
+            if (evaluatedData.config?.credentialId) {
+                try {
+                    const credential = await this.credentialsService.findById(evaluatedData.config.credentialId);
+                    if (credential) {
+                        // Standardize injection based on node type
+                        if (node.type === SampleNodeType.OCR && credential.provider === 'GEMINI') {
+                            evaluatedData.config.apiKey = credential.accessToken;
+                        }
+                        // Add other node type mappings here as needed
+                    } else {
+                        await this.addLog(
+                            executionId,
+                            LogLevel.WARN,
+                            `Credential not found for ID: ${evaluatedData.config.credentialId}`,
+                            node.id,
+                            node.nodeName
+                        );
+                    }
+                } catch (credError) {
+                    await this.addLog(
+                        executionId,
+                        LogLevel.ERROR,
+                        `Failed to resolve credential: ${credError.message}`,
+                        node.id,
+                        node.nodeName
+                    );
                 }
             }
 

@@ -1,13 +1,14 @@
 
 import React, { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { Zap, Plus } from 'lucide-react';
+import { Zap, Plus, FileText } from 'lucide-react';
 import { NodeDrawer } from '../components/designer/NodeDrawer';
 import { WorkflowCanvas } from '../components/designer/WorkflowCanvas';
 import { NodeConfigPanel } from '../nodes/google-drive/NodeConfigPanel';
 import { NodeConfigPanel as OneDriveNodeConfigPanel } from '../nodes/onedrive/NodeConfigPanel';
 import { NodeConfigPanel as GmailNodeConfigPanel } from '../nodes/gmail/NodeConfigPanel';
 import { NodeConfigPanel as ScheduleNodeConfigPanel } from '../nodes/schedule/NodeConfigPanel';
+import { NodeConfigPanel as OCRNodeConfigPanel } from '../nodes/ocr/NodeConfigPanel';
 import { DesignerHeader } from '../components/designer/DesignerHeader';
 import { ExecutionModeView } from '../components/execution/ExecutionModeView';
 import { useWorkflowStore } from '../store/workflowStore';
@@ -26,11 +27,11 @@ export const WorkflowDesigner: React.FC = () => {
     const { 
         nodes, edges, setNodes, setEdges, selectedNode, addNode, activeTab,
         setWorkflowMetadata, workflowName, workflowDescription, isWorkflowActive,
-        toast, showToast, hideToast, executionTrigger
+        toast, showToast, hideToast, executionTrigger, 
+        currentExecution, setCurrentExecution
     } = useWorkflowStore(); 
     
     const [isMetadataModalOpen, setIsMetadataModalOpen] = useState(false);
-    const [currentExecution, setCurrentExecution] = useState<any>(null);
     
     // Listen for execution triggers from nodes
     useEffect(() => {
@@ -49,13 +50,6 @@ export const WorkflowDesigner: React.FC = () => {
                 const latestMeta = await workflowService.getLatestExecution(id);
                 
                 if (latestMeta) {
-                    // Check if we need to update based on ID change, Status change, or Timestamp change
-                    // Logic:
-                    // - No current execution -> Fetch
-                    // - Different execution ID -> Fetch
-                    // - Status changed -> Fetch
-                    // - UpdatedAt changed (and running) -> Fetch
-                    
                     const shouldFetch = 
                         !currentExecution || 
                         latestMeta._id !== currentExecution._id || 
@@ -251,6 +245,9 @@ export const WorkflowDesigner: React.FC = () => {
         setIsDrawerOpen(false);
     };
 
+    // Node Types Definition
+
+
     if (!id) return <div>Invalid Workflow ID</div>;
 
     return (
@@ -314,6 +311,12 @@ export const WorkflowDesigner: React.FC = () => {
                             />
                         ) : selectedNode && selectedNode.type === 'SCHEDULE' ? (
                             <ScheduleNodeConfigPanel 
+                                nodeExecutionData={currentExecution?.nodeExecutions?.find(
+                                    (ex: any) => ex.nodeId === selectedNode?.id
+                                )} 
+                            />
+                        ) : selectedNode && selectedNode.type === 'OCR' ? (
+                            <OCRNodeConfigPanel
                                 nodeExecutionData={currentExecution?.nodeExecutions?.find(
                                     (ex: any) => ex.nodeId === selectedNode?.id
                                 )} 
