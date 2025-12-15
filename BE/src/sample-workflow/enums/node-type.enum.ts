@@ -3,6 +3,7 @@ export enum SampleNodeType {
     ONEDRIVE = 'ONEDRIVE',
     GMAIL = 'GMAIL',
     SCHEDULE = 'SCHEDULE',
-    OCR = 'OCR'
+    OCR = 'OCR',
+    IF_ELSE = 'IF_ELSE'
 }
 // Force recompile

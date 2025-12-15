@@ -1,14 +1,14 @@
-
 import React, { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { Zap, Plus, FileText } from 'lucide-react';
+import { Zap, Plus } from 'lucide-react';
 import { NodeDrawer } from '../components/designer/NodeDrawer';
-import { WorkflowCanvas } from '../components/designer/WorkflowCanvas';
 import { NodeConfigPanel } from '../nodes/google-drive/NodeConfigPanel';
 import { NodeConfigPanel as OneDriveNodeConfigPanel } from '../nodes/onedrive/NodeConfigPanel';
 import { NodeConfigPanel as GmailNodeConfigPanel } from '../nodes/gmail/NodeConfigPanel';
 import { NodeConfigPanel as ScheduleNodeConfigPanel } from '../nodes/schedule/NodeConfigPanel';
 import { NodeConfigPanel as OCRNodeConfigPanel } from '../nodes/ocr/NodeConfigPanel';
+import { NodeConfigPanel as IfElseNodeConfigPanel } from '../nodes/if-else/NodeConfigPanel';
+
 import { DesignerHeader } from '../components/designer/DesignerHeader';
 import { ExecutionModeView } from '../components/execution/ExecutionModeView';
 import { useWorkflowStore } from '../store/workflowStore';
@@ -16,6 +16,7 @@ import { workflowService } from '../services/api/workflows';
 import { WorkflowMetadataModal } from '../components/designer/WorkflowMetadataModal';
 import { Button } from '../common/Button';
 import { Toast } from '../common/Toast';
+import { WorkflowCanvas } from '../components/designer/WorkflowCanvas';
 
 
 export const WorkflowDesigner: React.FC = () => {
@@ -321,6 +322,13 @@ export const WorkflowDesigner: React.FC = () => {
                                     (ex: any) => ex.nodeId === selectedNode?.id
                                 )} 
                             />
+                        ) : selectedNode && selectedNode.type === 'IF_ELSE' ? (
+                            <IfElseNodeConfigPanel
+                                nodeExecutionData={currentExecution?.nodeExecutions?.find(
+                                    (ex: any) => ex.nodeId === selectedNode?.id
+                                )} 
+                            />
+
                         ) : selectedNode && (
                             <NodeConfigPanel 
                                 nodeExecutionData={currentExecution?.nodeExecutions?.find(

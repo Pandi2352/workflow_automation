@@ -8,8 +8,9 @@ import { GoogleDriveService } from '../node-services/google-drive.service';
 import { OneDriveService } from '../node-services/onedrive.service';
 import { GmailService } from '../node-services/gmail.service';
 import { ScheduleNode } from '../nodes/schedule.node';
-import { OCRNodeStrategy } from '../nodes/ocr.node';
 import { OCRService } from '../node-services/ocr.service';
+import { IfElseNodeStrategy } from '../nodes/if-else.node';
+import { OCRNodeStrategy } from '../nodes/ocr.node';
 
 export interface NodeDefinition {
     type: string;
@@ -42,6 +43,8 @@ export class NodeRegistryService {
         this.nodeInstances.set(SampleNodeType.GMAIL, new GmailNode(this.gmailService));
         this.nodeInstances.set(SampleNodeType.SCHEDULE, new ScheduleNode());
         this.nodeInstances.set(SampleNodeType.OCR, new OCRNodeStrategy(this.ocrService));
+        this.nodeInstances.set(SampleNodeType.IF_ELSE, new IfElseNodeStrategy());
+
 
         // Register node definitions
         this.nodeDefinitions.set(SampleNodeType.GOOGLE_DRIVE, {
@@ -187,6 +190,24 @@ export class NodeRegistryService {
                 }
             }
         });
+
+        this.nodeDefinitions.set(SampleNodeType.IF_ELSE, {
+            type: SampleNodeType.IF_ELSE,
+            name: 'Decision Engine (If/Else)',
+            description: 'Conditional logic to branch the workflow',
+            category: 'Logic',
+            inputs: 1,
+            outputs: 1, // Visual 1, but handles 2 (true/false) in FE
+            configSchema: {
+                condition: {
+                    type: 'string',
+                    description: 'Condition to evaluate (e.g. {{prev.value}} > 10)',
+                    default: ''
+                }
+            }
+        });
+
+
     }
 
     getNode(type: string): BaseWorkflowNode | undefined {
@@ -218,3 +239,4 @@ export class NodeRegistryService {
         return this.nodeInstances.has(type);
     }
 }
+

@@ -10,7 +10,7 @@ import { NodeConfigPanel as OneDriveConfigPanel } from '../../nodes/onedrive/Nod
 import { NodeConfigPanel as GmailConfigPanel } from '../../nodes/gmail/NodeConfigPanel';
 import { NodeConfigPanel as ScheduleConfigPanel } from '../../nodes/schedule/NodeConfigPanel';
 import { NodeConfigPanel as OCRConfigPanel } from '../../nodes/ocr/NodeConfigPanel';
-import { NodeConfigPanel as DefaultConfigPanel } from '../../nodes/google-drive/NodeConfigPanel'; // Temporarily fallback or generic
+import { NodeConfigPanel as IfElseConfigPanel } from '../../nodes/if-else/NodeConfigPanel';
 import { workflowService } from '../../services/api/workflows';
 
 export const ExecutionModeView: React.FC = () => {
@@ -86,6 +86,8 @@ export const ExecutionModeView: React.FC = () => {
                                 <ScheduleConfigPanel nodeExecutionData={selectedExecution?.nodeExecutions?.find((ex: any) => ex.nodeId === selectedNode.id)} />
                             ) : selectedNode.type === 'OCR' ? (
                                 <OCRConfigPanel nodeExecutionData={selectedExecution?.nodeExecutions?.find((ex: any) => ex.nodeId === selectedNode.id)} />
+                            ) : selectedNode.type === 'IF_ELSE' ? (
+                                <IfElseConfigPanel nodeExecutionData={selectedExecution?.nodeExecutions?.find((ex: any) => ex.nodeId === selectedNode.id)} />
                             ) : (
                                 <GoogleDriveConfigPanel nodeExecutionData={selectedExecution?.nodeExecutions?.find((ex: any) => ex.nodeId === selectedNode.id)} />
                             )}
