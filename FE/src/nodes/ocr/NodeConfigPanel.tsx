@@ -1,8 +1,9 @@
-import React, { useEffect, useState, useMemo } from 'react';
+import React, { useRef, useState, useEffect, useMemo } from 'react';
 import { useWorkflowStore } from '../../store/workflowStore';
-import { FileText, Key, Box, Type, X, RefreshCw, Zap, ArrowLeft, Database, Play, Plus } from 'lucide-react';
+import { Settings, Play, CheckCircle, RotateCcw, Save, X, FileText, Zap, ChevronRight, ChevronDown, Upload, File, List, AlignLeft, Info, Key, Box, Type, ArrowLeft, Database, Plus, RefreshCw } from 'lucide-react';
 import { axiosInstance } from '../../api/axiosConfig';
 import { NodeDataSidebar } from '../../components/designer/NodeDataSidebar';
+import JsonViewer from '../../common/JsonViewer';
 import { GeminiCredentialModal } from '../../components/credentials/GeminiCredentialModal';
 
 export const NodeConfigPanel: React.FC<{ nodeExecutionData?: any }> = ({ nodeExecutionData }) => {
@@ -107,15 +108,17 @@ export const NodeConfigPanel: React.FC<{ nodeExecutionData?: any }> = ({ nodeExe
         }
     };
 
-    const handleRunPrevious = (e: React.MouseEvent) => {
-        e.stopPropagation();
-        triggerWorkflowExecution();
-    };
+
+    const [activeTab, setActiveTab] = useState<'output' | 'logs'>('output');
+
+    // ... (rest of the component logic)
 
     return (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm animate-in fade-in duration-200">
+            {/* ... (Header and Left/Center Columns remain same) ... */}
+            
             <div 
-                className="bg-white rounded-xl shadow-2xl w-[1100px] h-[85vh] flex flex-col transform transition-all animate-in zoom-in-95 duration-200 overflow-hidden"
+                className="bg-white rounded-xl shadow-2xl w-[95vw] max-w-[1600px] h-[85vh] flex flex-col transform transition-all animate-in zoom-in-95 duration-200 overflow-hidden"
                 onClick={(e) => e.stopPropagation()}
             >
                 {/* Header */}
@@ -137,28 +140,36 @@ export const NodeConfigPanel: React.FC<{ nodeExecutionData?: any }> = ({ nodeExe
                     </button>
                 </div>
                 
-                {/* Body - Split View */}
+                {/* Body - 3 Column Split View */}
                 <div className="flex flex-1 overflow-hidden">
                     
-                    {/* LEFT COLUMN - Input Data Sidebar */}
-                    <div className="w-1/3 border-r border-slate-200 flex flex-col overflow-hidden">
-                        <NodeDataSidebar 
-                            availableNodes={inputData.map(d => ({
-                                nodeId: d.nodeId,
-                                nodeName: d.nodeLabel,
-                                data: d.outputs,
-                                status: d.status
-                            }))}
-                            onDragStart={(e, variablePath) => {
-                                // Additional logic if needed, e.g. highlight valid drop zones
-                                console.log('Dragging:', variablePath);
-                            }}
-                        />
+                    {/* COLUMN 1 - Input Data Sidebar (Left) */}
+                    <div className="w-[300px] border-r border-slate-200 flex flex-col overflow-hidden bg-slate-50 shrink-0">
+                        <div className="p-3 border-b border-slate-200 bg-slate-50 flex items-center">
+                             <span className="text-xs font-bold text-slate-500 uppercase tracking-wider flex items-center gap-2">
+                                 <Database size={12} />
+                                 Input
+                             </span>
+                        </div>
+                        <div className="flex-1 overflow-hidden">
+                            <NodeDataSidebar 
+                                availableNodes={inputData.map(d => ({
+                                    nodeId: d.nodeId,
+                                    nodeName: d.nodeLabel,
+                                    data: d.outputs,
+                                    status: d.status
+                                }))}
+                                onDragStart={(e, variablePath) => {
+                                    console.log('Dragging:', variablePath);
+                                    // Optionally populate the active input field
+                                }}
+                            />
+                        </div>
                     </div>
 
-                    {/* RIGHT COLUMN - Configuration */}
-                    <div className="w-2/3 flex flex-col bg-white overflow-hidden">
-                         <div className="p-3 border-b border-slate-100 bg-white flex items-center">
+                    {/* COLUMN 2 - Configuration (Center) */}
+                    <div className="flex-1 flex flex-col bg-white overflow-hidden border-r border-slate-200 min-w-[400px]">
+                         <div className="p-3 border-b border-slate-100 bg-white flex items-center justify-between">
                             <span className="text-xs font-bold text-slate-500 uppercase tracking-wider flex items-center gap-2">
                                 <Key size={12} />
                                 Parameters
@@ -205,9 +216,6 @@ export const NodeConfigPanel: React.FC<{ nodeExecutionData?: any }> = ({ nodeExe
                                             <Plus size={16} />
                                         </button>
                                     </div>
-                                    <p className="text-[10px] text-slate-400">
-                                        Select a saved Gemini API Key or add a new one.
-                                    </p>
                                 </div>
 
                                 {/* Model Selection */}
@@ -266,49 +274,81 @@ export const NodeConfigPanel: React.FC<{ nodeExecutionData?: any }> = ({ nodeExe
                                     />
                                 </div>
                             </div>
-
-                             {/* Execution Result Viewer */}
-                            {executionResult && (
-                                <div className="mt-8 border-t border-slate-100 pt-4">
-                                    <div className="flex justify-between items-center mb-2">
-                                        <div className="text-xs font-semibold text-slate-500 uppercase tracking-wider">Execution Output</div>
-                                        <span className={`text-[10px] px-2 py-0.5 rounded-full ${executionResult.success ? 'bg-green-100 text-green-700' : 'bg-slate-200 text-slate-600'}`}>
-                                            {executionResult.success ? 'Success' : 'Result'}
-                                        </span>
-                                    </div>
-                                    <pre className="bg-slate-900 text-slate-50 p-3 rounded-lg text-xs font-mono overflow-x-auto custom-scrollbar max-h-60">
-                                        {JSON.stringify(executionResult.output, null, 2)}
-                                    </pre>
-                                    {executionResult.logs && executionResult.logs.length > 0 && (
-                                            <div className="mt-2 text-[10px] text-slate-400 font-mono">
-                                                Logs: {executionResult.logs.length} entries
-                                            </div>
-                                    )}
-                                </div>
-                            )}
                         </div>
 
-                         {/* Footer */}
-                        <div className="p-4 border-t border-slate-100 bg-slate-50 flex justify-between items-center shrink-0">
-                            <div className="text-xs text-slate-400 font-mono">
+                         {/* Footer (Actions) */}
+                        <div className="p-4 border-t border-slate-100 bg-slate-50 flex justify-end items-center shrink-0 gap-3">
+                             <div className="text-xs text-slate-400 font-mono mr-auto">
                                 ID: {selectedNode.id}
                             </div>
-                            <div className="flex gap-3">
-                                <button 
-                                    onClick={handleExecuteNode}
-                                    disabled={isExecuting}
-                                    className={`px-4 py-2 font-medium rounded-lg transition-all flex items-center gap-2 text-sm ${isExecuting ? 'bg-slate-100 text-slate-400' : 'bg-purple-100 text-purple-700 hover:bg-purple-200'}`}
-                                >
-                                    {isExecuting ? <RefreshCw className="animate-spin" size={14} /> : <Zap size={14} />}
-                                    {isExecuting ? 'Running...' : 'Test OCR'}
-                                </button>
-                                <button 
-                                    onClick={() => setSelectedNode(null)}
-                                    className="px-6 py-2 bg-slate-900 text-white font-medium rounded-lg hover:bg-slate-800 transition-all shadow-sm text-sm"
-                                >
-                                    Done
-                                </button>
-                            </div>
+                             <button 
+                                onClick={handleExecuteNode}
+                                disabled={isExecuting}
+                                className={`px-4 py-2 font-medium rounded-lg transition-all flex items-center gap-2 text-sm ${isExecuting ? 'bg-slate-100 text-slate-400' : 'bg-purple-100 text-purple-700 hover:bg-purple-200'}`}
+                            >
+                                {isExecuting ? <RefreshCw className="animate-spin" size={14} /> : <Zap size={14} />}
+                                {isExecuting ? 'Running...' : 'Test OCR'}
+                            </button>
+                            <button 
+                                onClick={() => setSelectedNode(null)}
+                                className="px-6 py-2 bg-slate-900 text-white font-medium rounded-lg hover:bg-slate-800 transition-all shadow-sm text-sm"
+                            >
+                                Done
+                            </button>
+                        </div>
+                    </div>
+
+                    {/* COLUMN 3 - Output (Right) */}
+                    <div className="w-[350px] bg-slate-50 border-l border-slate-200 flex flex-col overflow-hidden shrink-0">
+                         {/* Tabs Header */}
+                         <div className="flex border-b border-slate-200 bg-slate-50">
+                            <button
+                                onClick={() => setActiveTab('output')}
+                                className={`flex-1 py-3 text-xs font-bold uppercase tracking-wider transition-colors border-b-2 ${activeTab === 'output' ? 'border-purple-500 text-purple-600 bg-white' : 'border-transparent text-slate-400 hover:text-slate-600'}`}
+                            >
+                                Output
+                            </button>
+                            <button
+                                onClick={() => setActiveTab('logs')}
+                                className={`flex-1 py-3 text-xs font-bold uppercase tracking-wider transition-colors border-b-2 ${activeTab === 'logs' ? 'border-purple-500 text-purple-600 bg-white' : 'border-transparent text-slate-400 hover:text-slate-600'}`}
+                            >
+                                Logs
+                            </button>
+                        </div>
+                        
+                        {/* Tab Content */}
+                        <div className="flex-1 overflow-auto custom-scrollbar bg-slate-50 relative p-0">
+                             {executionResult ? (
+                                <>
+                                    {activeTab === 'output' && (
+                                        <div className="p-4 text-xs font-mono text-slate-600">
+                                            <JsonViewer data={executionResult.output} />
+                                        </div>
+                                    )}
+                                    
+                                    {activeTab === 'logs' && (
+                                        <div className="p-0">
+                                            {executionResult.logs && executionResult.logs.length > 0 ? (
+                                                 <div className="divide-y divide-slate-100">
+                                                    {executionResult.logs.map((log: any, i: number) => (
+                                                        <LogMessage key={i} log={log} />
+                                                    ))}
+                                                 </div>
+                                            ) : (
+                                                <div className="p-8 text-center text-slate-400 text-xs">
+                                                    No logs available
+                                                </div>
+                                            )}
+                                        </div>
+                                    )}
+                                </>
+                            ) : (
+                                <div className="h-full flex flex-col items-center justify-center text-slate-400 p-8 text-center">
+                                    <Zap size={32} className="mb-3 opacity-20" />
+                                    <p className="text-sm font-medium">No Execution Data</p>
+                                    <p className="text-xs mt-1">Run a test to see results here</p>
+                                </div>
+                            )}
                         </div>
                     </div>
                 </div>
@@ -322,3 +362,32 @@ export const NodeConfigPanel: React.FC<{ nodeExecutionData?: any }> = ({ nodeExe
         </div>
     );
 };
+
+const LogMessage = ({ log }: { log: any }) => {
+    const [expanded, setExpanded] = useState(false);
+    const isLong = log.message.length > 150;
+
+    return (
+        <div className="p-3 text-[10px] font-mono hover:bg-slate-100 transition-colors border-l-2 border-transparent hover:border-slate-300">
+            <div className="flex justify-between mb-1 opacity-50">
+                <span>{new Date(log.timestamp).toLocaleTimeString()}</span>
+                <span className={log.level === 'ERROR' ? 'text-red-500 font-bold' : ''}>{log.level}</span>
+            </div>
+            <div className={log.level === 'ERROR' ? 'text-red-600' : 'text-slate-600'}>
+                <span className="whitespace-pre-wrap break-all">
+                    {expanded || !isLong ? log.message : log.message.substring(0, 150) + '...'}
+                </span>
+                {isLong && (
+                     <button 
+                        onClick={() => setExpanded(!expanded)}
+                        className="ml-1.5 text-[9px] text-purple-600 hover:text-purple-800 font-bold bg-purple-50 hover:bg-purple-100 border border-purple-100 px-1.5 py-0.5 rounded cursor-pointer select-none transition-colors inline-block align-middle"
+                    >
+                        {expanded ? 'Less' : 'More'}
+                    </button>
+                )}
+            </div>
+        </div>
+    );
+};
+
+export default NodeConfigPanel;

@@ -135,14 +135,14 @@ export class OCRService {
             // 1. Text Processing (TXT/CSV/DOCX)
             if (mimeType === 'text/plain' || mimeType === 'text/csv' || filePath.endsWith('.txt') || filePath.endsWith('.csv')) {
                 const content = fs.readFileSync(filePath, 'utf-8');
-                const prompt = `${PDF_EXTRACTION_PROMPT}\n\nDOCUMENT CONTENT:\n${content}\n\n${META_JSON_PROMPT}`;
+                const prompt = `${PDF_EXTRACTION_PROMPT}\n\nDOCUMENT CONTENT:\n${content}`;
                 const result = await this.model.generateContent(prompt);
                 analysisResult = result.response.text();
 
             } else if (mimeType === 'application/vnd.openxmlformats-officedocument.wordprocessingml.document' || filePath.endsWith('.docx')) {
                 const result = await mammoth.extractRawText({ path: filePath });
                 const content = result.value;
-                const prompt = `${PDF_EXTRACTION_PROMPT}\n\nDOCUMENT CONTENT:\n${content}\n\n${META_JSON_PROMPT}`;
+                const prompt = `${PDF_EXTRACTION_PROMPT}\n\nDOCUMENT CONTENT:\n${content}`;
                 const genResult = await this.model.generateContent(prompt);
                 analysisResult = genResult.response.text();
 
@@ -179,37 +179,19 @@ export class OCRService {
                             fileUri: uploadResponse.file.uri
                         }
                     },
-                    { text: `${contextPrompt}\n\n${META_JSON_PROMPT}` }
+                    { text: `${contextPrompt}` }
                 ]);
 
                 analysisResult = result.response.text();
             }
 
-            // Extract JSON
-            try {
-                const jsonMatch = analysisResult.match(/```json\n([\s\S]*?)\n```/);
-                if (jsonMatch && jsonMatch[1]) {
-                    jsonResult = JSON.parse(jsonMatch[1]);
-                    // remove json block from analysis text for cleaner output
-                    analysisResult = analysisResult.replace(/```json\n[\s\S]*?\n```/, '').trim();
-                } else {
-                    // Fallback simple extraction
-                    const firstBrace = analysisResult.lastIndexOf('{');
-                    const lastBrace = analysisResult.lastIndexOf('}');
-                    if (firstBrace !== -1 && lastBrace !== -1) {
-                        // Only grab if it looks like the end metadata
-                        const potentialJson = analysisResult.substring(firstBrace, lastBrace + 1);
-                        jsonResult = JSON.parse(potentialJson);
-                        // Don't strip in fallback to avoid losing content if regex failed
-                    }
-                }
-            } catch (e) {
-                this.logger.warn('Failed to parse metadata JSON from Gemini response');
-            }
+            // Clean up any Markdown JSON blocks if LLM still hallucinates them, purely for cleanup
+            // but we are NOT parsing metadata anymore.
+            analysisResult = analysisResult.replace(/```json\n[\s\S]*?\n```/, '').trim();
 
             return {
                 analysis: analysisResult,
-                metadata: jsonResult,
+                // metadata: {}, // Explicitly removed
                 source: path.basename(filePath)
             };
 

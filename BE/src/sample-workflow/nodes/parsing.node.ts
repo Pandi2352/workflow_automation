@@ -47,6 +47,10 @@ export class ParsingNodeStrategy extends BaseWorkflowNode {
 
             this.log('INFO', `Parsing complete with confidence ${result.confidenceScore.toFixed(2)}`);
 
+            if (result.data && result.data.metadata) {
+                delete result.data.metadata;
+            }
+
             return {
                 success: true,
                 parsedData: result.data,
