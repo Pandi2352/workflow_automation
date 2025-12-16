@@ -94,7 +94,7 @@ export const NodeConfigPanel: React.FC<{ nodeExecutionData?: any }> = ({ nodeExe
         try {
             const response = await axiosInstance.post('/sample-workflows/nodes/test', {
                 nodeType: 'OCR', // Changed to match standardized type
-                nodeData: { ...config },
+                nodeData: { ...config, forceProcess: true },
                 inputs: inputData.map(d => d.outputs).filter(Boolean) 
             });
             setExecutionResult(response.data);
