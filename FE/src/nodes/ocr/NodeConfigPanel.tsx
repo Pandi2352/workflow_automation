@@ -1,13 +1,13 @@
-import React, { useRef, useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { useWorkflowStore } from '../../store/workflowStore';
-import { Settings, Play, CheckCircle, RotateCcw, Save, X, FileText, Zap, ChevronRight, ChevronDown, Upload, File, List, AlignLeft, Info, Key, Box, Type, ArrowLeft, Database, Plus, RefreshCw } from 'lucide-react';
+import { X, FileText, Zap, Key, Box, Type, Database, Plus, RefreshCw } from 'lucide-react';
 import { axiosInstance } from '../../api/axiosConfig';
 import { NodeDataSidebar } from '../../components/designer/NodeDataSidebar';
 import JsonViewer from '../../common/JsonViewer';
 import { GeminiCredentialModal } from '../../components/credentials/GeminiCredentialModal';
 
 export const NodeConfigPanel: React.FC<{ nodeExecutionData?: any }> = ({ nodeExecutionData }) => {
-    const { selectedNode, updateNodeData, setSelectedNode, nodes, edges, currentExecution, triggerWorkflowExecution, fetchCredentials, credentials } = useWorkflowStore();
+    const { selectedNode, updateNodeData, setSelectedNode, nodes, edges, currentExecution, fetchCredentials, credentials } = useWorkflowStore();
     const [label, setLabel] = useState('');
     const [isExecuting, setIsExecuting] = useState(false);
     const [executionResult, setExecutionResult] = useState<any>(null);
@@ -165,6 +165,7 @@ export const NodeConfigPanel: React.FC<{ nodeExecutionData?: any }> = ({ nodeExe
                                 }))}
                                 onDragStart={(e, variablePath) => {
                                     console.log('Dragging:', variablePath);
+                                    console.log('Dragging:', e);
                                     // Optionally populate the active input field
                                 }}
                             />
