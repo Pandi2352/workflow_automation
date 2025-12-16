@@ -92,10 +92,14 @@ export const NodeConfigPanel: React.FC<{ nodeExecutionData?: any }> = ({ nodeExe
         setIsExecuting(true);
         setExecutionResult(null);
         try {
+            // Optimize: Only process the FIRST item (Latest) from the input array for testing
+            const rawInputs = inputData.map(d => d.outputs).filter(Boolean).flat();
+            const inputs = rawInputs.length > 0 ? [rawInputs[0]] : [];
+
             const response = await axiosInstance.post('/sample-workflows/nodes/test', {
                 nodeType: 'OCR', // Changed to match standardized type
                 nodeData: { ...config, forceProcess: true },
-                inputs: inputData.map(d => d.outputs).filter(Boolean) 
+                inputs: [inputs] // Wrap in array as node expects grouping
             });
             setExecutionResult(response.data);
         } catch (error: any) {
