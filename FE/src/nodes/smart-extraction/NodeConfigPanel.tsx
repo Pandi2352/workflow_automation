@@ -114,7 +114,7 @@ export const NodeConfigPanel: React.FC<{ nodeExecutionData?: any }> = ({ nodeExe
     return (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm animate-in fade-in duration-200">
             <div 
-                className="bg-white rounded-xl shadow-2xl w-[95vw] max-w-[1600px] h-[85vh] flex flex-col transform transition-all animate-in zoom-in-95 duration-200 overflow-hidden"
+                className="bg-white rounded-xl shadow-2xl w-[95vw] max-w-[1250px] h-[85vh] flex flex-col transform transition-all animate-in zoom-in-95 duration-200 overflow-hidden"
                 onClick={(e) => e.stopPropagation()}
             >
                  {/* Header */}
@@ -140,7 +140,7 @@ export const NodeConfigPanel: React.FC<{ nodeExecutionData?: any }> = ({ nodeExe
                 <div className="flex flex-1 overflow-hidden">
                     
                      {/* COLUMN 1 - Left Sidebar */}
-                     <div className="w-[250px] border-r border-slate-200 flex flex-col overflow-hidden bg-slate-50 shrink-0">
+                     <div className="w-[300px] border-r border-slate-200 flex flex-col overflow-hidden bg-slate-50 shrink-0">
                         <div className="p-3 border-b border-slate-200 bg-slate-50 flex items-center">
                              <span className="text-xs font-bold text-slate-500 uppercase tracking-wider flex items-center gap-2">
                                  <Database size={12} />
@@ -334,7 +334,7 @@ export const NodeConfigPanel: React.FC<{ nodeExecutionData?: any }> = ({ nodeExe
                     </div>
 
                     {/* COLUMN 3 - Output */}
-                    <div className="w-[300px] bg-slate-50 border-l border-slate-200 flex flex-col overflow-hidden shrink-0">
+                    <div className="w-[350px] bg-slate-50 border-l border-slate-200 flex flex-col overflow-hidden shrink-0">
                          <div className="flex border-b border-slate-200 bg-slate-50">
                             <button
                                 onClick={() => setActiveTab('output')}
