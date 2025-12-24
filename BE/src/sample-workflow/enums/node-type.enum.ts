@@ -10,5 +10,6 @@ export enum SampleNodeType {
     SUMMARIZE = 'SUMMARIZE',
 
     SMART_EXTRACTION = 'SMART_EXTRACTION',
+    FILE_UPLOAD = 'FILE_UPLOAD',
 }
 // Force recompile

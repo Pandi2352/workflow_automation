@@ -24,6 +24,7 @@ import { MongoDBNode } from '../../nodes/mongodb/MongoDBNode';
 import { SummarizeNode } from '../../nodes/summarize/SummarizeNode';
 
 import { SmartExtractionNode } from '../../nodes/smart-extraction/SmartExtractionNode';
+import FileUploadNode from '../../nodes/file-upload/FileUploadNode';
 
 import { DeletableEdge } from './DeletableEdge';
 
@@ -48,6 +49,7 @@ const nodeTypes = {
     SUMMARIZE: SummarizeNode,
 
     SMART_EXTRACTION: SmartExtractionNode,
+    FILE_UPLOAD: FileUploadNode,
     default: GenericNode, // Fallback
     input: GenericNode,
     webhook: GenericNode,

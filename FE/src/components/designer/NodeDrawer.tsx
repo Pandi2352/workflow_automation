@@ -1,5 +1,5 @@
 import React, { useState, useMemo } from 'react';
-import { Search, X, ChevronRight, Zap, Split, ArrowUpRight, Clock, FileText, Database, Cpu, BrainCircuit } from 'lucide-react';
+import { Search, X, ChevronRight, Zap, Split, ArrowUpRight, Clock, FileText, Database, Cpu, BrainCircuit, Upload } from 'lucide-react';
 import googleDriveIcon from '../../assets/nodeIcons/google-drive-svgrepo-com.svg';
 import oneDriveIcon from '../../assets/nodeIcons/ms-onedrive-svgrepo-com.svg';
 import gmailIcon from '../../assets/nodeIcons/gmail-icon-logo-svgrepo-com.svg';
@@ -31,6 +31,7 @@ const availableNodes: NodeType[] = [
     { type: 'GMAIL', label: 'Gmail', description: 'Fetch emails from Gmail', icon: ({size}: any) => <img src={gmailIcon} style={{width: size, height: size}} />, color: 'text-red-600', category: 'TRIGGER' },
     { type: 'GOOGLE_DRIVE', label: 'Google Drive', description: 'Interact with Google Drive', icon: ({size}: any) => <img src={googleDriveIcon} style={{width: size, height: size}} />, color: 'text-green-600', category: 'TRIGGER' },
     { type: 'ONEDRIVE', label: 'OneDrive', description: 'Interact with Microsoft OneDrive', icon: ({size}: any) => <img src={oneDriveIcon} style={{width: size, height: size}} />, color: 'text-blue-600', category: 'TRIGGER' },
+    { type: 'FILE_UPLOAD', label: 'File Upload', description: 'Upload a file manually', icon: Upload, color: 'text-blue-500', category: 'TRIGGER' },
 
     // Actions
     // { type: 'GOOGLE_DRIVE', label: 'Google Drive', description: 'Interact with Google Drive', icon: ({size}: any) => <img src={googleDriveIcon} style={{width: size, height: size}} />, color: 'text-green-600', category: 'ACTION' },

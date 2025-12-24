@@ -8,6 +8,7 @@ import { SampleWorkflowModule } from './sample-workflow/sample-workflow.module';
 
 import { CredentialsModule } from './credentials/credentials.module';
 import { AuthModule } from './auth/auth.module';
+import { UploadModule } from './upload/upload.module';
 
 @Module({
   imports: [
@@ -17,6 +18,7 @@ import { AuthModule } from './auth/auth.module';
     CredentialsModule,
     WorkflowsModule,
     SampleWorkflowModule,
+    UploadModule,
   ],
   controllers: [AppController],
   providers: [AppService],

@@ -16,6 +16,7 @@ import { MongoDBNodeStrategy } from '../nodes/mongodb.node';
 import { SummarizeNodeStrategy } from '../nodes/summarize.node';
 
 import { SmartExtractionNodeStrategy } from '../nodes/smart-extraction.node';
+import { FileUploadNodeStrategy } from '../nodes/file-upload.node';
 import { ParsingService } from '../../node-services/parsing.service';
 import { MongoDBService } from '../../node-services/mongodb.service';
 
@@ -64,6 +65,7 @@ export class NodeRegistryService {
 
 
         this.nodeInstances.set(SampleNodeType.SMART_EXTRACTION, new SmartExtractionNodeStrategy(this.ocrService));
+        this.nodeInstances.set(SampleNodeType.FILE_UPLOAD, new FileUploadNodeStrategy());
 
 
         // Register node definitions
@@ -286,6 +288,22 @@ export class NodeRegistryService {
                     description: 'Model Name'
                 },
                 apiKey: { type: 'string' }
+            }
+        });
+
+        this.nodeDefinitions.set(SampleNodeType.FILE_UPLOAD, {
+            type: SampleNodeType.FILE_UPLOAD,
+            name: 'File Upload',
+            description: 'Upload a file directly to the workflow',
+            category: 'Input',
+            inputs: 0,
+            outputs: 1,
+            configSchema: {
+                file: {
+                    type: 'file',
+                    description: 'The file to upload',
+                    default: null
+                }
             }
         });
     }

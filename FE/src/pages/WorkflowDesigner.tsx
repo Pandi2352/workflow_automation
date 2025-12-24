@@ -12,6 +12,7 @@ import { NodeConfigPanel as ParsingNodeConfigPanel } from '../nodes/parsing/Node
 import { NodeConfigPanel as MongoDBNodeConfigPanel } from '../nodes/mongodb/NodeConfigPanel';
 import { NodeConfigPanel as SummarizeNodeConfigPanel } from '../nodes/summarize/NodeConfigPanel';
 import { NodeConfigPanel as SmartExtractionNodeConfigPanel } from '../nodes/smart-extraction/NodeConfigPanel';
+import FileUploadConfigPanel from '../nodes/file-upload/NodeConfigPanel';
 
 import { DesignerHeader } from '../components/designer/DesignerHeader';
 import { ExecutionModeView } from '../components/execution/ExecutionModeView';
@@ -350,11 +351,24 @@ export const WorkflowDesigner: React.FC = () => {
                                     (ex: any) => ex.nodeId === selectedNode?.id
                                 )} 
                             />
-                        ): selectedNode && selectedNode.type === 'SMART_EXTRACTION' ? (
+                        ) : selectedNode && selectedNode.type === 'SMART_EXTRACTION' ? (
                             <SmartExtractionNodeConfigPanel
                                 nodeExecutionData={currentExecution?.nodeExecutions?.find(
                                     (ex: any) => ex.nodeId === selectedNode?.id
                                 )} 
+                            />
+                        ) : selectedNode && selectedNode.type === 'FILE_UPLOAD' ? (
+                            <FileUploadConfigPanel
+                                data={selectedNode.data}
+                                onChange={(newData) => {
+                                    const updatedNodes = nodes.map((n) => {
+                                        if (n.id === selectedNode.id) {
+                                            return { ...n, data: newData };
+                                        }
+                                        return n;
+                                    });
+                                    setNodes(updatedNodes);
+                                }}
                             />
                         ) : selectedNode && (
                             <NodeConfigPanel 

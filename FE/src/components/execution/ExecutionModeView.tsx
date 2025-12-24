@@ -16,6 +16,7 @@ import { NodeConfigPanel as MongoDBConfigPanel } from '../../nodes/mongodb/NodeC
 import { NodeConfigPanel as SummarizeConfigPanel } from '../../nodes/summarize/NodeConfigPanel';
 
 import { NodeConfigPanel as SmartExtractionConfigPanel } from '../../nodes/smart-extraction/NodeConfigPanel';
+import FileUploadConfigPanel from '../../nodes/file-upload/NodeConfigPanel';
 import { workflowService } from '../../services/api/workflows';
 
 export const ExecutionModeView: React.FC = () => {
@@ -108,6 +109,8 @@ export const ExecutionModeView: React.FC = () => {
 
                                     case 'SMART_EXTRACTION':
                                         return <SmartExtractionConfigPanel nodeExecutionData={selectedNodeData} />;
+                                    case 'FILE_UPLOAD':
+                                        return <FileUploadConfigPanel nodeExecutionData={selectedNodeData} />;
                                     default:
                                         return <div className="p-4 bg-white shadow rounded">Configuration not available for {selectedNode.type}</div>;
                                 }
