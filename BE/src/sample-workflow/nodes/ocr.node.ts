@@ -18,7 +18,7 @@ export class OCRNodeStrategy extends BaseWorkflowNode {
         const config = data?.config || {};
         const apiKey = config.apiKey || process.env.GEMINI_API_KEY;
         const modelName = config.modelName || 'gemini-1.5-flash';
-        const forceProcess = config.forceProcess === true; // Allow overriding deduplication
+        const forceProcess = config.forceProcess !== false; // Default to true
 
         if (!apiKey) {
             throw new Error('Gemini API Key is required');
@@ -72,7 +72,7 @@ export class OCRNodeStrategy extends BaseWorkflowNode {
             return [];
         }
 
-        this.log('INFO', `Found ${filesToProcess.length} candidate files`);
+        this.log('INFO', `Found ${filesToProcess.length} candidate files. Force Process: ${forceProcess}`);
 
         const results: any[] = [];
 

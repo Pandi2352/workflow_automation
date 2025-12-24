@@ -6,6 +6,9 @@ export enum SampleNodeType {
     OCR = 'OCR',
     IF_ELSE = 'IF_ELSE',
     PARSING = 'PARSING',
-    MONGODB = 'MONGODB'
+    MONGODB = 'MONGODB',
+    SUMMARIZE = 'SUMMARIZE',
+
+    SMART_EXTRACTION = 'SMART_EXTRACTION',
 }
 // Force recompile

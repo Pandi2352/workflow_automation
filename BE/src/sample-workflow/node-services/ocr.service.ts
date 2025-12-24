@@ -200,4 +200,47 @@ export class OCRService {
             throw error;
         }
     }
+
+    async generateText(
+        text: string,
+        apiKey: string,
+        modelName: string = 'gemini-1.5-flash'
+    ): Promise<string> {
+        if (!apiKey) {
+            throw new Error('Gemini API Key is required');
+        }
+
+        this.initializeAI(apiKey, modelName);
+
+        try {
+            const result = await this.model.generateContent(text);
+            const response = await result.response;
+            return response.text();
+        } catch (error) {
+            this.logger.error(`Gemini Text Generation failed: ${error.message}`, error.stack);
+            throw error;
+        }
+    }
+
+    async generateStructuredData(
+        prompt: string,
+        apiKey: string,
+        modelName: string = 'gemini-1.5-flash'
+    ): Promise<any> {
+        const jsonPrompt = `${prompt}
+        
+        **CRITICAL OUTPUT INSTRUCTION:**
+        Return strictly valid JSON only. Do not wrap in markdown code blocks. Do not add explanations.`;
+
+        const responseText = await this.generateText(jsonPrompt, apiKey, modelName);
+
+        try {
+            // Attempt to clean markdown if present
+            const cleanedText = responseText.replace(/```json\n|\n```/g, '').replace(/```/g, '').trim();
+            return JSON.parse(cleanedText);
+        } catch (error) {
+            this.logger.error(`Failed to parse AI JSON response: ${responseText}`);
+            throw new Error('AI Response was not valid JSON');
+        }
+    }
 }

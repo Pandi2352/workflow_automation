@@ -10,6 +10,8 @@ import { NodeConfigPanel as OCRNodeConfigPanel } from '../nodes/ocr/NodeConfigPa
 import { NodeConfigPanel as IfElseNodeConfigPanel } from '../nodes/if-else/NodeConfigPanel';
 import { NodeConfigPanel as ParsingNodeConfigPanel } from '../nodes/parsing/NodeConfigPanel';
 import { NodeConfigPanel as MongoDBNodeConfigPanel } from '../nodes/mongodb/NodeConfigPanel';
+import { NodeConfigPanel as SummarizeNodeConfigPanel } from '../nodes/summarize/NodeConfigPanel';
+import { NodeConfigPanel as SmartExtractionNodeConfigPanel } from '../nodes/smart-extraction/NodeConfigPanel';
 
 import { DesignerHeader } from '../components/designer/DesignerHeader';
 import { ExecutionModeView } from '../components/execution/ExecutionModeView';
@@ -342,7 +344,18 @@ export const WorkflowDesigner: React.FC = () => {
                                     (ex: any) => ex.nodeId === selectedNode?.id
                                 )} 
                             />
-
+                        ) : selectedNode && selectedNode.type === 'SUMMARIZE' ? (
+                            <SummarizeNodeConfigPanel
+                                nodeExecutionData={currentExecution?.nodeExecutions?.find(
+                                    (ex: any) => ex.nodeId === selectedNode?.id
+                                )} 
+                            />
+                        ): selectedNode && selectedNode.type === 'SMART_EXTRACTION' ? (
+                            <SmartExtractionNodeConfigPanel
+                                nodeExecutionData={currentExecution?.nodeExecutions?.find(
+                                    (ex: any) => ex.nodeId === selectedNode?.id
+                                )} 
+                            />
                         ) : selectedNode && (
                             <NodeConfigPanel 
                                 nodeExecutionData={currentExecution?.nodeExecutions?.find(

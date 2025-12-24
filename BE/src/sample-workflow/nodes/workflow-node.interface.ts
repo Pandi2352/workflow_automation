@@ -1,5 +1,7 @@
 import { NodeExecutionContext, NodeExecutionResult, ExecutionLog } from '../interfaces/execution-context.interface';
 
+export type WorkflowNodeContext = NodeExecutionContext;
+
 export interface WorkflowNode {
     execute(inputs: any[], data?: any): Promise<any> | any;
 }

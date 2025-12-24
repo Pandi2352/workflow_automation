@@ -13,6 +13,9 @@ import { IfElseNodeStrategy } from '../nodes/if-else.node';
 import { OCRNodeStrategy } from '../nodes/ocr.node';
 import { ParsingNodeStrategy } from '../nodes/parsing.node';
 import { MongoDBNodeStrategy } from '../nodes/mongodb.node';
+import { SummarizeNodeStrategy } from '../nodes/summarize.node';
+
+import { SmartExtractionNodeStrategy } from '../nodes/smart-extraction.node';
 import { ParsingService } from '../../node-services/parsing.service';
 import { MongoDBService } from '../../node-services/mongodb.service';
 
@@ -56,6 +59,11 @@ export class NodeRegistryService {
         this.nodeInstances.set(SampleNodeType.IF_ELSE, new IfElseNodeStrategy());
         this.nodeInstances.set(SampleNodeType.PARSING, new ParsingNodeStrategy(this.parsingService));
         this.nodeInstances.set(SampleNodeType.MONGODB, new MongoDBNodeStrategy(this.mongoService));
+        this.nodeInstances.set(SampleNodeType.SUMMARIZE, new SummarizeNodeStrategy(this.ocrService));
+
+
+
+        this.nodeInstances.set(SampleNodeType.SMART_EXTRACTION, new SmartExtractionNodeStrategy(this.ocrService));
 
 
         // Register node definitions
@@ -229,7 +237,57 @@ export class NodeRegistryService {
             }
         });
 
+        this.nodeDefinitions.set(SampleNodeType.SUMMARIZE, {
+            type: SampleNodeType.SUMMARIZE,
+            name: 'Summarize',
+            description: 'Generate concise summaries using Gemini AI',
+            category: 'AI / Machine Learning',
+            inputs: 1,
+            outputs: 1,
+            configSchema: {
+                apiKey: {
+                    type: 'string',
+                    description: 'Gemini API Key',
+                    default: ''
+                },
+                modelName: {
+                    type: 'select',
+                    options: ['gemini-1.5-flash', 'gemini-1.5-pro'],
+                    default: 'gemini-1.5-flash',
+                    description: 'Model Name'
+                },
+                prompt: {
+                    type: 'string',
+                    description: 'Custom Prompt (Optional)',
+                    default: ''
+                }
+            }
+        });
 
+
+
+        this.nodeDefinitions.set(SampleNodeType.SMART_EXTRACTION, {
+            type: SampleNodeType.SMART_EXTRACTION,
+            name: 'Smart Extraction',
+            description: 'Context-aware field extraction with confidence scores',
+            category: 'AI / Machine Learning',
+            inputs: 1,
+            outputs: 1,
+            configSchema: {
+                schema: {
+                    type: 'json',
+                    description: 'Field Mapping Schema',
+                    default: '{}'
+                },
+                modelName: {
+                    type: 'select',
+                    options: ['gemini-1.5-flash', 'gemini-1.5-pro', 'gemini-2.0-flash-exp'],
+                    default: 'gemini-1.5-flash',
+                    description: 'Model Name'
+                },
+                apiKey: { type: 'string' }
+            }
+        });
     }
 
     private registerParsingNodes() {

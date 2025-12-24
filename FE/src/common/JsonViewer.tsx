@@ -3,10 +3,19 @@ import React, { useState } from 'react';
 interface JsonViewerProps {
     data: any;
     level?: number;
+    initialExpanded?: boolean;
+    maxStringLength?: number;
 }
 
-const JsonViewer: React.FC<JsonViewerProps> = ({ data, level = 0 }) => {
-    const [expandedKeys, setExpandedKeys] = useState<Record<string, boolean>>({});
+const JsonViewer: React.FC<JsonViewerProps> = ({ 
+    data, 
+    level = 0, 
+    initialExpanded = false, 
+    maxStringLength = 200 
+}) => {
+    const [expandedKeys, setExpandedKeys] = useState<Record<string, boolean>>({
+        'self': initialExpanded
+    });
 
     const toggleExpand = (key: string) => {
         setExpandedKeys(prev => ({ ...prev, [key]: !prev[key] }));
@@ -16,7 +25,7 @@ const JsonViewer: React.FC<JsonViewerProps> = ({ data, level = 0 }) => {
     if (data === undefined) return <span className="text-slate-400 font-bold">undefined</span>;
 
     if (typeof data === 'string') {
-        const isLong = data.length > 200;
+        const isLong = data.length > maxStringLength;
         const isExpanded = expandedKeys['self'];
         
         // Preserve whitespace formatting for OCR text results
@@ -25,7 +34,7 @@ const JsonViewer: React.FC<JsonViewerProps> = ({ data, level = 0 }) => {
         return (
             <span>
                 <span className="text-green-600 whitespace-pre-wrap break-all">
-                    {isExpanded ? `"${data}"` : `"${data.substring(0, 200)}..."`}
+                    {isExpanded ? `"${data}"` : `"${data.substring(0, maxStringLength)}..."`}
                 </span>
                 <button 
                     onClick={() => toggleExpand('self')}
@@ -52,7 +61,12 @@ const JsonViewer: React.FC<JsonViewerProps> = ({ data, level = 0 }) => {
                     {data.map((item, index) => (
                         <div key={index} className="flex items-start leading-6">
                             <div className="flex-1 min-w-0">
-                                <JsonViewer data={item} level={level + 1} />
+                                <JsonViewer 
+                                    data={item} 
+                                    level={level + 1} 
+                                    initialExpanded={initialExpanded}
+                                    maxStringLength={maxStringLength}
+                                />
                                 {index < data.length - 1 && <span className="text-slate-400 select-none">,</span>}
                             </div>
                         </div>
@@ -76,7 +90,12 @@ const JsonViewer: React.FC<JsonViewerProps> = ({ data, level = 0 }) => {
                         <div key={key} className="flex items-start leading-6">
                             <span className="text-purple-700 font-semibold mr-1.5 shrink-0 opacity-90 select-none">"{key}":</span>
                             <div className="flex-1 min-w-0">
-                                <JsonViewer data={data[key]} level={level + 1} />
+                                <JsonViewer 
+                                    data={data[key]} 
+                                    level={level + 1} 
+                                    initialExpanded={initialExpanded}
+                                    maxStringLength={maxStringLength}
+                                />
                                 {index < keys.length - 1 && <span className="text-slate-400 select-none">,</span>}
                             </div>
                         </div>

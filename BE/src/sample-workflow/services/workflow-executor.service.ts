@@ -449,7 +449,7 @@ export class WorkflowExecutorService {
                     const credential = await this.credentialsService.findById(evaluatedData.config.credentialId);
                     if (credential) {
                         // Standardize injection based on node type
-                        if (node.type === SampleNodeType.OCR && credential.provider === 'GEMINI') {
+                        if ((node.type === SampleNodeType.OCR || node.type === SampleNodeType.SMART_EXTRACTION || node.type === SampleNodeType.SUMMARIZE) && credential.provider === 'GEMINI') {
                             evaluatedData.config.apiKey = credential.accessToken;
                         }
                         // Add other node type mappings here as needed

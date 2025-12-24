@@ -13,12 +13,15 @@ import { NodeConfigPanel as OCRConfigPanel } from '../../nodes/ocr/NodeConfigPan
 import { NodeConfigPanel as IfElseConfigPanel } from '../../nodes/if-else/NodeConfigPanel';
 import { NodeConfigPanel as ParsingConfigPanel } from '../../nodes/parsing/NodeConfigPanel';
 import { NodeConfigPanel as MongoDBConfigPanel } from '../../nodes/mongodb/NodeConfigPanel';
+import { NodeConfigPanel as SummarizeConfigPanel } from '../../nodes/summarize/NodeConfigPanel';
+
+import { NodeConfigPanel as SmartExtractionConfigPanel } from '../../nodes/smart-extraction/NodeConfigPanel';
 import { workflowService } from '../../services/api/workflows';
 
 export const ExecutionModeView: React.FC = () => {
     const { id } = useParams<{ id: string }>();
     const [selectedExecution, setSelectedExecution] = useState<any>(null);
-    const { selectedNode, } = useWorkflowStore();
+    const { selectedNode, }:any = useWorkflowStore();
 
     // Poll selected execution if it is running
     React.useEffect(() => {
@@ -58,6 +61,8 @@ export const ExecutionModeView: React.FC = () => {
         return () => clearInterval(intervalId);
     }, [selectedExecution?._id, selectedExecution?.status, id]);
 
+    const selectedNodeData = selectedExecution?.nodeExecutions?.find((ex: any) => ex.nodeId === selectedNode?.id);
+
     return (
         <div className="flex h-full w-full bg-slate-50 overflow-hidden">
             {/* Left Sidebar: Execution History */}
@@ -80,23 +85,33 @@ export const ExecutionModeView: React.FC = () => {
                     {/* Node Config Popup Overlay */}
                     {selectedNode && (
                         <>
-                            {selectedNode.type === 'ONEDRIVE' ? (
-                                <OneDriveConfigPanel nodeExecutionData={selectedExecution?.nodeExecutions?.find((ex: any) => ex.nodeId === selectedNode.id)} />
-                            ) : selectedNode.type === 'GMAIL' ? (
-                                <GmailConfigPanel nodeExecutionData={selectedExecution?.nodeExecutions?.find((ex: any) => ex.nodeId === selectedNode.id)} />
-                            ) : selectedNode.type === 'SCHEDULE' ? (
-                                <ScheduleConfigPanel nodeExecutionData={selectedExecution?.nodeExecutions?.find((ex: any) => ex.nodeId === selectedNode.id)} />
-                            ) : selectedNode.type === 'OCR' ? (
-                                <OCRConfigPanel nodeExecutionData={selectedExecution?.nodeExecutions?.find((ex: any) => ex.nodeId === selectedNode.id)} />
-                            ) : selectedNode.type === 'IF_ELSE' ? (
-                                <IfElseConfigPanel nodeExecutionData={selectedExecution?.nodeExecutions?.find((ex: any) => ex.nodeId === selectedNode.id)} />
-                            ) : selectedNode.type === 'PARSING' ? (
-                                <ParsingConfigPanel nodeExecutionData={selectedExecution?.nodeExecutions?.find((ex: any) => ex.nodeId === selectedNode.id)} />
-                            ) : selectedNode.type === 'MONGODB' ? (
-                                <MongoDBConfigPanel nodeExecutionData={selectedExecution?.nodeExecutions?.find((ex: any) => ex.nodeId === selectedNode.id)} />
-                            ) : (
-                                <GoogleDriveConfigPanel nodeExecutionData={selectedExecution?.nodeExecutions?.find((ex: any) => ex.nodeId === selectedNode.id)} />
-                            )}
+                            {(() => {
+                                switch (selectedNode.type) {
+                                    case 'ONEDRIVE':
+                                        return <OneDriveConfigPanel nodeExecutionData={selectedNodeData} />;
+                                    case 'GOOGLE_DRIVE':
+                                        return <GoogleDriveConfigPanel nodeExecutionData={selectedNodeData} />;
+                                    case 'GMAIL':
+                                        return <GmailConfigPanel nodeExecutionData={selectedNodeData} />;
+                                    case 'SCHEDULE':
+                                        return <ScheduleConfigPanel nodeExecutionData={selectedNodeData} />;
+                                    case 'OCR':
+                                        return <OCRConfigPanel nodeExecutionData={selectedNodeData} />;
+                                    case 'IF_ELSE':
+                                        return <IfElseConfigPanel nodeExecutionData={selectedNodeData} />;
+                                    case 'PARSING':
+                                        return <ParsingConfigPanel nodeExecutionData={selectedNodeData} />;
+                                    case 'MONGODB':
+                                        return <MongoDBConfigPanel nodeExecutionData={selectedNodeData} />;
+                                    case 'SUMMARIZE':
+                                        return <SummarizeConfigPanel nodeExecutionData={selectedNodeData} />;
+
+                                    case 'SMART_EXTRACTION':
+                                        return <SmartExtractionConfigPanel nodeExecutionData={selectedNodeData} />;
+                                    default:
+                                        return <div className="p-4 bg-white shadow rounded">Configuration not available for {selectedNode.type}</div>;
+                                }
+                            })()}
                         </>
                     )}
                 </div>

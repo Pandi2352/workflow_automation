@@ -160,7 +160,7 @@ export class SampleWorkflowService {
             try {
                 const credential = await this.credentialsService.findById(nodeData.credentialId);
                 if (credential) {
-                    if (nodeType === SampleNodeType.OCR && credential.provider === 'GEMINI') {
+                    if ((nodeType === SampleNodeType.OCR || nodeType === SampleNodeType.SMART_EXTRACTION || nodeType === SampleNodeType.SUMMARIZE) && credential.provider === 'GEMINI') {
                         // Inject API Key into config (nodeData)
                         nodeData.apiKey = credential.accessToken;
                     }

@@ -21,6 +21,9 @@ import { OCRNode } from '../../nodes/ocr/OCRNode';
 import { IfElseNode } from '../../nodes/if-else/IfElseNode';
 import { ParsingNode } from '../../nodes/parsing/ParsingNode';
 import { MongoDBNode } from '../../nodes/mongodb/MongoDBNode';
+import { SummarizeNode } from '../../nodes/summarize/SummarizeNode';
+
+import { SmartExtractionNode } from '../../nodes/smart-extraction/SmartExtractionNode';
 
 import { DeletableEdge } from './DeletableEdge';
 
@@ -42,6 +45,9 @@ const nodeTypes = {
     IF_ELSE: IfElseNode,
     PARSING: ParsingNode,
     MONGODB: MongoDBNode,
+    SUMMARIZE: SummarizeNode,
+
+    SMART_EXTRACTION: SmartExtractionNode,
     default: GenericNode, // Fallback
     input: GenericNode,
     webhook: GenericNode,
