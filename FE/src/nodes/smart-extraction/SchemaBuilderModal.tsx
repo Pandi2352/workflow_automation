@@ -55,162 +55,130 @@ const PropertyRow = memo(({
   toggleExpand: (id: string) => void;
 }) => {
   const hasChildren = property.type === "object" || property.type === "array";
+  const paddingLeft = level * 20;
 
   return (
-    <div
-      className="mb-2 relative"
-      style={{ marginLeft: level > 0 ? "24px" : "0px" }}
-    >
-        {/* Connector Line for nested items */}
-        {level > 0 && (
-            <div className="absolute -left-[24px] top-[18px] w-[24px] h-[1px] bg-slate-200" />
-        )}
-        {level > 0 && (
-            <div className="absolute -left-[24px] -top-2 bottom-[calc(100%-18px)] w-[1px] bg-slate-200" />
-        )}
+    <div className="group border-b border-slate-50 last:border-0 hover:bg-slate-50 transition-colors">
+        <div className="flex items-center py-1 px-2">
+          
+          {/* Column 1: Field Key (Tree Structure) */}
+          <div className="w-[30%] flex items-center pr-2 relative">
+             <div style={{ paddingLeft: `${paddingLeft}px` }} className="flex items-center w-full">
+                {/* Connector Lines (Visual Only) */}
+                {level > 0 && <div className="absolute left-[8px] border-l border-slate-200 h-full -top-1/2" />}
+                
+                {/* Expander */}
+                <div className="w-5 flex-shrink-0 flex justify-center mr-1">
+                    {hasChildren ? (
+                        <button
+                            onClick={() => toggleExpand(property.id)}
+                            className="p-0.5 text-slate-400 hover:text-slate-600 rounded transition-colors"
+                        >
+                            {property.isExpanded ? <ChevronDown size={14} /> : <ChevronRight size={14} />}
+                        </button>
+                    ) : (
+                        <div className="w-4" />
+                    )}
+                </div>
 
-      <div className="bg-white border border-slate-200 rounded-lg shadow-sm hover:border-blue-300 transition-colors">
-        {/* Main Row */}
-        <div className="flex items-start gap-2 p-3">
-          {/* Expand/Collapse */}
-          <div className="w-5 flex-shrink-0 pt-2">
-            {hasChildren && (
-              <button
-                onClick={() => toggleExpand(property.id)}
-                className="p-0.5 text-slate-400 hover:text-blue-600 rounded transition-colors"
-                type="button"
-              >
-                {property.isExpanded ? (
-                  <ChevronDown className="w-4 h-4" />
-                ) : (
-                  <ChevronRight className="w-4 h-4" />
-                )}
-              </button>
-            )}
-          </div>
-
-          <div className="flex-grow grid grid-cols-12 gap-3">
-             
-             {/* Key / Name */}
-             <div className="col-span-3">
-                 <label className="block text-[10px] font-medium text-slate-400 mb-0.5">Field Key</label>
-                 <div className="flex items-center gap-1">
-                    <input
-                        type="text"
-                        placeholder="field_key"
-                        value={property.name}
-                        onChange={(e) => updateProperty(property.id, "name", e.target.value)}
-                        className="w-full px-2 py-1.5 bg-slate-50 border border-slate-200 rounded text-sm font-mono focus:ring-1 focus:ring-blue-500 focus:border-blue-500 focus:bg-white transition-all text-slate-700 font-semibold"
-                    />
-                 </div>
-             </div>
-
-             {/* Type */}
-             <div className="col-span-2">
-                 <label className="block text-[10px] font-medium text-slate-400 mb-0.5">Type</label>
-                 <div className="relative">
-                    <select
-                        value={property.type}
-                        onChange={(e) => updateProperty(property.id, "type", e.target.value)}
-                        className="w-full pl-7 pr-2 py-1.5 bg-white border border-slate-200 rounded text-sm focus:ring-1 focus:ring-blue-500 focus:border-blue-500 appearance-none text-slate-600 font-medium cursor-pointer"
-                    >
-                        <option value="string">String</option>
-                        <option value="number">Number</option>
-                        <option value="boolean">Boolean</option>
-                        <option value="date">Date</option>
-                        <option value="money">Money</option>
-                        <option value="array">Array</option>
-                        <option value="object">Object</option>
-                    </select>
-                    <div className="absolute left-2 top-1.5 pointer-events-none text-slate-400">
-                        {property.type === 'object' ? <Box size={12} /> : 
-                         property.type === 'array' ? <List size={12} /> : 
-                         property.type === 'number' || property.type === 'money' ? <span className="text-[10px] font-bold">#</span> :
-                         <Type size={12} />
-                        }
-                    </div>
-                 </div>
-             </div>
-
-             {/* Description & Aliases */}
-             <div className="col-span-7 flex flex-col gap-2">
-                 <div>
-                    <input
-                        type="text"
-                        placeholder="Description (what to extract) - Keys work best!"
-                        value={property.description}
-                        onChange={(e) => updateProperty(property.id, "description", e.target.value)}
-                        className="w-full px-2 py-1.5 bg-white border border-slate-200 rounded text-xs focus:ring-1 focus:ring-blue-500 focus:border-blue-500"
-                    />
-                 </div>
-                 {/* Aliases Input */}
-                 {property.type !== 'object' && property.type !== 'array' && (
-                     <div className="flex items-center gap-2">
-                         <span className="text-[10px] text-slate-400 font-medium uppercase tracking-wider">Aliases:</span>
-                         <input
-                            type="text"
-                            placeholder="e.g. Inv#, InvoiceNo (comma separated)"
-                            value={property.aliases.join(', ')}
-                            onChange={(e) => updateProperty(property.id, "aliases", e.target.value.split(',').map(s => s.trim()))}
-                            className="flex-grow px-2 py-1 bg-slate-50 border border-slate-200 rounded text-[10px] text-slate-600 focus:ring-1 focus:ring-blue-500 focus:border-blue-500"
-                         />
-                     </div>
-                 )}
+                <input
+                    type="text"
+                    placeholder="key"
+                    value={property.name}
+                    onChange={(e) => updateProperty(property.id, "name", e.target.value)}
+                    className="w-full px-2 py-1.5 bg-transparent border border-transparent rounded hover:bg-white hover:shadow-sm focus:bg-white focus:border-blue-500 focus:ring-1 focus:ring-blue-500/20 text-xs font-mono font-medium text-slate-700 placeholder:text-slate-400 transition-all"
+                />
              </div>
           </div>
 
-          {/* Actions */}
-          <div className="flex flex-col gap-1 pt-4 border-l border-slate-100 pl-2">
+          {/* Column 2: Type */}
+          <div className="w-[15%] px-2">
+              <div className="relative group/type">
+                <select
+                    value={property.type}
+                    onChange={(e) => updateProperty(property.id, "type", e.target.value)}
+                    className="w-full pl-6 pr-2 py-1.5 bg-transparent border border-transparent rounded hover:bg-white hover:shadow-sm focus:bg-white focus:border-blue-500 focus:ring-1 focus:ring-blue-500/20 text-xs text-slate-700 font-medium appearance-none cursor-pointer transition-all"
+                >
+                    <option value="string">String</option>
+                    <option value="number">Number</option>
+                    <option value="boolean">Boolean</option>
+                    <option value="date">Date</option>
+                    <option value="money">Money</option>
+                    <option value="array">Array</option>
+                    <option value="object">Object</option>
+                </select>
+                <div className="absolute left-1.5 top-1.5 pointer-events-none text-slate-400 group-hover/type:text-slate-600 transition-colors">
+                    {property.type === 'object' ? <Box size={12} /> : 
+                     property.type === 'array' ? <List size={12} /> : 
+                     property.type === 'number' || property.type === 'money' ? <span className="text-[9px] font-bold">#</span> :
+                     <Type size={12} />
+                    }
+                </div>
+              </div>
+          </div>
+
+          {/* Column 3: Description */}
+          <div className="w-[30%] px-2">
+            <input
+                type="text"
+                placeholder="Description..."
+                value={property.description}
+                onChange={(e) => updateProperty(property.id, "description", e.target.value)}
+                className="w-full px-2 py-1.5 bg-transparent border border-transparent rounded hover:bg-white hover:shadow-sm focus:bg-white focus:border-blue-500 focus:ring-1 focus:ring-blue-500/20 text-xs text-slate-700 placeholder:text-slate-400 transition-all"
+            />
+          </div>
+
+          {/* Column 4: Aliases */}
+          <div className="w-[20%] px-2">
+             {property.type !== 'object' && property.type !== 'array' && (
+                  <input
+                    type="text"
+                    placeholder="Aliases..."
+                    value={property.aliases.join(', ')}
+                    onChange={(e) => updateProperty(property.id, "aliases", e.target.value.split(',').map(s => s.trim()))}
+                    className="w-full px-2 py-1.5 bg-transparent border border-transparent rounded hover:bg-white hover:shadow-sm focus:bg-white focus:border-blue-500 focus:ring-1 focus:ring-blue-500/20 text-xs text-slate-600 placeholder:text-slate-400 transition-all"
+                 />
+             )}
+          </div>
+
+          {/* Column 5: Actions */}
+          <div className="w-[5%] pl-2 flex justify-end gap-1 opacity-0 group-hover:opacity-100 transition-opacity duration-200">
+             {hasChildren && (
+                 <button
+                    onClick={() => addProperty(property.id)}
+                    className="p-1.5 text-slate-400 hover:text-blue-600 hover:bg-blue-50 rounded transition-colors"
+                    title="Add Child"
+                 >
+                    <Plus size={14} />
+                 </button>
+             )}
              <button
                 onClick={() => removeProperty(property.id)}
-                type="button"
-                className="p-1.5 text-slate-400 rounded hover:bg-red-50 hover:text-red-500 transition-colors"
-                title="Delete Field"
+                className="p-1.5 text-slate-400 hover:text-red-500 hover:bg-red-50 rounded transition-colors"
+                title="Delete"
              >
                 <Trash2 size={14} />
              </button>
-             {/* Required Toggle (Optional enhancement) */}
-             {/* 
-             <button
-                onClick={() => updateProperty(property.id, "required", !property.required)}
-                type="button"
-                className={`p-1.5 rounded transition-colors ${property.required ? 'text-orange-500 bg-orange-50' : 'text-slate-300 hover:text-slate-400'}`}
-                title="Mark as Required"
-             >
-                <Asterisk size={14} />
-             </button>
-             */}
           </div>
 
         </div>
 
-        {/* Nested Children */}
-        {hasChildren && property.isExpanded && (
-          <div className="p-3 pt-0 pl-10 border-t border-slate-50 bg-slate-50/30 rounded-b-lg">
-            <div className="pt-3">
-              {property.children?.map((child) => (
-                <PropertyRow
-                  key={child.id}
-                  property={child}
-                  level={level + 1}
-                  updateProperty={updateProperty}
-                  removeProperty={removeProperty}
-                  addProperty={addProperty}
-                  toggleExpand={toggleExpand}
-                />
-              ))}
+        {/* Recursion for Children */}
+        {hasChildren && property.isExpanded && property.children && property.children.length > 0 && (
+            <div className="border-t border-slate-50">
+               {property.children.map((child) => (
+                    <PropertyRow
+                        key={child.id}
+                        property={child}
+                        level={level + 1}
+                        updateProperty={updateProperty}
+                        removeProperty={removeProperty}
+                        addProperty={addProperty}
+                        toggleExpand={toggleExpand}
+                    />
+               ))}
             </div>
-            <button
-              onClick={() => addProperty(property.id)}
-              className="flex items-center gap-1.5 mt-2 py-1.5 px-3 text-xs font-medium text-blue-600 hover:text-blue-700 hover:bg-blue-50 rounded-md transition-colors border border-dashed border-blue-200 hover:border-blue-300 w-full justify-center"
-              type="button"
-            >
-              <Plus size={12} />
-              Add Nested Property
-            </button>
-          </div>
         )}
-      </div>
     </div>
   );
 });
@@ -407,37 +375,54 @@ export const SchemaBuilderModal: React.FC<SchemaBuilderModalProps> = ({
     if (!isOpen) return null;
 
     return (
-        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/60 backdrop-blur-sm animate-in fade-in duration-200">
-            <div className="bg-white rounded-xl shadow-2xl w-[90vw] max-w-[1000px] h-[90vh] flex flex-col overflow-hidden">
+        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-slate-900/40 backdrop-blur-sm animate-in fade-in duration-200">
+            <div className="bg-white rounded-2xl shadow-2xl w-[90vw] max-w-[1000px] h-[85vh] flex flex-col overflow-hidden border border-white/20 ring-1 ring-black/5">
                 
                 {/* Header */}
-                <div className="px-6 py-4 border-b border-slate-100 flex justify-between items-center bg-white">
+                <div className="px-6 py-4 border-b border-slate-100 flex justify-between items-center bg-white/80 backdrop-blur-md">
                     <div>
-                        <h2 className="text-xl font-bold text-slate-900 flex items-center gap-2">
-                            <Database className="text-blue-600" size={24} />
+                        <h2 className="text-lg font-bold text-slate-900 flex items-center gap-2">
+                            <div className="p-1.5 bg-blue-50 text-blue-600 rounded-lg">
+                                <Database size={18} />
+                            </div>
                             Schema Builder
                         </h2>
-                        <p className="text-sm text-slate-500">Design the structure for data extraction.</p>
+                        {/* <p className="text-xs text-slate-400 mt-0.5 ml-11">Design the extraction structure.</p> */}
                     </div>
-                    <div className="flex gap-2">
-                         {/* Tab Toggle */}
-                        <div className="flex bg-slate-100 p-1 rounded-lg mr-4">
+                    <div className="flex items-center gap-4">
+                         {/* Segmented Control */}
+                        <div className="flex bg-slate-100 p-1 rounded-lg">
                             <button
                                 onClick={() => setActiveTab("visual")}
-                                className={`px-3 py-1.5 text-xs font-semibold rounded-md transition-all ${activeTab === "visual" ? "bg-white text-blue-600 shadow-sm" : "text-slate-500 hover:text-slate-700"}`}
+                                className={`relative px-4 py-1.5 text-xs font-semibold rounded-md transition-all duration-200 flex items-center gap-1.5 ${
+                                    activeTab === "visual" 
+                                        ? "bg-white text-slate-800 shadow-sm ring-1 ring-black/5" 
+                                        : "text-slate-500 hover:text-slate-700"
+                                }`}
                             >
-                                <div className="flex items-center gap-1.5"><Eye size={14}/> Visual</div>
+                                <Eye size={14} className={activeTab === "visual" ? "text-blue-500" : ""} />
+                                Visual
                             </button>
                             <button
                                 onClick={() => setActiveTab("code")}
-                                className={`px-3 py-1.5 text-xs font-semibold rounded-md transition-all ${activeTab === "code" ? "bg-white text-blue-600 shadow-sm" : "text-slate-500 hover:text-slate-700"}`}
+                                className={`relative px-4 py-1.5 text-xs font-semibold rounded-md transition-all duration-200 flex items-center gap-1.5 ${
+                                    activeTab === "code" 
+                                        ? "bg-white text-slate-800 shadow-sm ring-1 ring-black/5" 
+                                        : "text-slate-500 hover:text-slate-700"
+                                }`}
                             >
-                                <div className="flex items-center gap-1.5"><Code size={14}/> JSON</div>
+                                <Code size={14} className={activeTab === "code" ? "text-purple-500" : ""} />
+                                JSON
                             </button>
                         </div>
                         
-                        <button onClick={onClose} className="p-2 text-slate-400 hover:bg-slate-50 rounded-full transition-colors">
-                            <X size={24} />
+                        <div className="h-6 w-px bg-slate-200" />
+
+                        <button 
+                            onClick={onClose} 
+                            className="p-2 text-slate-400 hover:bg-slate-50 hover:text-slate-600 rounded-full transition-colors"
+                        >
+                            <X size={20} />
                         </button>
                     </div>
                 </div>
@@ -447,21 +432,31 @@ export const SchemaBuilderModal: React.FC<SchemaBuilderModalProps> = ({
                     {activeTab === 'visual' ? (
                         <div className="h-full overflow-y-auto p-6">
                             {properties.length === 0 ? (
-                                <div className="flex flex-col items-center justify-center h-[300px] border-2 border-dashed border-slate-200 rounded-xl bg-white/50">
-                                    <div className="p-4 rounded-full bg-slate-100 mb-4">
-                                        <Database className="text-slate-400" size={32} />
+                                <div className="flex flex-col items-center justify-center h-[300px] border-2 border-dashed border-slate-200/60 rounded-xl bg-slate-50/50">
+                                    <div className="p-4 rounded-full bg-white shadow-sm mb-4 ring-1 ring-slate-100">
+                                        <Database className="text-blue-500/50" size={32} />
                                     </div>
-                                    <p className="text-slate-500 font-medium mb-4">No fields defined yet</p>
+                                    <h3 className="text-slate-900 font-semibold mb-1">Start Building Your Schema</h3>
+                                    <p className="text-slate-500 text-xs mb-6 max-w-[250px] text-center">Define the fields you want to extract from your documents.</p>
                                     <button 
                                         onClick={() => addProperty()}
-                                        className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 font-medium text-sm flex items-center gap-2 transition-colors shadow-sm"
+                                        className="px-5 py-2.5 bg-white text-blue-600 border border-blue-200 hover:border-blue-300 hover:bg-blue-50 rounded-lg font-medium text-sm flex items-center gap-2 transition-all shadow-sm"
                                     >
                                         <Plus size={16} />
                                         Add First Field
                                     </button>
                                 </div>
                             ) : (
-                                <div className="space-y-4 pb-20">
+                                <div className="space-y-0.5 pb-20">
+                                    {/* Header Row */}
+                                    <div className="flex items-center px-4 py-2 text-[10px] font-bold text-slate-500 uppercase tracking-wider border-b border-slate-200 bg-slate-50/50">
+                                        <div className="w-[30%]">Field Key</div>
+                                        <div className="w-[15%] px-2">Type</div>
+                                        <div className="w-[30%] px-2">Description</div>
+                                        <div className="w-[20%] px-2">Aliases</div>
+                                        <div className="w-[5%]"></div>
+                                    </div>
+
                                     {properties.map(p => (
                                         <PropertyRow 
                                             key={p.id} 
@@ -475,7 +470,7 @@ export const SchemaBuilderModal: React.FC<SchemaBuilderModalProps> = ({
                                     
                                     <button 
                                         onClick={() => addProperty()}
-                                        className="w-full py-3 border-2 border-dashed border-slate-200 rounded-xl text-slate-500 hover:border-blue-400 hover:text-blue-600 hover:bg-blue-50/50 transition-all font-medium text-sm flex items-center justify-center gap-2"
+                                        className="w-full py-3 mt-4 border-2 border-dashed border-slate-200 rounded-xl text-slate-500 hover:border-blue-400 hover:text-blue-600 hover:bg-blue-50/50 transition-all font-medium text-sm flex items-center justify-center gap-2"
                                     >
                                         <Plus size={16} />
                                         Add Root Field
@@ -514,16 +509,16 @@ export const SchemaBuilderModal: React.FC<SchemaBuilderModalProps> = ({
                 </div>
 
                 {/* Footer */}
-                <div className="px-6 py-4 border-t border-slate-200 bg-white flex justify-end gap-3 z-10 shrink-0">
+                <div className="px-6 py-4 border-t border-slate-100 bg-white flex justify-end gap-3 z-10 shrink-0">
                     <button 
                         onClick={onClose}
-                        className="px-4 py-2 text-slate-600 hover:bg-slate-100 rounded-lg font-medium text-sm transition-colors"
+                        className="px-4 py-2 text-slate-500 hover:bg-slate-50 hover:text-slate-700 rounded-lg font-medium text-sm transition-colors"
                     >
                         Cancel
                     </button>
                     <button 
                         onClick={handleSave}
-                        className="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 shadow-sm font-medium text-sm transition-colors flex items-center gap-2"
+                        className="px-6 py-2 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white rounded-lg shadow-md hover:shadow-lg font-medium text-sm transition-all transform active:scale-95 flex items-center gap-2"
                     >
                         <Check size={16} />
                         Save Schema

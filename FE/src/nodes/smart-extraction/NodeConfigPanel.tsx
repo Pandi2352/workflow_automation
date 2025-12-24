@@ -140,7 +140,7 @@ export const NodeConfigPanel: React.FC<{ nodeExecutionData?: any }> = ({ nodeExe
                 <div className="flex flex-1 overflow-hidden">
                     
                      {/* COLUMN 1 - Left Sidebar */}
-                     <div className="w-[300px] border-r border-slate-200 flex flex-col overflow-hidden bg-slate-50 shrink-0">
+                     <div className="w-[250px] border-r border-slate-200 flex flex-col overflow-hidden bg-slate-50 shrink-0">
                         <div className="p-3 border-b border-slate-200 bg-slate-50 flex items-center">
                              <span className="text-xs font-bold text-slate-500 uppercase tracking-wider flex items-center gap-2">
                                  <Database size={12} />
@@ -171,7 +171,7 @@ export const NodeConfigPanel: React.FC<{ nodeExecutionData?: any }> = ({ nodeExe
                             </span>
                         </div>
                         
-                        <div className="flex-1 overflow-y-auto p-6 custom-scrollbar">
+                        <div className="flex-1 overflow-y-auto p-4 custom-scrollbar">
                             <div className="mb-6">
                                 <label className="block text-sm font-semibold text-slate-700 mb-1.5">Node Label</label>
                                 <input 
@@ -242,10 +242,10 @@ export const NodeConfigPanel: React.FC<{ nodeExecutionData?: any }> = ({ nodeExe
                                         type="text" 
                                         value={config.inputText || ''} 
                                         onChange={(e) => handleConfigChange('inputText', e.target.value)}
-                                        className={`w-full bg-white border rounded-lg p-2.5 text-sm font-mono text-slate-600 focus:outline-none focus:ring-2 transition-all ${
-                                            !config.inputText ? 'border-red-300 focus:border-red-500 focus:ring-red-500/20' : 'border-slate-200 focus:border-teal-500 focus:ring-teal-500/20'
+                                        className={`w-full bg-slate-50 border rounded-lg p-2.5 text-sm font-mono text-slate-600 focus:outline-none focus:ring-2 transition-all ${
+                                            !config.inputText ? 'border-red-300 focus:border-red-500 focus:ring-red-500/20' : 'border-slate-200 focus:bg-white focus:border-teal-500 focus:ring-teal-500/20'
                                         }`}
-                                        placeholder="{{OCRNode.outputs}} or {{OCRNode.outputs[0].analysis}}"
+                                        placeholder="{{OCRNode.outputs}}"
                                     />
                                     {!config.inputText && (
                                         <p className="text-[10px] text-red-500 font-medium mt-1">This field is required.</p>
@@ -288,7 +288,7 @@ export const NodeConfigPanel: React.FC<{ nodeExecutionData?: any }> = ({ nodeExe
                                                 <p className="text-[10px] font-medium text-slate-400 uppercase mb-2">Configured Fields:</p>
                                                 <div className="space-y-1">
                                                     {Object.keys(schema).slice(0, 5).map(key => (
-                                                        <div key={key} className="flex items-center gap-2 text-xs text-slate-600 bg-white px-2 py-1.5 rounded border border-slate-100">
+                                                        <div key={key} className="flex items-center gap-2 text-xs text-slate-600 bg-white px-2 py-1 rounded border border-slate-200/50">
                                                             <div className="w-1.5 h-1.5 rounded-full bg-teal-400" />
                                                             <span className="font-mono font-medium">{key}</span>
                                                             <span className="text-slate-400 text-[10px]">({schema[key].type})</span>
@@ -334,7 +334,7 @@ export const NodeConfigPanel: React.FC<{ nodeExecutionData?: any }> = ({ nodeExe
                     </div>
 
                     {/* COLUMN 3 - Output */}
-                    <div className="w-[350px] bg-slate-50 border-l border-slate-200 flex flex-col overflow-hidden shrink-0">
+                    <div className="w-[300px] bg-slate-50 border-l border-slate-200 flex flex-col overflow-hidden shrink-0">
                          <div className="flex border-b border-slate-200 bg-slate-50">
                             <button
                                 onClick={() => setActiveTab('output')}
