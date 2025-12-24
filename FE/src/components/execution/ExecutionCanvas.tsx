@@ -15,6 +15,8 @@ import { ScheduleNode } from '../../nodes/schedule/ScheduleNode';
 import { GmailNode } from '../../nodes/gmail/GmailNode';
 import { OneDriveNode } from '../../nodes/onedrive/OneDriveNode';
 import { OCRNode } from '../../nodes/ocr/OCRNode';
+import { SmartExtractionNode } from '../../nodes/smart-extraction/SmartExtractionNode';
+import FileUploadNode from '../../nodes/file-upload/FileUploadNode';
 
 interface ExecutionCanvasProps {
     executionData?: any;
@@ -28,6 +30,10 @@ const nodeTypes = {
     SCHEDULE: ScheduleNode,
     OCR: OCRNode, // Registered
     ocr: OCRNode, // Lowercase alias
+    SMART_EXTRACTION: SmartExtractionNode,
+    smart_extraction: SmartExtractionNode,
+    FILE_UPLOAD: FileUploadNode,
+    file_upload: FileUploadNode,
     default: GenericNode, 
     input: GenericNode,
     webhook: GenericNode,
