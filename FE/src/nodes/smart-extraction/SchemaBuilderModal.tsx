@@ -83,10 +83,10 @@ const PropertyRow = memo(({
 
                 <input
                     type="text"
-                    placeholder="key"
+                    placeholder="key_name"
                     value={property.name}
                     onChange={(e) => updateProperty(property.id, "name", e.target.value)}
-                    className="w-full px-2 py-1.5 bg-transparent border border-transparent rounded hover:bg-white hover:shadow-sm focus:bg-white focus:border-blue-500 focus:ring-1 focus:ring-blue-500/20 text-xs font-mono font-medium text-slate-700 placeholder:text-slate-400 transition-all"
+                    className="w-full px-3 py-2 bg-slate-100 border-2 border-transparent rounded-lg hover:bg-slate-200 focus:bg-white focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10 text-xs font-mono font-semibold text-slate-700 placeholder:text-slate-400 transition-all duration-200"
                 />
              </div>
           </div>
@@ -121,23 +121,53 @@ const PropertyRow = memo(({
           <div className="w-[30%] px-2">
             <input
                 type="text"
-                placeholder="Description..."
+                placeholder="Description of field..."
                 value={property.description}
                 onChange={(e) => updateProperty(property.id, "description", e.target.value)}
-                className="w-full px-2 py-1.5 bg-transparent border border-transparent rounded hover:bg-white hover:shadow-sm focus:bg-white focus:border-blue-500 focus:ring-1 focus:ring-blue-500/20 text-xs text-slate-700 placeholder:text-slate-400 transition-all"
+                className="w-full px-3 py-2 bg-slate-100 border-2 border-transparent rounded-lg hover:bg-slate-200 focus:bg-white focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10 text-xs text-slate-600 placeholder:text-slate-400 transition-all duration-200"
             />
           </div>
 
-          {/* Column 4: Aliases */}
+           {/* Column 4: Aliases (Tag Input) */}
           <div className="w-[20%] px-2">
              {property.type !== 'object' && property.type !== 'array' && (
-                  <input
-                    type="text"
-                    placeholder="Aliases..."
-                    value={property.aliases.join(', ')}
-                    onChange={(e) => updateProperty(property.id, "aliases", e.target.value.split(',').map(s => s.trim()))}
-                    className="w-full px-2 py-1.5 bg-transparent border border-transparent rounded hover:bg-white hover:shadow-sm focus:bg-white focus:border-blue-500 focus:ring-1 focus:ring-blue-500/20 text-xs text-slate-600 placeholder:text-slate-400 transition-all"
-                 />
+                  <div className="w-full min-h-[34px] px-2 py-1 bg-slate-100 border-2 border-transparent rounded-lg hover:bg-slate-200 focus-within:bg-white focus-within:border-blue-500 focus-within:ring-4 focus-within:ring-blue-500/10 transition-all duration-200 flex flex-wrap items-center gap-1.5 cursor-text" onClick={(e) => {
+                      const input = e.currentTarget.querySelector('input');
+                      if(input) input.focus();
+                  }}>
+                      {property.aliases.map((alias, idx) => (
+                          <div key={idx} className="flex items-center gap-0.5 px-1.5 py-0.5 bg-white text-slate-700 rounded-md text-[10px] font-medium shadow-sm ring-1 ring-slate-200 animate-in zoom-in-50 duration-200">
+                              <span>{alias}</span>
+                              <button 
+                                  onClick={(e) => {
+                                      e.stopPropagation();
+                                      const newAliases = property.aliases.filter((_, i) => i !== idx);
+                                      updateProperty(property.id, "aliases", newAliases);
+                                  }}
+                                  className="text-slate-400 hover:text-red-500 rounded-full p-0.5 transition-colors"
+                              >
+                                  <X size={10} />
+                              </button>
+                          </div>
+                      ))}
+                      <input
+                        type="text"
+                        placeholder={property.aliases.length === 0 ? "add_alias..." : ""}
+                        className="flex-1 min-w-[60px] bg-transparent border-none outline-none text-xs text-slate-700 placeholder:text-slate-400 p-0 h-5"
+                        onKeyDown={(e) => {
+                            const val = e.currentTarget.value.trim();
+                            if ((e.key === 'Enter' || e.key === ',') && val) {
+                                e.preventDefault();
+                                if (!property.aliases.includes(val)) {
+                                    updateProperty(property.id, "aliases", [...property.aliases, val]);
+                                }
+                                e.currentTarget.value = "";
+                            } else if (e.key === 'Backspace' && !val && property.aliases.length > 0) {
+                                updateProperty(property.id, "aliases", property.aliases.slice(0, -1));
+                            }
+                        }}
+                     />
+                  </div>
              )}
           </div>
 
