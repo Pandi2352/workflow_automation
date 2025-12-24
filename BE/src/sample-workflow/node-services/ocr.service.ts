@@ -135,23 +135,33 @@ export class OCRService {
             // 1. Text Processing (TXT/CSV/DOCX)
             if (mimeType === 'text/plain' || mimeType === 'text/csv' || filePath.endsWith('.txt') || filePath.endsWith('.csv')) {
                 const content = fs.readFileSync(filePath, 'utf-8');
-                const prompt = `${PDF_EXTRACTION_PROMPT}\n\nDOCUMENT CONTENT:\n${content}`;
+                const prompt = config.prompt
+                    ? `Analyze the provided document content based on the following specific instructions:\n\n${config.prompt}\n\nDOCUMENT CONTENT:\n${content}`
+                    : `${PDF_EXTRACTION_PROMPT}\n\nDOCUMENT CONTENT:\n${content}`;
                 const result = await this.model.generateContent(prompt);
                 analysisResult = result.response.text();
 
             } else if (mimeType === 'application/vnd.openxmlformats-officedocument.wordprocessingml.document' || filePath.endsWith('.docx')) {
                 const result = await mammoth.extractRawText({ path: filePath });
                 const content = result.value;
-                const prompt = `${PDF_EXTRACTION_PROMPT}\n\nDOCUMENT CONTENT:\n${content}`;
+                const prompt = config.prompt
+                    ? `Analyze the provided document content based on the following specific instructions:\n\n${config.prompt}\n\nDOCUMENT CONTENT:\n${content}`
+                    : `${PDF_EXTRACTION_PROMPT}\n\nDOCUMENT CONTENT:\n${content}`;
                 const genResult = await this.model.generateContent(prompt);
                 analysisResult = genResult.response.text();
 
             } else {
                 // 2. Multimodal Processing (Images, PDF, Audio, Video)
+                // 2. Multimodal Processing (Images, PDF, Audio, Video)
                 let contextPrompt = PDF_EXTRACTION_PROMPT;
-                if (mimeType.startsWith('image/')) contextPrompt = IMAGE_CONTEXT_PROMPT;
-                else if (mimeType.startsWith('audio/')) contextPrompt = AUDIO_CONTEXT_PROMPT;
-                else if (mimeType.startsWith('video/')) contextPrompt = VIDEO_CONTEXT_PROMPT;
+
+                if (config.prompt) {
+                    contextPrompt = `Analyze the uploaded file based on the following specific instructions:\n\n${config.prompt}`;
+                } else {
+                    if (mimeType.startsWith('image/')) contextPrompt = IMAGE_CONTEXT_PROMPT;
+                    else if (mimeType.startsWith('audio/')) contextPrompt = AUDIO_CONTEXT_PROMPT;
+                    else if (mimeType.startsWith('video/')) contextPrompt = VIDEO_CONTEXT_PROMPT;
+                }
 
                 const uploadResponse = await this.fileManager.uploadFile(filePath, {
                     mimeType: mimeType,

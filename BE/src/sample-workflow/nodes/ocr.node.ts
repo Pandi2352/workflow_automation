@@ -139,6 +139,7 @@ export class OCRNodeStrategy extends BaseWorkflowNode {
                 const result = await this.ocrService.processFile(processPath, {
                     apiKey,
                     modelName,
+                    prompt: config.prompt
                 });
 
                 // Mark as COMPLETED
