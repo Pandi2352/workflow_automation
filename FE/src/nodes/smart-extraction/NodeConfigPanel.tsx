@@ -8,6 +8,7 @@ import JsonViewer from '../../common/JsonViewer';
 import { GeminiCredentialModal } from '../../components/credentials/GeminiCredentialModal';
 
 import { SchemaBuilderModal } from './SchemaBuilderModal';
+import { DataTreeViewer } from '../../common/DataTreeViewer';
 
 export const NodeConfigPanel: React.FC<{ nodeExecutionData?: any }> = ({ nodeExecutionData }) => {
     const { selectedNode, updateNodeData, setSelectedNode, nodes, edges, currentExecution, fetchCredentials, credentials } = useWorkflowStore();
@@ -353,8 +354,11 @@ export const NodeConfigPanel: React.FC<{ nodeExecutionData?: any }> = ({ nodeExe
                         <div className="flex-1 overflow-auto custom-scrollbar bg-slate-50 relative p-4">
                              {executionResult ? (
                                 activeTab === 'output' ? (
-                                    <div className="text-xs font-mono text-slate-600">
-                                        <JsonViewer data={executionResult.data || executionResult.output || executionResult} />
+                                    <div className="bg-slate-50 min-h-full">
+                                        <DataTreeViewer 
+                                            data={executionResult.data || executionResult.output || executionResult} 
+                                            truncate={true}
+                                        />
                                     </div>
                                 ) : (
                                     <div className="space-y-2">

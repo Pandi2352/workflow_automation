@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
-import { ChevronRight, ChevronDown, Box, Type, Hash, Calendar, ToggleLeft, MoreHorizontal, Copy, Search } from 'lucide-react';
+import { Search } from 'lucide-react';
+import { DataTreeViewer } from '../../common/DataTreeViewer';
 
 interface NodeDataSidebarProps {
     availableNodes: {
@@ -11,104 +12,7 @@ interface NodeDataSidebarProps {
     onDragStart: (e: React.DragEvent, variablePath: string) => void;
 }
 
-const getTypeIcon = (value: any) => {
-    if (value === null || value === undefined) return <MoreHorizontal size={12} className="text-gray-400" />;
-    if (typeof value === 'string') return <Type size={12} className="text-green-600" />;
-    if (typeof value === 'number') return <Hash size={12} className="text-blue-600" />;
-    if (typeof value === 'boolean') return <ToggleLeft size={12} className="text-orange-600" />;
-    if (value instanceof Date) return <Calendar size={12} className="text-purple-600" />;
-    if (Array.isArray(value)) return <Box size={12} className="text-indigo-600" />;
-    if (typeof value === 'object') return <Box size={12} className="text-indigo-600" />;
-    return <Box size={12} className="text-gray-400" />;
-};
 
-const JsonTreeNode: React.FC<{
-    name: string;
-    value: any;
-    path: string;
-    level?: number;
-    onDragStart: (e: React.DragEvent, path: string) => void;
-}> = ({ name, value, path, level = 0, onDragStart }) => {
-    const [isExpanded, setIsExpanded] = useState(false); // Default collapsed for array items/objects
-    const [isHovered, setIsHovered] = useState(false);
-
-    const isObject = value !== null && typeof value === 'object';
-    const isEmpty = isObject && Object.keys(value).length === 0;
-
-    const handleDragStart = (e: React.DragEvent) => {
-        e.dataTransfer.setData('text/plain', `{{${path}}}`);
-        e.dataTransfer.effectAllowed = 'copy';
-        onDragStart(e, `{{${path}}}`);
-    };
-
-    const toggleExpand = (e: React.MouseEvent) => {
-        e.stopPropagation();
-        setIsExpanded(!isExpanded);
-    };
-
-    if (isObject && !isEmpty) {
-        return (
-            <div className="select-none">
-                <div 
-                    className={`flex items-center gap-1 py-1 px-2 rounded cursor-pointer hover:bg-slate-100 group transition-colors ${isHovered ? 'bg-slate-50' : ''}`}
-                    style={{ paddingLeft: `${level * 12 + 8}px` }}
-                    onMouseEnter={() => setIsHovered(true)}
-                    onMouseLeave={() => setIsHovered(false)}
-                    onClick={toggleExpand}
-                    draggable
-                    onDragStart={handleDragStart}
-                >
-                    <button onClick={toggleExpand} className="p-0.5 rounded hover:bg-slate-200 text-slate-500">
-                        {isExpanded ? <ChevronDown size={10} /> : <ChevronRight size={10} />}
-                    </button>
-                    <span className="text-[10px] uppercase font-bold text-slate-500 tracking-wider mr-1">
-                        {Array.isArray(value) ? '[]' : '{}'}
-                    </span>
-                    <span className="text-xs font-medium text-slate-700 font-mono group-hover:text-indigo-600">
-                        {name}
-                    </span>
-                    <span className="text-[10px] text-slate-400 ml-auto opacity-0 group-hover:opacity-100 transition-opacity">
-                         Drag to use
-                    </span>
-                </div>
-                
-                {isExpanded && (
-                    <div className="border-l border-slate-200 ml-4">
-                        {Object.entries(value).map(([key, val]) => (
-                             <JsonTreeNode
-                                key={key}
-                                name={key}
-                                value={val}
-                                path={`${path}${Array.isArray(value) ? `[${key}]` : `.${key}`}`} // Handle array index syntax vs object dot notation
-                                level={level + 1}
-                                onDragStart={onDragStart}
-                             />
-                        ))}
-                    </div>
-                )}
-            </div>
-        );
-    }
-
-    return (
-        <div 
-            className="flex items-center gap-2 py-1 px-2 rounded cursor-grab hover:bg-indigo-50 group transition-colors active:cursor-grabbing"
-            style={{ paddingLeft: `${level * 12 + 20}px` }}
-            draggable
-            onDragStart={handleDragStart}
-        >
-             <div className="shrink-0 opacity-70 group-hover:opacity-100">
-                {getTypeIcon(value)}
-             </div>
-             <span className="text-xs font-medium text-slate-700 font-mono group-hover:text-indigo-700 truncate max-w-[120px]">
-                {name}
-             </span>
-             <span className="text-[10px] text-slate-400 truncate max-w-[100px] group-hover:text-indigo-500">
-                {String(value).substring(0, 30)}
-             </span>
-        </div>
-    );
-};
 
 
 export const NodeDataSidebar: React.FC<NodeDataSidebarProps> = ({ availableNodes, onDragStart }) => {
@@ -158,11 +62,12 @@ export const NodeDataSidebar: React.FC<NodeDataSidebarProps> = ({ availableNodes
                             </div>
                             <div className="p-1">
                                 {node.data ? (
-                                    <JsonTreeNode 
-                                        name="output" 
-                                        value={node.data} 
-                                        path={`${node.nodeName}.output`} // Start path: NodeName.output
+                                    <DataTreeViewer 
+                                        data={node.data} 
+                                        pathPrefix={`${node.nodeName}.outputs`} 
                                         onDragStart={onDragStart} 
+                                        initiallyExpanded={true}
+                                        truncate={true}
                                     />
                                 ) : (
                                     <div className="p-2 text-center">

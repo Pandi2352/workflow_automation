@@ -3,7 +3,7 @@ import { useWorkflowStore } from '../../store/workflowStore';
 import { X, FileText, Zap, Key, Box, Type, Database, Plus, RefreshCw } from 'lucide-react';
 import { axiosInstance } from '../../api/axiosConfig';
 import { NodeDataSidebar } from '../../components/designer/NodeDataSidebar';
-import JsonViewer from '../../common/JsonViewer';
+import { DataTreeViewer } from '../../common/DataTreeViewer';
 import { GeminiCredentialModal } from '../../components/credentials/GeminiCredentialModal';
 
 export const NodeConfigPanel: React.FC<{ nodeExecutionData?: any }> = ({ nodeExecutionData }) => {
@@ -304,7 +304,7 @@ export const NodeConfigPanel: React.FC<{ nodeExecutionData?: any }> = ({ nodeExe
                     </div>
 
                     {/* COLUMN 3 - Output (Right) */}
-                    <div className="w-[350px] bg-slate-50 border-l border-slate-200 flex flex-col overflow-hidden shrink-0">
+                    <div className="w-[380px] bg-slate-50 border-l border-slate-200 flex flex-col overflow-hidden shrink-0">
                          {/* Tabs Header */}
                          <div className="flex border-b border-slate-200 bg-slate-50">
                             <button
@@ -326,8 +326,8 @@ export const NodeConfigPanel: React.FC<{ nodeExecutionData?: any }> = ({ nodeExe
                              {executionResult ? (
                                 <>
                                     {activeTab === 'output' && (
-                                        <div className="p-4 text-xs font-mono text-slate-600">
-                                            <JsonViewer data={executionResult.output} />
+                                        <div className="bg-slate-50 min-h-full">
+                                            <DataTreeViewer data={executionResult.output} truncate={true} />
                                         </div>
                                     )}
                                     
