@@ -22,7 +22,18 @@ import { workflowService } from '../../services/api/workflows';
 export const ExecutionModeView: React.FC = () => {
     const { id } = useParams<{ id: string }>();
     const [selectedExecution, setSelectedExecution] = useState<any>(null);
-    const { selectedNode, }:any = useWorkflowStore();
+    const { 
+        selectedNode, 
+        setSelectedNode,
+        nodes 
+    }: any = useWorkflowStore();
+
+    const handleNodeSelect = (nodeId: string) => {
+        const node = nodes.find((n: any) => n.id === nodeId);
+        if (node) {
+            setSelectedNode(node);
+        }
+    };
 
     // Poll selected execution if it is running
     React.useEffect(() => {
@@ -122,7 +133,8 @@ export const ExecutionModeView: React.FC = () => {
                 {/* Bottom Panel: Logs/Data - Always show workflow level output now */}
                 <ExecutionDetailsPanel 
                     execution={selectedExecution}
-                    selectedNodeId={null} 
+                    selectedNodeId={selectedNode?.id} 
+                    onNodeSelect={handleNodeSelect}
                 />
             </div>
         </div>

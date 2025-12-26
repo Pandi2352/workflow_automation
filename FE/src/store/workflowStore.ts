@@ -17,11 +17,23 @@ import type {
 import { axiosInstance } from '../api/axiosConfig';
 import { API_ENDPOINTS } from '../api/endpoints';
 
+interface WorkflowHistoryState {
+    nodes: Node[];
+    edges: Edge[];
+}
+
 interface WorkflowState {
     nodes: Node[];
     edges: Edge[];
     selectedNode: Node | null;
     isDirty: boolean; // Tracking unsaved changes
+
+    // History
+    past: WorkflowHistoryState[];
+    future: WorkflowHistoryState[];
+    undo: () => void;
+    redo: () => void;
+    pushToHistory: () => void; // Call this before state changing actions
 
     // Actions
     setNodes: (nodes: Node[]) => void;
@@ -41,7 +53,7 @@ interface WorkflowState {
     setActiveTab: (tab: 'editor' | 'executions') => void;
 
     // Workflow Metadata
-    createWorkflow: (navigate: Function) => Promise<void>; // Added
+    createWorkflow: (navigate: Function) => Promise<void>;
     workflowName: string;
     workflowDescription: string;
     isWorkflowActive: boolean;
@@ -64,25 +76,82 @@ interface WorkflowState {
     setCurrentExecution: (execution: any) => void;
     executionTrigger: number;
     triggerWorkflowExecution: () => void;
-    // runWorkflow: () => Promise<void>; // Deferred
 
     // Helpers
     deleteNode: (id: string) => void;
 }
 
-export const useWorkflowStore = create<WorkflowState>((set, get) => ({
+const MAX_HISTORY = 20;
+
+export const useWorkflowStore = create<WorkflowState>()((set, get) => ({
     nodes: [],
     edges: [],
     selectedNode: null,
     isDirty: false,
 
+    // History
+    past: [],
+    future: [],
+
+    pushToHistory: () => {
+        const { nodes, edges, past } = get();
+        const newPast = [...past, { nodes, edges }];
+        if (newPast.length > MAX_HISTORY) {
+            newPast.shift();
+        }
+        set({ past: newPast, future: [] });
+    },
+
+    undo: () => {
+        const { past, future, nodes, edges } = get();
+        if (past.length === 0) return;
+
+        const previous = past[past.length - 1];
+        const newPast = past.slice(0, past.length - 1);
+
+        set({
+            nodes: previous.nodes,
+            edges: previous.edges,
+            past: newPast,
+            future: [{ nodes, edges }, ...future]
+        });
+    },
+
+    redo: () => {
+        const { past, future, nodes, edges } = get();
+        if (future.length === 0) return;
+
+        const next = future[0];
+        const newFuture = future.slice(1);
+
+        set({
+            nodes: next.nodes,
+            edges: next.edges,
+            past: [...past, { nodes, edges }],
+            future: newFuture
+        });
+    },
+
+
     setIsDirty: (isDirty) => set({ isDirty }),
 
-    setNodes: (nodes) => set({ nodes }),
+    setNodes: (nodes) => {
+        // We typically don't want to undo a full setNodes (like loading)
+        // But if it's used for layouting, maybe we do? 
+        // For now, let's assume programmatic setNodes might trigger history if desired, 
+        // but typically applyNodeChanges is where the action is.
+        set({ nodes });
+    },
     setEdges: (edges) => set({ edges }),
     setSelectedNode: (selectedNode) => set({ selectedNode }),
 
     onNodesChange: (changes: NodeChange[]) => {
+        // Filter out selection changes from history
+        const isSelectionChange = changes.every(c => c.type === 'select');
+        if (!isSelectionChange) {
+            get().pushToHistory();
+        }
+
         set({
             nodes: applyNodeChanges(changes, get().nodes),
             isDirty: true
@@ -90,6 +159,12 @@ export const useWorkflowStore = create<WorkflowState>((set, get) => ({
     },
 
     onEdgesChange: (changes: EdgeChange[]) => {
+        // Filter out selection changes from history
+        const isSelectionChange = changes.every(c => c.type === 'select');
+        if (!isSelectionChange) {
+            get().pushToHistory();
+        }
+
         set({
             edges: applyEdgeChanges(changes, get().edges),
             isDirty: true
@@ -97,6 +172,7 @@ export const useWorkflowStore = create<WorkflowState>((set, get) => ({
     },
 
     onConnect: (connection: Connection) => {
+        get().pushToHistory();
         set({
             edges: addEdge(connection, get().edges),
             isDirty: true
@@ -104,10 +180,16 @@ export const useWorkflowStore = create<WorkflowState>((set, get) => ({
     },
 
     addNode: (node: Node) => {
+        get().pushToHistory();
         set({ nodes: [...get().nodes, node], isDirty: true });
     },
 
     updateNodeData: (id: string, data: any) => {
+        // This can be frequent (typing), debouncing history might be needed in real world.
+        // For now, simpler is better. Maybe don't history track every keystroke?
+        // Let's track it for now to be safe.
+        // get().pushToHistory(); 
+
         const { nodes, selectedNode } = get();
         const updatedNodes = nodes.map((node) => {
             if (node.id === id) {
@@ -187,21 +269,14 @@ export const useWorkflowStore = create<WorkflowState>((set, get) => ({
     currentExecution: null,
     isExecuting: false,
     setCurrentExecution: (execution) => set({ currentExecution: execution }),
-    runWorkflow: async () => {
-        const { id } = get().selectedNode?.data || { id: null }; // Not used for runWorkflow, we use current workflow ID
-        // Note: runWorkflow logic requires saving first, which needs nodes/edges. 
-        // Ideally we move the FULL logic here, but for now let's expose specific helpers or rely on the component.
-        // Actually, let's keep running logic in Designer for now to avoid massive refactor of 'handleSave' which depends on component routing.
-        // Instead, we will expose a TRIGGER flag.
-    },
+
     // Execution Trigger (to request execution from components)
     executionTrigger: 0,
     triggerWorkflowExecution: () => set({ executionTrigger: Date.now() }),
 
-    // Simplified Execution Starter (if backend allows generic start)
-    // We will just expose 'setNodes' which we already have. 
     // Deletion helper
     deleteNode: (id: string) => {
+        get().pushToHistory();
         const { nodes, edges } = get();
         set({
             nodes: nodes.filter(n => n.id !== id),
@@ -210,4 +285,3 @@ export const useWorkflowStore = create<WorkflowState>((set, get) => ({
         });
     }
 }));
-

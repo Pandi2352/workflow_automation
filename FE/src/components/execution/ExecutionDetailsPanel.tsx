@@ -1,9 +1,11 @@
-
 import React, { useState, useEffect, useRef } from 'react';
 import { 
-   Code, GripHorizontal, 
-    LayoutDashboard, Monitor, Database, Activity, ChevronUp
+    Code, GripHorizontal, 
+    LayoutDashboard, Monitor, Database, Activity, ChevronUp, GitCommitHorizontal
 } from 'lucide-react';
+import { ExecutionTimeline } from './ExecutionTimeline';
+import { DataTreeViewer } from '../../common/DataTreeViewer';
+import { ExecutionDataTree } from './ExecutionDataTree';
 
 const formatTime = (dateString: string, includeMs = false) => {
     try {
@@ -18,19 +20,20 @@ const formatTime = (dateString: string, includeMs = false) => {
 interface ExecutionDetailsPanelProps {
     execution: any;
     selectedNodeId?: string | null;
+    onNodeSelect?: (nodeId: string) => void;
 }
 
-type TabType = 'overview' | 'client_info' | 'outputs' | 'logs' | 'json';
+type TabType = 'overview' | 'timeline' | 'client_info' | 'outputs' | 'logs' | 'json';
 
-export const ExecutionDetailsPanel: React.FC<ExecutionDetailsPanelProps> = ({ execution }) => {
-    const [activeTab, setActiveTab] = useState<TabType>('overview');
-    const [height, setHeight] = useState(300);
-    const [isCollapsed, setIsCollapsed] = useState(true);
+export const ExecutionDetailsPanel: React.FC<ExecutionDetailsPanelProps> = ({ execution, selectedNodeId, onNodeSelect }) => {
+    const [activeTab, setActiveTab] = useState<TabType>('timeline');
+    const [height, setHeight] = useState(350);
+    const [isCollapsed, setIsCollapsed] = useState(false); // Default open
     const [isDragging, setIsDragging] = useState(false);
     
     // Performance Optimization: Use ref for direct DOM manipulation during drag
     const panelRef = useRef<HTMLDivElement>(null);
-    const heightRef = useRef(300);
+    const heightRef = useRef(350);
 
     // Sync ref when state changes (e.g. initial load or expand)
     useEffect(() => {
@@ -90,6 +93,25 @@ export const ExecutionDetailsPanel: React.FC<ExecutionDetailsPanelProps> = ({ ex
 
     const renderContent = () => {
         switch (activeTab) {
+            case 'timeline':
+                return (
+                    <div className="h-full flex flex-col">
+                        <div className="p-4 border-b border-gray-100 flex justify-between items-center bg-gray-50/50">
+                            <h3 className="text-sm font-bold text-gray-700">Execution Timeline</h3>
+                            <span className="text-xs text-gray-500">
+                                Total Duration: {execution.duration || execution.metrics?.totalDuration || 0}ms
+                            </span>
+                        </div>
+                        <div className="flex-1 overflow-hidden bg-gray-50/30">
+                            <ExecutionTimeline 
+                                executions={execution.nodeExecutions || []} 
+                                onNodeSelect={onNodeSelect}
+                                selectedNodeId={selectedNodeId}
+                            />
+                        </div>
+                    </div>
+                );
+
             case 'overview':
                 return (
                     <div className="space-y-6">
@@ -126,10 +148,8 @@ export const ExecutionDetailsPanel: React.FC<ExecutionDetailsPanelProps> = ({ ex
                             <h4 className="text-sm font-semibold text-gray-700 mb-2 flex items-center gap-2">
                                 <Database size={14} className="text-blue-500"/> Final Result
                             </h4>
-                            <div className="bg-slate-900 rounded-lg p-3 overflow-hidden">
-                                <pre className="font-mono text-xs text-green-400 whitespace-pre-wrap break-all">
-                                    {JSON.stringify(execution.finalResult?.value, null, 2)}
-                                </pre>
+                            <div className=" rounded-lg p-3 overflow-hidden">
+                                <ExecutionDataTree data={execution.finalResult?.value} />
                             </div>
                         </div>
                     </div>
@@ -177,10 +197,8 @@ export const ExecutionDetailsPanel: React.FC<ExecutionDetailsPanelProps> = ({ ex
                                     <span className="font-medium text-sm text-gray-700">{output.nodeName}</span>
                                     <span className="text-xs text-gray-500 font-mono">{output.type}</span>
                                 </div>
-                                <div className="p-3 bg-white max-h-60 overflow-auto">
-                                     <pre className="font-mono text-xs text-gray-600 whitespace-pre-wrap">
-                                        {JSON.stringify(output.value, null, 2)}
-                                     </pre>
+                                <div className="p-3 bg-white max-h-96 overflow-auto custom-scrollbar">
+                                     <ExecutionDataTree data={output.value} />
                                 </div>
                             </div>
                         ))}
@@ -193,24 +211,56 @@ export const ExecutionDetailsPanel: React.FC<ExecutionDetailsPanelProps> = ({ ex
             case 'logs':
                 return (
                     <div className="font-mono text-xs">
-                        {(execution.logs || []).map((log: any, i: number) => (
-                            <div key={i} className="border-b border-gray-100 p-2 flex gap-3 hover:bg-gray-50">
-                                <span className="text-gray-400 min-w-[80px]">{formatTime(log.timestamp, true)}</span>
-                                <span className={`font-semibold min-w-[60px] ${log.level === 'ERROR' ? 'text-red-600' : 'text-blue-600'}`}>
-                                    {log.level}
-                                </span>
-                                <span className="text-gray-800 break-all">{log.message}</span>
-                            </div>
-                        ))}
+                        <table className="w-full text-left">
+                            <thead className="bg-gray-50 text-gray-500 font-medium border-b border-gray-100">
+                                <tr>
+                                    <th className="py-2 px-3 w-24">Time</th>
+                                    <th className="py-2 px-3 w-20">Level</th>
+                                    <th className="py-2 px-3">Message</th>
+                                </tr>
+                            </thead>
+                            <tbody className="divide-y divide-gray-50">
+                                {(execution.logs || []).map((log: any, i: number) => (
+                                    <tr key={i} className="hover:bg-blue-50/30 transition-colors">
+                                        <td className="py-2 px-3 text-gray-400 whitespace-nowrap">
+                                            {formatTime(log.timestamp, true)}
+                                        </td>
+                                        <td className="py-2 px-3">
+                                            <span className={`
+                                                inline-block px-1.5 py-0.5 rounded text-[10px] font-bold border
+                                                ${log.level === 'ERROR' ? 'bg-red-50 text-red-600 border-red-100' : 
+                                                  log.level === 'WARN' ? 'bg-amber-50 text-amber-600 border-amber-100' :
+                                                  'bg-blue-50 text-blue-600 border-blue-100'}
+                                            `}>
+                                                {log.level}
+                                            </span>
+                                        </td>
+                                        <td className="py-2 px-3 text-gray-800 break-words">
+                                            {log.message}
+                                            {log.data && (
+                                                <div className="mt-1 opacity-75">
+                                                    <ExecutionDataTree data={log.data} level={1} initiallyExpanded={false} />
+                                                </div>
+                                            )}
+                                        </td>
+                                    </tr>
+                                ))}
+                                {(!execution.logs || execution.logs.length === 0) && (
+                                     <tr>
+                                         <td colSpan={3} className="py-8 text-center text-gray-400 italic">
+                                             No logs available
+                                         </td>
+                                     </tr>
+                                )}
+                            </tbody>
+                        </table>
                     </div>
                 );
 
             case 'json':
                 return (
-                    <div className="p-2">
-                        <pre className="font-mono text-xs text-gray-600 whitespace-pre-wrap">
-                            {JSON.stringify(execution, null, 2)}
-                        </pre>
+                    <div className="p-4 bg-gray-50/30 min-h-full">
+                        <ExecutionDataTree data={execution} initiallyExpanded={true} level={0} />
                     </div>
                 );
                 
@@ -289,10 +339,11 @@ export const ExecutionDetailsPanel: React.FC<ExecutionDetailsPanelProps> = ({ ex
                              <span className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">Details</span>
                         </div>
                         <nav className="flex-1 overflow-y-auto">
+                            <SidebarItem id="timeline" icon={GitCommitHorizontal} label="Timeline" />
                             <SidebarItem id="overview" icon={LayoutDashboard} label="Overview" />
-                            <SidebarItem id="client_info" icon={Monitor} label="Client Info" />
                             <SidebarItem id="outputs" icon={Database} label="Node Outputs" />
                             <SidebarItem id="logs" icon={Activity} label="Logs" />
+                            <SidebarItem id="client_info" icon={Monitor} label="Client Info" />
                             <SidebarItem id="json" icon={Code} label="Raw JSON" />
                         </nav>
                     </div>

@@ -12,7 +12,7 @@ import {
   ControlButton,
 } from '@xyflow/react';
 import { useWorkflowStore } from '../../store/workflowStore';
-import { Plus, LayoutGrid } from 'lucide-react';
+import { Plus, LayoutGrid, RotateCcw, RotateCw } from 'lucide-react';
 
 import { GenericNode } from '../../nodes/GenericNode';
 import { GoogleDriveNode } from '../../nodes/google-drive/GoogleDriveNode';
@@ -75,15 +75,31 @@ const defaultEdgeOptions = {
 const WorkflowCanvasInner: React.FC<WorkflowCanvasProps> = ({ onToggleDrawer, executionData }) => {
   const { id } = useParams<{ id: string }>();
   const reactFlowWrapper = useRef<HTMLDivElement>(null);
-  const { nodes, edges, onNodesChange, onEdgesChange, onConnect, addNode, setNodes, setEdges, setSelectedNode } = useWorkflowStore();
+  const { 
+      nodes, 
+      edges, 
+      onNodesChange, 
+      onEdgesChange, 
+      onConnect, 
+      addNode, 
+      setNodes, 
+      setEdges, 
+      setSelectedNode,
+      undo,
+      redo,
+      past,
+      future,
+      pushToHistory
+  } = useWorkflowStore();
   const { screenToFlowPosition } = useReactFlow();
   const proOptions = { hideAttribution: true };
+
 
   // Merge nodes with execution status
   const nodesWithStatus = useMemo(() => {
       if (!executionData || !executionData.nodeExecutions) return nodes;
 
-      return nodes.map(node => {
+      return nodes.map((node) => {
           const execution = executionData.nodeExecutions.find((ex: any) => ex.nodeId === node.id);
           if (!execution) return node;
 
@@ -145,6 +161,7 @@ const WorkflowCanvasInner: React.FC<WorkflowCanvasProps> = ({ onToggleDrawer, ex
   }, [setSelectedNode]);
 
   const onLayout = useCallback((direction: string) => {
+    pushToHistory(); // Save state before auto-layout
     const { nodes: layoutedNodes, edges: layoutedEdges } = getLayoutedElements(
       nodes,
       edges,
@@ -153,7 +170,7 @@ const WorkflowCanvasInner: React.FC<WorkflowCanvasProps> = ({ onToggleDrawer, ex
 
     setNodes([...layoutedNodes]);
     setEdges([...layoutedEdges]);
-  }, [nodes, edges, setNodes, setEdges]);
+  }, [pushToHistory, nodes, edges, setNodes, setEdges]);
 
   return (
     <div className="flex-1 h-full relative" ref={reactFlowWrapper}>
@@ -186,6 +203,12 @@ const WorkflowCanvasInner: React.FC<WorkflowCanvasProps> = ({ onToggleDrawer, ex
         >
              <ControlButton onClick={() => onLayout('LR')} title="Auto Layout">
                 <LayoutGrid size={16} />
+             </ControlButton>
+             <ControlButton onClick={() => undo()} disabled={past.length === 0} title="Undo">
+                <RotateCcw size={16} className={past.length === 0 ? "opacity-30" : ""} />
+             </ControlButton>
+             <ControlButton onClick={() => redo()} disabled={future.length === 0} title="Redo">
+                <RotateCw size={16} className={future.length === 0 ? "opacity-30" : ""} />
              </ControlButton>
         </Controls>
         <MiniMap
