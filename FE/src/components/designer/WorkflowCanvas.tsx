@@ -1,4 +1,5 @@
 import React, { useCallback, useRef, useMemo } from 'react';
+import { useParams } from 'react-router-dom';
 import {
   ReactFlow,
   MiniMap,
@@ -8,9 +9,10 @@ import {
   ReactFlowProvider,
   BackgroundVariant,
   ConnectionLineType,
+  ControlButton,
 } from '@xyflow/react';
 import { useWorkflowStore } from '../../store/workflowStore';
-import { Plus } from 'lucide-react';
+import { Plus, LayoutGrid } from 'lucide-react';
 
 import { GenericNode } from '../../nodes/GenericNode';
 import { GoogleDriveNode } from '../../nodes/google-drive/GoogleDriveNode';
@@ -27,6 +29,8 @@ import { SmartExtractionNode } from '../../nodes/smart-extraction/SmartExtractio
 import FileUploadNode from '../../nodes/file-upload/FileUploadNode';
 
 import { DeletableEdge } from './DeletableEdge';
+import { CollaborativeCursors } from './CollaborativeCursors';
+import { getLayoutedElements } from '../../utils/layoutUtils';
 
 // Initial logic for drop
 let id = 0;
@@ -69,8 +73,9 @@ const defaultEdgeOptions = {
 };
 
 const WorkflowCanvasInner: React.FC<WorkflowCanvasProps> = ({ onToggleDrawer, executionData }) => {
+  const { id } = useParams<{ id: string }>();
   const reactFlowWrapper = useRef<HTMLDivElement>(null);
-  const { nodes, edges, onNodesChange, onEdgesChange, onConnect, addNode, setSelectedNode } = useWorkflowStore();
+  const { nodes, edges, onNodesChange, onEdgesChange, onConnect, addNode, setNodes, setEdges, setSelectedNode } = useWorkflowStore();
   const { screenToFlowPosition } = useReactFlow();
   const proOptions = { hideAttribution: true };
 
@@ -139,6 +144,17 @@ const WorkflowCanvasInner: React.FC<WorkflowCanvasProps> = ({ onToggleDrawer, ex
     setSelectedNode(null);
   }, [setSelectedNode]);
 
+  const onLayout = useCallback((direction: string) => {
+    const { nodes: layoutedNodes, edges: layoutedEdges } = getLayoutedElements(
+      nodes,
+      edges,
+      direction
+    );
+
+    setNodes([...layoutedNodes]);
+    setEdges([...layoutedEdges]);
+  }, [nodes, edges, setNodes, setEdges]);
+
   return (
     <div className="flex-1 h-full relative" ref={reactFlowWrapper}>
       <ReactFlow
@@ -167,7 +183,11 @@ const WorkflowCanvasInner: React.FC<WorkflowCanvasProps> = ({ onToggleDrawer, ex
             position="bottom-left"
             orientation='horizontal'
             className="m-4 bg-white border border-slate-100 rounded-md p-1 fill-slate-500 [&>button]:border-none [&>button]:rounded-lg [&>button]:p-2 hover:[&>button]:bg-slate-50 [&>button]:transition-colors" 
-        />
+        >
+             <ControlButton onClick={() => onLayout('LR')} title="Auto Layout">
+                <LayoutGrid size={16} />
+             </ControlButton>
+        </Controls>
         <MiniMap
             className="bg-white rounded-lg border border-gray-200"
             nodeColor="#e5e7eb"
@@ -179,6 +199,8 @@ const WorkflowCanvasInner: React.FC<WorkflowCanvasProps> = ({ onToggleDrawer, ex
         <Background variant={BackgroundVariant.Lines} gap={10} size={3} color="#ebedefff" />
         
       </ReactFlow>
+
+      <CollaborativeCursors workflowId={executionData?.workflowId || id || 'global-room'} />
 
       {nodes.length === 0 && (
         <div className="absolute inset-0 flex items-center justify-center z-50 pointer-events-none">
