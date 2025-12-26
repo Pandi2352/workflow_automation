@@ -164,9 +164,7 @@ export const NodeConfigPanel: React.FC<{ nodeExecutionData?: any }> = ({ nodeExe
                                     status: d.status
                                 }))}
                                 onDragStart={(e, variablePath) => {
-                                    console.log('Dragging:', variablePath);
-                                    console.log('Dragging:', e);
-                                    // Optionally populate the active input field
+                                    e.dataTransfer.setData('text/plain', `{{${variablePath}}}`);
                                 }}
                             />
                         </div>

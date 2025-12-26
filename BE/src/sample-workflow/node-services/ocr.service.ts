@@ -1,4 +1,5 @@
 import { Injectable, Logger } from '@nestjs/common';
+import { BaseOCRService } from './base-ocr.service';
 import { ConfigService } from '@nestjs/config';
 import { GoogleGenerativeAI } from '@google/generative-ai';
 import { GoogleAIFileManager } from '@google/generative-ai/server';
@@ -67,13 +68,14 @@ After performing the analysis requested above, you MUST append a valid JSON obje
 `;
 
 @Injectable()
-export class OCRService {
-    private readonly logger = new Logger(OCRService.name);
+export class OCRService extends BaseOCRService {
     private genAI: GoogleGenerativeAI;
     private fileManager: GoogleAIFileManager;
     private model: any;
 
-    constructor(private configService: ConfigService) { }
+    constructor(private configService: ConfigService) {
+        super(OCRService.name);
+    }
 
     private initializeAI(apiKey: string, modelName: string = 'gemini-1.5-flash') {
         this.genAI = new GoogleGenerativeAI(apiKey);
@@ -119,38 +121,7 @@ export class OCRService {
         this.initializeAI(config.apiKey, modelName);
 
         try {
-            // For now, assume fileIdentifier is a local path (downloaded by executor or previous node)
-            // If it's a URL, we might need to download it first.
-            // But Workflow Executor usually handles file movements.
-            // Let's assume we get a valid local path for simplicity or handle URL download if needed.
-
-            // Check if file exists locally
-            let filePath = fileIdentifier;
-            if (!fs.existsSync(filePath)) {
-                // Try to strip file:// prefix if present
-                if (filePath.startsWith('file://')) {
-                    filePath = filePath.replace('file://', '');
-                } else if (filePath.startsWith('http')) {
-                    // TODO: Implement URL download if needed, but for now expect local path from upstream
-                    // Ideally, the WorkflowExecutor should have downloaded this to a temp folder already
-                    throw new Error(`Remote URLs not yet fully supported in direct path: ${filePath}`);
-                }
-            }
-
-            // Handle URL query params if any (from local static serve)
-            if (filePath.includes('?')) {
-                filePath = filePath.split('?')[0];
-            }
-
-            if (!fs.existsSync(filePath)) {
-                // Last ditch attempt: check if it's in the uploads directory relative to root
-                const uploadPath = path.join(process.cwd(), 'uploads', path.basename(filePath));
-                if (fs.existsSync(uploadPath)) {
-                    filePath = uploadPath;
-                } else {
-                    throw new Error(`File not found at path: ${filePath}`);
-                }
-            }
+            const filePath = await this.resolveFilePath(fileIdentifier);
 
             const mimeType = mime.lookup(filePath) || 'application/octet-stream';
             this.logger.log(`Processing file: ${filePath} (${mimeType})`);

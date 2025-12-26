@@ -30,6 +30,8 @@ import FileUploadNode from '../../nodes/file-upload/FileUploadNode';
 import { HttpNode } from '../../nodes/http-request/HttpNode';
 import { DataMapperNode } from '../../nodes/data-mapper/DataMapperNode';
 import { ScraperNode } from '../../nodes/scraper/ScraperNode';
+import { SuryaOCRNode } from '../../nodes/surya-ocr/SuryaOCRNode';
+import { TesseractOCRNode } from '../../nodes/tesseract-ocr/TesseractOCRNode';
 
 import { DeletableEdge } from './DeletableEdge';
 import { CollaborativeCursors } from './CollaborativeCursors';
@@ -60,6 +62,8 @@ const nodeTypes = {
     HTTP_REQUEST: HttpNode,
     DATA_MAPPER: DataMapperNode,
     BROWSER_SCRAPER: ScraperNode,
+    SURYA_OCR: SuryaOCRNode,
+    TESSERACT_OCR: TesseractOCRNode,
     default: GenericNode, // Fallback
     input: GenericNode,
     webhook: GenericNode,

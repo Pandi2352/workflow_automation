@@ -14,6 +14,10 @@ import { OCRNodeStrategy } from '../nodes/ocr.node';
 import { ParsingNodeStrategy } from '../nodes/parsing.node';
 import { MongoDBNodeStrategy } from '../nodes/mongodb.node';
 import { SummarizeNodeStrategy } from '../nodes/summarize.node';
+import { SuryaOCRNodeStrategy } from '../nodes/surya-ocr.node';
+import { TesseractOCRNodeStrategy } from '../nodes/tesseract-ocr.node';
+import { SuryaOCRService } from '../node-services/surya-ocr.service';
+import { TesseractOCRService } from '../node-services/tesseract-ocr.service';
 
 import { SmartExtractionNodeStrategy } from '../nodes/smart-extraction.node';
 import { FileUploadNodeStrategy } from '../nodes/file-upload.node';
@@ -45,6 +49,8 @@ export class NodeRegistryService {
         private readonly oneDriveService: OneDriveService,
         private readonly gmailService: GmailService,
         private readonly ocrService: OCRService,
+        private readonly suryaOCRService: SuryaOCRService,
+        private readonly tesseractOCRService: TesseractOCRService,
         private readonly parsingService: ParsingService,
         private readonly mongoService: MongoDBService,
         private readonly processedItemService: ProcessedItemService
@@ -64,6 +70,8 @@ export class NodeRegistryService {
         this.nodeInstances.set(SampleNodeType.PARSING, new ParsingNodeStrategy(this.parsingService));
         this.nodeInstances.set(SampleNodeType.MONGODB, new MongoDBNodeStrategy(this.mongoService));
         this.nodeInstances.set(SampleNodeType.SUMMARIZE, new SummarizeNodeStrategy(this.ocrService));
+        this.nodeInstances.set(SampleNodeType.SURYA_OCR, new SuryaOCRNodeStrategy(this.suryaOCRService, this.processedItemService));
+        this.nodeInstances.set(SampleNodeType.TESSERACT_OCR, new TesseractOCRNodeStrategy(this.tesseractOCRService, this.processedItemService));
 
 
 
@@ -295,6 +303,39 @@ export class NodeRegistryService {
                     type: 'string',
                     description: 'Custom Prompt (Optional)',
                     default: ''
+                }
+            }
+        });
+
+        this.nodeDefinitions.set(SampleNodeType.SURYA_OCR, {
+            type: SampleNodeType.SURYA_OCR,
+            name: 'Surya OCR',
+            description: 'Advanced multilingual OCR with layout preservation',
+            category: 'AI / Machine Learning',
+            inputs: 1,
+            outputs: 1,
+            configSchema: {
+                modelType: {
+                    type: 'select',
+                    options: ['standard', 'multilingual'],
+                    default: 'standard',
+                    description: 'Model type'
+                }
+            }
+        });
+
+        this.nodeDefinitions.set(SampleNodeType.TESSERACT_OCR, {
+            type: SampleNodeType.TESSERACT_OCR,
+            name: 'Tesseract OCR',
+            description: 'Standard open-source OCR engine',
+            category: 'AI / Machine Learning',
+            inputs: 1,
+            outputs: 1,
+            configSchema: {
+                lang: {
+                    type: 'string',
+                    default: 'eng',
+                    description: 'Language code (e.g. eng, fra)'
                 }
             }
         });

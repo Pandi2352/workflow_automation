@@ -14,5 +14,7 @@ export enum SampleNodeType {
     HTTP_REQUEST = 'HTTP_REQUEST',
     DATA_MAPPER = 'DATA_MAPPER',
     BROWSER_SCRAPER = 'BROWSER_SCRAPER',
+    SURYA_OCR = 'SURYA_OCR',
+    TESSERACT_OCR = 'TESSERACT_OCR',
 }
 // Force recompile

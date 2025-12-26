@@ -17,6 +17,8 @@ import FileUploadConfigPanel from '../nodes/file-upload/NodeConfigPanel';
 import { NodeConfigPanel as HttpNodeConfigPanel } from '../nodes/http-request/NodeConfigPanel';
 import { NodeConfigPanel as DataMapperNodeConfigPanel } from '../nodes/data-mapper/NodeConfigPanel';
 import { NodeConfigPanel as ScraperNodeConfigPanel } from '../nodes/scraper/NodeConfigPanel';
+import { NodeConfigPanel as SuryaOCRNodeConfigPanel } from '../nodes/surya-ocr/NodeConfigPanel';
+import { NodeConfigPanel as TesseractOCRNodeConfigPanel } from '../nodes/tesseract-ocr/NodeConfigPanel';
 
 import { DesignerHeader } from '../components/designer/DesignerHeader';
 import { CreateWorkflowSelector } from '../components/designer/CreateWorkflowSelector';
@@ -426,6 +428,18 @@ export const WorkflowDesigner: React.FC = () => {
                             />
                         ) : selectedNode && selectedNode.type === 'BROWSER_SCRAPER' ? (
                             <ScraperNodeConfigPanel />
+                        ) : selectedNode && selectedNode.type === 'SURYA_OCR' ? (
+                            <SuryaOCRNodeConfigPanel
+                                nodeExecutionData={currentExecution?.nodeExecutions?.find(
+                                    (ex: any) => ex.nodeId === selectedNode?.id
+                                )} 
+                            />
+                        ) : selectedNode && selectedNode.type === 'TESSERACT_OCR' ? (
+                            <TesseractOCRNodeConfigPanel
+                                nodeExecutionData={currentExecution?.nodeExecutions?.find(
+                                    (ex: any) => ex.nodeId === selectedNode?.id
+                                )} 
+                            />
                         ) : selectedNode && (
                             <NodeConfigPanel 
                                 nodeExecutionData={currentExecution?.nodeExecutions?.find(

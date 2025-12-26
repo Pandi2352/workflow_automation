@@ -103,7 +103,7 @@ export const NodeConfigPanel: React.FC = () => {
                         <div className="flex-1 overflow-hidden">
                             <NodeDataSidebar 
                                 availableNodes={inputData.map(d => ({ nodeId: d.nodeId, nodeName: d.nodeLabel as string, data: d.outputs, status: d.status }))}
-                                onDragStart={(e, path) => e.dataTransfer.setData('text/plain', path)}
+                                onDragStart={(e, path) => e.dataTransfer.setData('text/plain', `{{${path}}}`)}
                             />
                         </div>
                     </div>

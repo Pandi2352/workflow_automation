@@ -16,6 +16,8 @@ import { GoogleDriveService } from './node-services/google-drive.service';
 import { OneDriveService } from './node-services/onedrive.service';
 import { GmailService } from './node-services/gmail.service';
 import { OCRService } from './node-services/ocr.service';
+import { SuryaOCRService } from './node-services/surya-ocr.service';
+import { TesseractOCRService } from './node-services/tesseract-ocr.service';
 import { SchedulerService } from './services/scheduler.service';
 import { GmailPollingService } from './services/gmail-polling.service';
 import { ProcessedItem, ProcessedItemSchema } from './schemas/processed-item.schema';
@@ -46,6 +48,8 @@ import { MongoDBService } from 'src/node-services/mongodb.service';
         OneDriveService,
         GmailService,
         OCRService,
+        SuryaOCRService,
+        TesseractOCRService,
         ParsingService,
         MongoDBService,
         SchedulerService,
