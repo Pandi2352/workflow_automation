@@ -251,8 +251,8 @@ export class WorkflowExecutorService {
                 return;
             }
 
-            // Execute ready nodes
-            for (const node of readyNodes) {
+            // Execute ready nodes in parallel
+            const executionPromises = readyNodes.map(async (node) => {
                 const deps = incomingEdges.get(node.id) || [];
                 const hasFailedDep = deps.some(edge => failedNodes.has(edge.source));
 
@@ -260,7 +260,7 @@ export class WorkflowExecutorService {
                     await this.skipNode(executionId, node, 'Dependency failed');
                     failedNodes.add(node.id);
                     processedNodes.add(node.id);
-                    continue;
+                    return;
                 }
 
                 const success = await this.executeNode(
@@ -284,10 +284,17 @@ export class WorkflowExecutorService {
 
                     if (!options.continueOnError) {
                         await this.addLog(executionId, LogLevel.ERROR, `Stopping execution due to node failure: ${node.nodeName}`);
-                        await this.finalizeExecution(executionId, ExecutionStatus.FAILED, startTime);
-                        return;
+                        // We can't easily break from inside map, but finalizeExecution logic below handles it if needed
                     }
                 }
+            });
+
+            await Promise.all(executionPromises);
+
+            // Check if we should stop due to failures and !continueOnError
+            if (failedNodes.size > 0 && !options.continueOnError) {
+                await this.finalizeExecution(executionId, ExecutionStatus.FAILED, startTime);
+                return;
             }
 
             pendingNodes = pendingNodes.filter(n => !processedNodes.has(n.id));

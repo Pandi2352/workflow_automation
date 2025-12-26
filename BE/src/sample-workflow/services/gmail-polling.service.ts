@@ -158,13 +158,14 @@ export class GmailPollingService implements OnModuleInit {
 
                 this.logger.log(`[${workflow.name}] Found ${allNewMessages.length} new emails. Triggering executions (Oldest First)...`);
 
-                // FORCE SERIAL EXECUTION (One by One)
-                // We no longer read config.processingMode. It is always serial.
-                const waitForCompletion = true;
+                // ALLOW PARALLEL EXECUTION for high throughput
+                // We launch executions concurrently to handle 10+ emails/sec
+                const waitForCompletion = false;
 
                 let maxInternalDate = lastPollTime;
 
-                for (const msg of allNewMessages) {
+                // Launch all executions in parallel
+                const triggerPromises = allNewMessages.map(async (msg) => {
                     const triggerData = {
                         source: 'gmail',
                         event: 'email_received',
@@ -174,35 +175,24 @@ export class GmailPollingService implements OnModuleInit {
                     const msgTime = parseInt(msg.internalDate || '0');
 
                     try {
-                        // START EXECUTION
-                        this.logger.log(`Triggering workflow ${workflow._id} for message ${msg.id} (Mode: serial)`);
+                        this.logger.log(`Triggering workflow ${workflow._id} for message ${msg.id} (Mode: parallel)`);
                         await this.workflowExecutorService.startExecution(
                             workflow,
                             { waitForCompletion },
                             triggerData
                         );
 
-                        // Update Checkpoint AFTER successful trigger (or attempt)
-                        // If we are serial, we wait. If parallel, we just launch.
-                        // We track the latest time we have *launched*.
                         if (msgTime > maxInternalDate) {
                             maxInternalDate = msgTime;
                         }
-
-                        // Update state incrementally in Serial mode to save progress
-                        if (waitForCompletion) {
-                            stateDoc.state = { lastPollTime: maxInternalDate };
-                            stateDoc.markModified('state');
-                            await stateDoc.save();
-                        }
-
                     } catch (execErr) {
                         this.logger.error(`Failed to trigger workflow for message ${msg.id}`, execErr);
-                        // Continue usage? Yes, try next message.
                     }
-                }
+                });
 
-                // Final Save
+                await Promise.all(triggerPromises);
+
+                // Final Save: Update the checkpoint to the latest successfully triggered message
                 stateDoc.state = { lastPollTime: maxInternalDate };
                 stateDoc.markModified('state');
                 await stateDoc.save();

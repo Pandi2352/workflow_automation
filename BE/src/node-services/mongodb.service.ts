@@ -8,9 +8,14 @@ export class MongoDBService {
         this.logger.log(`Simulating MongoDB Insert into ${dbName}.${collectionName}`);
 
         // Mock DB Insertion
-        // In real impl, would use mongoose or mongodb driver to connect and insert
-
         const mockId = 'mongo_' + Date.now().toString(36);
         return mockId;
+    }
+
+    async insertMany(connectionString: string, dbName: string, collectionName: string, documents: any[]): Promise<string[]> {
+        this.logger.log(`Simulating MongoDB Batch Insert of ${documents.length} docs into ${dbName}.${collectionName}`);
+
+        // Mock Batch Insertion
+        return documents.map((_, index) => `mongo_${Date.now().toString(36)}_${index}`);
     }
 }

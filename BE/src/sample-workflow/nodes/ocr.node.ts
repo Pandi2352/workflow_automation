@@ -76,7 +76,8 @@ export class OCRNodeStrategy extends BaseWorkflowNode {
 
         const results: any[] = [];
 
-        for (const file of filesToProcess) {
+        // Process all files in parallel for high throughput
+        const processPromises = filesToProcess.map(async (file) => {
             // Determine path: 'key' (local path relative to root/uploads), 'path' (absolute), or 'url' (remote)
             const fileIdentifier = file.key || file.path || file.url;
             // Use file_id for persistent tracking if available, falling back to identifier
@@ -84,7 +85,7 @@ export class OCRNodeStrategy extends BaseWorkflowNode {
 
             if (!persistentId) {
                 this.log('WARN', `Skipping file without identifier: ${JSON.stringify(file)}`);
-                continue;
+                return;
             }
 
             // DEDUPLICATION CHECK
@@ -92,8 +93,7 @@ export class OCRNodeStrategy extends BaseWorkflowNode {
                 const shouldProcess = await this.processedItemService.shouldProcess(persistentId, 'OCR');
                 if (!shouldProcess) {
                     this.log('INFO', `Skipping duplicate file (already processed): ${file.name || persistentId}`);
-                    // Optionally push a dummy/cached result if needed, but for now we skip to save cost
-                    continue;
+                    return;
                 }
             }
 
@@ -108,7 +108,7 @@ export class OCRNodeStrategy extends BaseWorkflowNode {
                     if (file.file_type === 'email/message') {
                         this.log('INFO', `Processing email body (no attachment): ${file.email_subject || file.file_id}`);
 
-                        // Mark as COMPLETED so we don't re-process this email "event"
+                        // Mark as COMPLETED
                         await this.processedItemService.markCompleted(persistentId, 'OCR', {
                             fileName: 'Email Body',
                             timestamp: new Date(),
@@ -117,18 +117,16 @@ export class OCRNodeStrategy extends BaseWorkflowNode {
 
                         results.push({
                             fileId: file.file_id || file.id,
-                            fileName: 'Email Context', // Placeholder name
-                            status: 'SUCCESS', // Changed to SUCCESS so downstream nodes treat it as valid
-                            // Parsers look for 'text', so map the body there
+                            fileName: 'Email Context',
+                            status: 'SUCCESS',
                             text: file.email_body || file.email_snippet || '',
-                            // Pass through all original metadata (subject, from, body, etc.)
                             ...file,
                             message: 'No attachment available for this message'
                         });
                     } else {
                         this.log('WARN', `Skipping invalid file object (no key/path/url): ${JSON.stringify(file)}`);
                     }
-                    continue;
+                    return;
                 }
 
                 this.log('INFO', `Analyzing file: ${file.name || 'Unknown'}`);
@@ -157,17 +155,16 @@ export class OCRNodeStrategy extends BaseWorkflowNode {
 
             } catch (error: any) {
                 this.log('ERROR', `Failed to process file ${file.name}: ${error.message}`);
-
-                // Mark as FAILED
                 await this.processedItemService.markFailed(persistentId, 'OCR', error.message);
-
                 results.push({
                     fileName: file.name,
                     status: 'FAILED',
                     error: error.message
                 });
             }
-        }
+        });
+
+        await Promise.all(processPromises);
 
         this.log('INFO', `OCR Processing complete. Processed ${results.length} items (before grouping).`);
 

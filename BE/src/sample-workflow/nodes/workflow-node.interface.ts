@@ -116,11 +116,26 @@ export abstract class BaseWorkflowNode implements WorkflowNode {
 
     private getValueFromPath(path: string): any {
         // Expected format: NodeName.outputs.property... OR NodeName.data...
-        // e.g. "SMART EXTRACTION.outputs.data.document_no"
+        // Built-ins: $input, $json
+
+        // 0. Handle Built-ins
+        if (path === '$input' || path.startsWith('$input.')) {
+            const allInputs = (this.context.inputs || []).map(i => i.value);
+            if (path === '$input') return allInputs.length === 1 ? allInputs[0] : allInputs;
+            return this.getNestedValue(allInputs.length === 1 ? allInputs[0] : allInputs, path.substring(7));
+        }
+
+        if (path === '$json' || path.startsWith('$json.')) {
+            const jsonContext: Record<string, any> = {};
+            (this.context.inputs || []).forEach(i => {
+                jsonContext[i.nodeName] = i.value;
+            });
+            if (path === '$json') return jsonContext;
+            return this.getNestedValue(jsonContext, path.substring(6));
+        }
 
         // 1. Split identifying the node name. Node names can contain spaces.
         // We look for the first node name that matches an input.
-
         const inputs = this.context.inputs || [];
 
         let matchingInput: any = null;

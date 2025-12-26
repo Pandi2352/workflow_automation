@@ -81,6 +81,32 @@ export class OCRService {
         this.model = this.genAI.getGenerativeModel({ model: modelName });
     }
 
+    private async executeWithRetry<T>(
+        operation: () => Promise<T>,
+        maxRetries: number = 5,
+        baseDelay: number = 1000
+    ): Promise<T> {
+        let lastError: any;
+        for (let i = 0; i < maxRetries; i++) {
+            try {
+                return await operation();
+            } catch (error: any) {
+                lastError = error;
+                const isRateLimit = error.message?.includes('429') || error.status === 429;
+                const isServiceUnavailable = error.message?.includes('503') || error.status === 503;
+
+                if (isRateLimit || isServiceUnavailable) {
+                    const delay = baseDelay * Math.pow(2, i);
+                    this.logger.warn(`Rate limit or service error hit. Retrying in ${delay}ms... (Attempt ${i + 1}/${maxRetries})`);
+                    await new Promise(resolve => setTimeout(resolve, delay));
+                    continue;
+                }
+                throw error; // Not a retryable error
+            }
+        }
+        throw lastError;
+    }
+
     async processFile(
         fileIdentifier: string, // URL or Local Path
         config: { apiKey: string; modelName?: string; prompt?: string }
@@ -138,7 +164,7 @@ export class OCRService {
                 const prompt = config.prompt
                     ? `Analyze the provided document content based on the following specific instructions:\n\n${config.prompt}\n\nDOCUMENT CONTENT:\n${content}`
                     : `${PDF_EXTRACTION_PROMPT}\n\nDOCUMENT CONTENT:\n${content}`;
-                const result = await this.model.generateContent(prompt);
+                const result = await this.executeWithRetry(() => this.model.generateContent(prompt)) as any;
                 analysisResult = result.response.text();
 
             } else if (mimeType === 'application/vnd.openxmlformats-officedocument.wordprocessingml.document' || filePath.endsWith('.docx')) {
@@ -147,7 +173,7 @@ export class OCRService {
                 const prompt = config.prompt
                     ? `Analyze the provided document content based on the following specific instructions:\n\n${config.prompt}\n\nDOCUMENT CONTENT:\n${content}`
                     : `${PDF_EXTRACTION_PROMPT}\n\nDOCUMENT CONTENT:\n${content}`;
-                const genResult = await this.model.generateContent(prompt);
+                const genResult = await this.executeWithRetry(() => this.model.generateContent(prompt)) as any;
                 analysisResult = genResult.response.text();
 
             } else {
@@ -182,7 +208,7 @@ export class OCRService {
                     }
                 }
 
-                const result = await this.model.generateContent([
+                const result = await this.executeWithRetry(() => this.model.generateContent([
                     {
                         fileData: {
                             mimeType: uploadResponse.file.mimeType,
@@ -190,7 +216,7 @@ export class OCRService {
                         }
                     },
                     { text: `${contextPrompt}` }
-                ]);
+                ])) as any;
 
                 analysisResult = result.response.text();
             }
@@ -223,7 +249,7 @@ export class OCRService {
         this.initializeAI(apiKey, modelName);
 
         try {
-            const result = await this.model.generateContent(text);
+            const result = await this.executeWithRetry(() => this.model.generateContent(text)) as any;
             const response = await result.response;
             return response.text();
         } catch (error) {
