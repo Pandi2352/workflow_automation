@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+import { useParams, useNavigate, useBlocker } from 'react-router-dom';
 import { Zap, Plus } from 'lucide-react';
 import { NodeDrawer } from '../components/designer/NodeDrawer';
 import { NodeConfigPanel } from '../nodes/google-drive/NodeConfigPanel';
@@ -22,6 +22,7 @@ import { WorkflowMetadataModal } from '../components/designer/WorkflowMetadataMo
 import { Button } from '../common/Button';
 import { Toast } from '../common/Toast';
 import { WorkflowCanvas } from '../components/designer/WorkflowCanvas';
+import { UnsavedChangesModal } from '../components/modals/UnsavedChangesModal';
 
 
 export const WorkflowDesigner: React.FC = () => {
@@ -34,8 +35,26 @@ export const WorkflowDesigner: React.FC = () => {
         nodes, edges, setNodes, setEdges, selectedNode, addNode, activeTab,
         setWorkflowMetadata, workflowName, workflowDescription, isWorkflowActive,
         toast, showToast, hideToast, executionTrigger, 
-        currentExecution, setCurrentExecution
+        currentExecution, setCurrentExecution,
+        isDirty, setIsDirty
     } = useWorkflowStore(); 
+
+    // -- Unsaved Changes Blocking Logic --
+    const blocker = useBlocker(
+        ({ currentLocation, nextLocation }) =>
+            isDirty && currentLocation.pathname !== nextLocation.pathname
+    );
+
+    useEffect(() => {
+        const handleBeforeUnload = (e: BeforeUnloadEvent) => {
+            if (isDirty) {
+                e.preventDefault();
+                e.returnValue = '';
+            }
+        };
+        window.addEventListener('beforeunload', handleBeforeUnload);
+        return () => window.removeEventListener('beforeunload', handleBeforeUnload);
+    }, [isDirty]);
     
     const [isMetadataModalOpen, setIsMetadataModalOpen] = useState(false);
     
@@ -111,6 +130,7 @@ export const WorkflowDesigner: React.FC = () => {
                     workflowDescription: workflow.description,
                     isWorkflowActive: workflow.isActive
                 });
+                setIsDirty(false); // Reset dirty flag
 
                 // Restore latest execution context
                 try {
@@ -172,6 +192,7 @@ export const WorkflowDesigner: React.FC = () => {
             }
             
             showToast('Workflow saved successfully', 'success');
+            setIsDirty(false);
             return currentId;
         } catch (error: any) {
             console.error('Failed to save workflow', error);
@@ -403,6 +424,23 @@ export const WorkflowDesigner: React.FC = () => {
                     name: workflowName,
                     description: workflowDescription || '',
                     active: isWorkflowActive ?? true
+                }}
+            />
+
+            <UnsavedChangesModal 
+                isOpen={blocker.state === 'blocked'}
+                onSaveAndExit={async () => {
+                    const savedId = await handleSave();
+                    if (savedId) {
+                        blocker.proceed?.();
+                    }
+                }}
+                onDiscard={() => {
+                    setIsDirty(false);
+                    blocker.proceed?.();
+                }}
+                onCancel={() => {
+                    blocker.reset?.();
                 }}
             />
         </div>

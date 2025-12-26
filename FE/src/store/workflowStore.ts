@@ -21,11 +21,13 @@ interface WorkflowState {
     nodes: Node[];
     edges: Edge[];
     selectedNode: Node | null;
+    isDirty: boolean; // Tracking unsaved changes
 
     // Actions
     setNodes: (nodes: Node[]) => void;
     setEdges: (edges: Edge[]) => void;
     setSelectedNode: (node: Node | null) => void;
+    setIsDirty: (isDirty: boolean) => void;
 
     onNodesChange: OnNodesChange;
     onEdgesChange: OnEdgesChange;
@@ -72,6 +74,9 @@ export const useWorkflowStore = create<WorkflowState>((set, get) => ({
     nodes: [],
     edges: [],
     selectedNode: null,
+    isDirty: false,
+
+    setIsDirty: (isDirty) => set({ isDirty }),
 
     setNodes: (nodes) => set({ nodes }),
     setEdges: (edges) => set({ edges }),
@@ -80,23 +85,26 @@ export const useWorkflowStore = create<WorkflowState>((set, get) => ({
     onNodesChange: (changes: NodeChange[]) => {
         set({
             nodes: applyNodeChanges(changes, get().nodes),
+            isDirty: true
         });
     },
 
     onEdgesChange: (changes: EdgeChange[]) => {
         set({
             edges: applyEdgeChanges(changes, get().edges),
+            isDirty: true
         });
     },
 
     onConnect: (connection: Connection) => {
         set({
             edges: addEdge(connection, get().edges),
+            isDirty: true
         });
     },
 
     addNode: (node: Node) => {
-        set({ nodes: [...get().nodes, node] });
+        set({ nodes: [...get().nodes, node], isDirty: true });
     },
 
     updateNodeData: (id: string, data: any) => {
@@ -197,7 +205,8 @@ export const useWorkflowStore = create<WorkflowState>((set, get) => ({
         const { nodes, edges } = get();
         set({
             nodes: nodes.filter(n => n.id !== id),
-            edges: edges.filter(e => e.source !== id && e.target !== id)
+            edges: edges.filter(e => e.source !== id && e.target !== id),
+            isDirty: true
         });
     }
 }));
