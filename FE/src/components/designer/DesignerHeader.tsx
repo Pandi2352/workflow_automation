@@ -64,12 +64,12 @@ export const DesignerHeader: React.FC<DesignerHeaderProps> = ({ workflowId, onSa
                 {/* Left: Breadcrumbs & Name */}
                 <div className="flex items-center gap-2 text-sm min-w-[300px]">
                      <button 
-                        onClick={() => navigate('/')}
+                        onClick={() => navigate('/dashboard')}
                         className="p-1 h-auto text-slate-500 hover:text-slate-900 bg-transparent border-none cursor-pointer flex items-center justify-center"
                     >
                         <ChevronLeft size={18} />
                     </button>
-                    <span className="text-slate-400 cursor-pointer hover:text-slate-600" onClick={() => navigate('/')}>Personal</span>
+                    <span className="text-slate-400 cursor-pointer hover:text-slate-600" onClick={() => navigate('/dashboard')}>Personal</span>
                     <span className="text-slate-300">/</span>
                     
                     {isEditingName ? (

@@ -11,6 +11,8 @@ import { AuthModule } from './auth/auth.module';
 import { UploadModule } from './upload/upload.module';
 import { EventsModule } from './events/events.module';
 
+import { AiModule } from './ai/ai.module';
+
 @Module({
   imports: [
     ConfigModule.forRoot({ isGlobal: true }),
@@ -21,6 +23,7 @@ import { EventsModule } from './events/events.module';
     SampleWorkflowModule,
     UploadModule,
     EventsModule,
+    AiModule,
   ],
   controllers: [AppController],
   providers: [AppService],

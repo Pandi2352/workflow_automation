@@ -4,7 +4,6 @@ import {
     LayoutDashboard, Monitor, Database, Activity, ChevronUp, GitCommitHorizontal
 } from 'lucide-react';
 import { ExecutionTimeline } from './ExecutionTimeline';
-import { DataTreeViewer } from '../../common/DataTreeViewer';
 import { ExecutionDataTree } from './ExecutionDataTree';
 
 const formatTime = (dateString: string, includeMs = false) => {

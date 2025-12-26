@@ -1,7 +1,8 @@
 import React, { useEffect, useState } from 'react';
 import { useParams, useNavigate, useBlocker } from 'react-router-dom';
-import { Zap, Plus } from 'lucide-react';
+import { Zap, Plus, Sparkles } from 'lucide-react';
 import { NodeDrawer } from '../components/designer/NodeDrawer';
+import { WorkflowGeneratorModal } from '../components/designer/WorkflowGeneratorModal';
 import { NodeConfigPanel } from '../nodes/google-drive/NodeConfigPanel';
 import { NodeConfigPanel as OneDriveNodeConfigPanel } from '../nodes/onedrive/NodeConfigPanel';
 import { NodeConfigPanel as GmailNodeConfigPanel } from '../nodes/gmail/NodeConfigPanel';
@@ -29,6 +30,7 @@ export const WorkflowDesigner: React.FC = () => {
     const { id } = useParams<{ id: string }>();
     const [isSaving, setIsSaving] = useState(false);
     const [isDrawerOpen, setIsDrawerOpen] = useState(false);
+    const [isAiModalOpen, setIsAiModalOpen] = useState(false);
 
     const navigate = useNavigate();
     const { 
@@ -152,6 +154,13 @@ export const WorkflowDesigner: React.FC = () => {
             console.error('Failed to load workflow', err);
             showToast('Failed to load workflow', 'error');
         }
+    };
+
+    const handleWorkflowGenerated = (newNodes: any[], newEdges: any[]) => {
+        setNodes(newNodes);
+        setEdges(newEdges);
+        setIsDirty(true);
+        showToast('Workflow generated successfully!', 'success');
     };
 
     const handleMetadataSave = (data: { name: string; description: string; active: boolean }) => {
@@ -302,13 +311,21 @@ export const WorkflowDesigner: React.FC = () => {
                         />
 
                         {/* Top Left Controls */}
-                        <div className="absolute top-4 left-4 z-30 flex flex-col gap-2 border border-gray-400 rounded-lg">
-                            <button 
-                            onClick={() => setIsDrawerOpen(true)}
-                            className="w-12 h-12 p-0 rounded-lg shadow-none hover:text-[#10b981] hover:border-[#10b981] flex items-center justify-center bg-white cursor-pointer"
-                            title="Add Node"
+                        <div className="absolute top-4 left-4 z-30 flex flex-col gap-2">
+                             <button 
+                                onClick={() => setIsAiModalOpen(true)}
+                                className="w-12 h-12 p-0 rounded-lg shadow-lg hover:shadow-xl hover:scale-105 flex items-center justify-center bg-gradient-to-br from-indigo-500 to-purple-600 text-white cursor-pointer transition-all border border-white/20"
+                                title="AI Workflow Generator"
                             >
-                            <Plus size={22} className='text-gray-500' />
+                                <Sparkles size={22} />
+                            </button>
+
+                            <button 
+                                onClick={() => setIsDrawerOpen(true)}
+                                className="w-12 h-12 p-0 rounded-lg shadow-md hover:text-[#10b981] hover:border-[#10b981] flex items-center justify-center bg-white cursor-pointer border border-gray-200"
+                                title="Add Node"
+                            >
+                                <Plus size={22} className='text-gray-500' />
                             </button>
                         </div>
                         
@@ -442,6 +459,12 @@ export const WorkflowDesigner: React.FC = () => {
                 onCancel={() => {
                     blocker.reset?.();
                 }}
+            />
+
+            <WorkflowGeneratorModal 
+                isOpen={isAiModalOpen} 
+                onClose={() => setIsAiModalOpen(false)} 
+                onWorkflowGenerated={handleWorkflowGenerated}
             />
         </div>
     );

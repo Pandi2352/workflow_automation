@@ -1,0 +1,38 @@
+Date: 2023-10-20
+Ref No: REF-ABC-CONTRACT-99
+Invoice For: ABC Company
+Project Context: Annual Software License
+Address: 789 Corporate Blvd, Austin, TX
+
+BILLING DETAILS:
+Item: Software License Renewal
+Rate: $2000.00
+
+TOTAL INVOICE AMOUNT: $2,000.00
+PENDING AMOUNT : $0.00
+--------------------------------------------------
+Payment Terms: Due on Receipt
+
+================= PAGE BREAK =================
+
+WIRE TRANSFER CONFIRMATION
+Transaction Type: Wire Transfer
+Date: 2023-10-21
+Confirmation No: W-9992811
+Ref Message: REF-ABC-CONTRACT-99
+
+Sender: ABC Company
+AMOUNT PAID: $1,500.00
+
+================= PAGE BREAK =================
+
+PAYPAL RECEIPT
+Transaction Type: PayPal
+Date: 2023-10-22
+Transaction ID: PP-11223344
+Ref Message: Balance for REF-ABC-CONTRACT-99
+
+From: ABC Company
+AMOUNT PAID: $500.00
+Status: Completed
+
