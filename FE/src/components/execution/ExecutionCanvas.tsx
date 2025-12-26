@@ -17,6 +17,13 @@ import { OneDriveNode } from '../../nodes/onedrive/OneDriveNode';
 import { OCRNode } from '../../nodes/ocr/OCRNode';
 import { SmartExtractionNode } from '../../nodes/smart-extraction/SmartExtractionNode';
 import FileUploadNode from '../../nodes/file-upload/FileUploadNode';
+import { HttpNode } from '../../nodes/http-request/HttpNode';
+import { IfElseNode } from '../../nodes/if-else/IfElseNode';
+import { ParsingNode } from '../../nodes/parsing/ParsingNode';
+import { MongoDBNode } from '../../nodes/mongodb/MongoDBNode';
+import { SummarizeNode } from '../../nodes/summarize/SummarizeNode';
+import { DataMapperNode } from '../../nodes/data-mapper/DataMapperNode';
+import { ScraperNode } from '../../nodes/scraper/ScraperNode';
 
 interface ExecutionCanvasProps {
     executionData?: any;
@@ -28,19 +35,26 @@ const nodeTypes = {
     ONEDRIVE: OneDriveNode,
     GMAIL: GmailNode,
     SCHEDULE: ScheduleNode,
-    OCR: OCRNode, // Registered
-    ocr: OCRNode, // Lowercase alias
+    OCR: OCRNode,
+    ocr: OCRNode,
     SMART_EXTRACTION: SmartExtractionNode,
     smart_extraction: SmartExtractionNode,
     FILE_UPLOAD: FileUploadNode,
     file_upload: FileUploadNode,
+    BROWSER_SCRAPER: ScraperNode,
+    HTTP_REQUEST: HttpNode,
+    IF_ELSE: IfElseNode,
+    MONGODB: MongoDBNode,
+    PARSING: ParsingNode,
+    SUMMARIZE: SummarizeNode,
+    DATA_MAPPER: DataMapperNode,
     default: GenericNode, 
     input: GenericNode,
     webhook: GenericNode,
     api: GenericNode,
     transform: GenericNode,
     output: GenericNode,
-    schedule: ScheduleNode // Handle lowercase just in case
+    schedule: ScheduleNode
 };
 
 const ExecutionCanvasInner: React.FC<ExecutionCanvasProps> = ({ executionData, onNodeClick }) => {

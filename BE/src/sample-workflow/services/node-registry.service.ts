@@ -21,6 +21,7 @@ import { ParsingService } from '../../node-services/parsing.service';
 import { MongoDBService } from '../../node-services/mongodb.service';
 import { HttpRequestNodeStrategy } from '../../node-services/http-request/http-request.strategy';
 import { DataMapperNodeStrategy } from '../../node-services/data-mapper/data-mapper.strategy';
+import { ScraperNodeStrategy } from '../../node-services/scraper/scraper.strategy';
 
 export interface NodeDefinition {
     type: string;
@@ -70,6 +71,34 @@ export class NodeRegistryService {
         this.nodeInstances.set(SampleNodeType.FILE_UPLOAD, new FileUploadNodeStrategy());
         this.nodeInstances.set(SampleNodeType.HTTP_REQUEST, new HttpRequestNodeStrategy());
         this.nodeInstances.set(SampleNodeType.DATA_MAPPER, new DataMapperNodeStrategy());
+        this.nodeInstances.set(SampleNodeType.BROWSER_SCRAPER, new ScraperNodeStrategy(this.ocrService));
+
+        // Register node definitions
+        this.nodeDefinitions.set(SampleNodeType.BROWSER_SCRAPER, {
+            type: SampleNodeType.BROWSER_SCRAPER,
+            name: 'Web Scraper (AI)',
+            description: 'Fetch website content and extract data using AI',
+            category: 'AI / Machine Learning',
+            inputs: 0,
+            outputs: 1,
+            configSchema: {
+                url: {
+                    type: 'string',
+                    description: 'Website URL to scrape',
+                    default: ''
+                },
+                mode: {
+                    type: 'select',
+                    options: ['ai', 'selector'],
+                    default: 'ai'
+                },
+                prompt: {
+                    type: 'string',
+                    description: 'Instructions for AI extraction',
+                    default: 'Extract the title, main article text, and date.'
+                }
+            }
+        });
 
 
         // Register node definitions

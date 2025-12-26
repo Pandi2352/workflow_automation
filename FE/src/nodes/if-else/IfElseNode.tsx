@@ -33,14 +33,14 @@ export const IfElseNode = memo((props: NodeProps) => {
                     {(props.data.config as any)?.condition || 'No condition set'}
                 </div>
                 
-                {!!props.data.executionStatus && (
+                {!!(props.data.executionStatus || (props.data as any).executionStatus) && (
                      <div className="mt-2 flex items-center justify-between text-xs">
                          <span className={`font-semibold flex items-center gap-1 ${
-                             props.data.executionStatus === 'SUCCESS' ? 'text-green-600' :
-                             props.data.executionStatus === 'FAILED' ? 'text-red-600' :
+                             (props.data.executionStatus || (props.data as any).executionStatus) === 'SUCCESS' ? 'text-green-600' :
+                             (props.data.executionStatus || (props.data as any).executionStatus) === 'FAILED' ? 'text-red-600' :
                              'text-blue-600'
                          }`}>
-                             {props.data.executionStatus as string}
+                             {props.data.executionStatus || (props.data as any).executionStatus}
                          </span>
                          {(props.data as any).executionDuration !== undefined && (
                              <span className="text-gray-400">

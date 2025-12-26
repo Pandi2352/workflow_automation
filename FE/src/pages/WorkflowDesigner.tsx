@@ -16,6 +16,7 @@ import { NodeConfigPanel as SmartExtractionNodeConfigPanel } from '../nodes/smar
 import FileUploadConfigPanel from '../nodes/file-upload/NodeConfigPanel';
 import { NodeConfigPanel as HttpNodeConfigPanel } from '../nodes/http-request/NodeConfigPanel';
 import { NodeConfigPanel as DataMapperNodeConfigPanel } from '../nodes/data-mapper/NodeConfigPanel';
+import { NodeConfigPanel as ScraperNodeConfigPanel } from '../nodes/scraper/NodeConfigPanel';
 
 import { DesignerHeader } from '../components/designer/DesignerHeader';
 import { ExecutionModeView } from '../components/execution/ExecutionModeView';
@@ -422,6 +423,8 @@ export const WorkflowDesigner: React.FC = () => {
                                     (ex: any) => ex.nodeId === selectedNode?.id
                                 )} 
                             />
+                        ) : selectedNode && selectedNode.type === 'BROWSER_SCRAPER' ? (
+                            <ScraperNodeConfigPanel />
                         ) : selectedNode && (
                             <NodeConfigPanel 
                                 nodeExecutionData={currentExecution?.nodeExecutions?.find(

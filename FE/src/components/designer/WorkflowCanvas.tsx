@@ -29,6 +29,7 @@ import { SmartExtractionNode } from '../../nodes/smart-extraction/SmartExtractio
 import FileUploadNode from '../../nodes/file-upload/FileUploadNode';
 import { HttpNode } from '../../nodes/http-request/HttpNode';
 import { DataMapperNode } from '../../nodes/data-mapper/DataMapperNode';
+import { ScraperNode } from '../../nodes/scraper/ScraperNode';
 
 import { DeletableEdge } from './DeletableEdge';
 import { CollaborativeCursors } from './CollaborativeCursors';
@@ -58,6 +59,7 @@ const nodeTypes = {
     FILE_UPLOAD: FileUploadNode,
     HTTP_REQUEST: HttpNode,
     DATA_MAPPER: DataMapperNode,
+    BROWSER_SCRAPER: ScraperNode,
     default: GenericNode, // Fallback
     input: GenericNode,
     webhook: GenericNode,

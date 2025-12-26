@@ -104,16 +104,16 @@ export const HttpNode = memo(({ id, data, isConnectable, selected }: NodeProps) 
                 </div>
 
                 {/* Status Line */}
-                {!!nodeData.executionStatus && (
+                {!!(nodeData.executionStatus || (data as any).executionStatus) && (
                     <div className={`h-[3px] w-full ${
-                        nodeData.executionStatus === 'SUCCESS' ? 'bg-green-500' : 
-                        nodeData.executionStatus === 'FAILED' ? 'bg-red-500' : 
+                        (nodeData.executionStatus || (data as any).executionStatus) === 'SUCCESS' ? 'bg-green-500' : 
+                        (nodeData.executionStatus || (data as any).executionStatus) === 'FAILED' ? 'bg-red-500' : 
                         'bg-blue-500 animate-pulse'
                     }`} />
                 )}
 
                  {/* Loading Spinner Overlay */}
-                 {nodeData.executionStatus === 'RUNNING' && (
+                 {(nodeData.executionStatus === 'RUNNING' || (data as any).executionStatus === 'RUNNING') && (
                     <div className="absolute inset-0 bg-white/50 z-40 flex items-center justify-center rounded-lg backdrop-blur-[1px]">
                          <div className="w-6 h-6 border-2 border-cyan-600 border-t-transparent rounded-full animate-spin"></div>
                     </div>

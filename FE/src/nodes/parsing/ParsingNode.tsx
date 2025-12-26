@@ -33,14 +33,14 @@ export const ParsingNode = memo((props: NodeProps) => {
                     Extracts structured data
                 </div>
                 
-                {!!props.data.executionStatus && (
+                {!!(props.data.executionStatus || (props.data as any).executionStatus) && (
                      <div className="mt-2 flex items-center justify-between text-xs">
                          <span className={`font-semibold flex items-center gap-1 ${
-                             props.data.executionStatus === 'SUCCESS' ? 'text-green-600' :
-                             props.data.executionStatus === 'FAILED' ? 'text-red-600' :
+                             (props.data.executionStatus || (props.data as any).executionStatus) === 'SUCCESS' ? 'text-green-600' :
+                             (props.data.executionStatus || (props.data as any).executionStatus) === 'FAILED' ? 'text-red-600' :
                              'text-blue-600'
                          }`}>
-                             {String(props.data.executionStatus)}
+                             {String(props.data.executionStatus || (props.data as any).executionStatus)}
                          </span>
                          {(props.data as any).executionResults?.confidenceScore && (
                              <span className="text-amber-600 font-medium">

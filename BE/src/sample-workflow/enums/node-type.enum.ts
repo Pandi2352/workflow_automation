@@ -13,5 +13,6 @@ export enum SampleNodeType {
     FILE_UPLOAD = 'FILE_UPLOAD',
     HTTP_REQUEST = 'HTTP_REQUEST',
     DATA_MAPPER = 'DATA_MAPPER',
+    BROWSER_SCRAPER = 'BROWSER_SCRAPER',
 }
 // Force recompile

@@ -1,5 +1,5 @@
 import React, { useState, useMemo } from 'react';
-import { Search, X, ChevronRight, Zap, Split, ArrowUpRight, Clock, FileText, Database, Cpu, BrainCircuit, Upload } from 'lucide-react';
+import { Search, X, ChevronRight, Zap, Split, ArrowUpRight, Clock, FileText, Database, Cpu, BrainCircuit, Upload, Earth } from 'lucide-react';
 import googleDriveIcon from '../../assets/nodeIcons/google-drive-svgrepo-com.svg';
 import oneDriveIcon from '../../assets/nodeIcons/ms-onedrive-svgrepo-com.svg';
 import gmailIcon from '../../assets/nodeIcons/gmail-icon-logo-svgrepo-com.svg';
@@ -47,6 +47,7 @@ const availableNodes: NodeType[] = [
 
     { type: 'SMART_EXTRACTION', label: 'Smart Extract', description: 'Extract specific data points from documents', icon: BrainCircuit, color: 'text-indigo-600', category: 'ACTION' },
     { type: 'MONGODB', label: 'MongoDB', description: 'Store data for review', icon: Database, color: 'text-green-600', category: 'ACTION' },
+    { type: 'BROWSER_SCRAPER', label: 'Web Scraper', description: 'Fetch and extract data from URLs', icon: Earth, color: 'text-indigo-500', category: 'ACTION' },
     
     // Export
     { type: 'HTTP_REQUEST', label: 'HTTP Request', description: 'Send data to external API', icon: ArrowUpRight, color: 'text-cyan-500', category: 'EXPORT' },
