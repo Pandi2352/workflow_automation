@@ -29,11 +29,14 @@ import { WorkflowCanvas } from '../components/designer/WorkflowCanvas';
 import { UnsavedChangesModal } from '../components/modals/UnsavedChangesModal';
 
 
+import { CreateWorkflowSelector } from '../components/designer/CreateWorkflowSelector';
+
 export const WorkflowDesigner: React.FC = () => {
     const { id } = useParams<{ id: string }>();
     const [isSaving, setIsSaving] = useState(false);
     const [isDrawerOpen, setIsDrawerOpen] = useState(false);
     const [isAiModalOpen, setIsAiModalOpen] = useState(false);
+    const [showSelector, setShowSelector] = useState(false);
 
     const navigate = useNavigate();
     const { 
@@ -41,7 +44,8 @@ export const WorkflowDesigner: React.FC = () => {
         setWorkflowMetadata, workflowName, workflowDescription, isWorkflowActive,
         toast, showToast, hideToast, executionTrigger, 
         currentExecution, setCurrentExecution,
-        isDirty, setIsDirty
+        isDirty, setIsDirty,
+        resetWorkflowStore
     } = useWorkflowStore(); 
 
     // -- Unsaved Changes Blocking Logic --
@@ -105,13 +109,22 @@ export const WorkflowDesigner: React.FC = () => {
 
     useEffect(() => {
         if (id === 'new') {
-             setNodes([]);
-             setEdges([]);
-             setIsMetadataModalOpen(true);
+             resetWorkflowStore();
+             setShowSelector(true);
         } else if (id) {
             loadWorkflow(id);
         }
     }, [id]);
+
+    const handleSelectAi = () => {
+        setShowSelector(false);
+        setIsAiModalOpen(true);
+    };
+
+    const handleSelectScratch = () => {
+        setShowSelector(false);
+        setIsMetadataModalOpen(true);
+    };
 
     const loadWorkflow = async (workflowId: string) => {
         try {
@@ -483,6 +496,13 @@ export const WorkflowDesigner: React.FC = () => {
                 onClose={() => setIsAiModalOpen(false)} 
                 onWorkflowGenerated={handleWorkflowGenerated}
             />
+
+            {showSelector && (
+                <CreateWorkflowSelector 
+                    onSelectAi={handleSelectAi}
+                    onSelectScratch={handleSelectScratch}
+                />
+            )}
         </div>
     );
 };
