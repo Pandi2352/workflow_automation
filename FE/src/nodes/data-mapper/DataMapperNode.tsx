@@ -6,6 +6,7 @@ import { axiosInstance } from '../../api/axiosConfig';
 
 interface DataMapperNodeData extends Record<string, unknown> {
     label?: string;
+    description?: string;
     executionStatus?: string;
     config?: {
         mappings?: any[];
@@ -77,7 +78,9 @@ export const DataMapperNode = memo(({ id, data, isConnectable, selected }: NodeP
                          <Split size={16} />
                     </div>
                     <div>
-                        <span className="block text-[10px] font-bold text-slate-800 uppercase tracking-tight leading-none mb-0.5">DATA MAPPER</span>
+                        <span className="block text-[10px] font-bold text-slate-800 uppercase tracking-tight leading-none mb-0.5 truncate max-w-[150px]">
+                            {String(nodeData.label || 'DATA MAPPER')}
+                        </span>
                         <span className="text-[8px] font-bold text-pink-500 uppercase tracking-tighter">Transformation</span>
                     </div>
                 </div>
@@ -85,6 +88,11 @@ export const DataMapperNode = memo(({ id, data, isConnectable, selected }: NodeP
 
             {/* Body Content */}
             <div className="p-3 bg-white space-y-3">
+                 {nodeData.description && (
+                    <p className="text-[9px] text-slate-400 font-medium leading-relaxed line-clamp-2 italic mb-1 px-1">
+                        {String(nodeData.description)}
+                    </p>
+                 )}
                  <div className="flex items-center justify-between bg-slate-50 p-2 rounded-lg border border-slate-100">
                     <span className="text-[10px] text-slate-500 font-medium tracking-tight">Mapped Fields</span>
                     <span className="text-[10px] font-bold text-pink-600 bg-white px-2 py-0.5 rounded border border-pink-100">

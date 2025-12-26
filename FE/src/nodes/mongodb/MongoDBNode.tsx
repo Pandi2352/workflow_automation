@@ -5,6 +5,7 @@ import { useWorkflowStore } from '../../store/workflowStore';
 
 interface MongoDBNodeData extends Record<string, unknown> {
     label?: string;
+    description?: string;
     config?: {
         dbName?: string;
         collectionName?: string;

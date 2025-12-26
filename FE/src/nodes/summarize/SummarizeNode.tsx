@@ -6,6 +6,7 @@ import { axiosInstance } from '../../api/axiosConfig';
 
 interface SummarizeNodeData extends Record<string, unknown> {
     label?: string;
+    description?: string;
     executionStatus?: string;
     config?: {
         modelName?: string;
@@ -77,7 +78,9 @@ export const SummarizeNode = memo(({ id, data, isConnectable, selected }: NodePr
                          <AlignLeft size={16} />
                     </div>
                     <div>
-                        <span className="block text-[10px] font-bold text-slate-800 uppercase tracking-tight leading-none mb-0.5">SUMMARIZE</span>
+                        <span className="block text-[10px] font-bold text-slate-800 uppercase tracking-tight leading-none mb-0.5 truncate max-w-[150px]">
+                            {String(nodeData.label || 'SUMMARIZE')}
+                        </span>
                         <span className="text-[8px] font-bold text-violet-500 uppercase tracking-tighter flex items-center gap-0.5">
                             <Sparkles size={8} /> AI ASSISTANT
                         </span>
@@ -87,17 +90,22 @@ export const SummarizeNode = memo(({ id, data, isConnectable, selected }: NodePr
 
             {/* Body Content */}
             <div className="p-3 bg-white space-y-3">
+                 {nodeData.description && (
+                    <p className="text-[9px] text-slate-400 font-medium leading-relaxed line-clamp-2 italic mb-1 px-1">
+                        {String(nodeData.description)}
+                    </p>
+                 )}
                  <div className="bg-slate-50 p-2 rounded-lg border border-slate-100">
                     <div className="flex justify-between items-center text-[10px] mb-1">
                         <span className="text-slate-500 font-medium">Model</span>
-                        <span className="text-violet-700 font-bold bg-violet-50 px-1.5 py-0.5 rounded border border-violet-100">
-                            {nodeData.config?.modelName?.replace('gemini-', '') || '1.5-flash'}
+                        <span className="text-violet-700 font-bold bg-violet-50 px-1.5 py-0.5 rounded border border-violet-100 uppercase">
+                            {String(nodeData.config?.modelName?.replace('gemini-', '') ?? '1.5-flash')}
                         </span>
                     </div>
                     <div className="flex justify-between items-center text-[10px]">
                         <span className="text-slate-500 font-medium">Status</span>
                         <span className={`font-bold px-1.5 py-0.5 rounded border ${nodeData.config?.credentialId ? 'text-green-700 bg-green-50 border-green-200' : 'text-amber-700 bg-amber-50 border-amber-200'}`}>
-                            {nodeData.config?.credentialId ? 'Ready' : 'Pending'}
+                            {String(nodeData.config?.credentialId ? 'Ready' : 'Pending')}
                         </span>
                     </div>
                  </div>
@@ -136,3 +144,5 @@ export const SummarizeNode = memo(({ id, data, isConnectable, selected }: NodePr
         </div>
     );
 });
+
+export default SummarizeNode;

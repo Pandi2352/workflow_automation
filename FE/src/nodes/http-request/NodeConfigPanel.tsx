@@ -1,11 +1,11 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { useWorkflowStore } from '../../store/workflowStore';
-import { X, Globe, Key, Database, Play, CheckCircle2, AlertCircle, Plus, Trash2, ArrowUpRight, Zap, RefreshCw } from 'lucide-react';
+import { X, Globe, Key, Database, Play, CheckCircle2, AlertCircle, Plus, Trash2, ArrowUpRight, RefreshCw } from 'lucide-react';
 import { NodeDataSidebar } from '../../components/designer/NodeDataSidebar';
 import { axiosInstance } from '../../api/axiosConfig';
 import { DataTreeViewer } from '../../common/DataTreeViewer';
 
-export const NodeConfigPanel: React.FC<{ nodeExecutionData?: any }> = ({ nodeExecutionData }) => {
+export const NodeConfigPanel: React.FC<{ nodeExecutionData?: any }> = () => {
     const { selectedNode, updateNodeData, setSelectedNode, nodes, edges, currentExecution } = useWorkflowStore();
     const [isExecuting, setIsExecuting] = useState(false);
     const [testResult, setTestResult] = useState<any>(null);

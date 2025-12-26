@@ -6,12 +6,12 @@ import { axiosInstance } from '../../api/axiosConfig';
 
 interface OCRNodeData extends Record<string, unknown> {
     label?: string;
+    description?: string;
     executionStatus?: string;
     config?: {
         modelName?: string;
         files?: any;
         file?: any;
-        credentialId?: string;
         [key: string]: any;
     };
 }
@@ -41,6 +41,11 @@ export const OCRNode = memo(({ id, data, isConnectable, selected }: NodeProps) =
         }
     };
 
+    const handleDelete = (e: React.MouseEvent) => {
+        e.stopPropagation();
+        deleteNode(id);
+    };
+
     const getStatusColor = () => {
         if (isRunning) return 'border-purple-400 shadow-[0_0_15px_rgba(168,85,247,0.5)]';
         if (isSuccess) return 'border-green-400 shadow-[0_0_15px_rgba(74,222,128,0.3)]';
@@ -62,7 +67,7 @@ export const OCRNode = memo(({ id, data, isConnectable, selected }: NodeProps) =
                         <Play size={14} />
                     </button>
                     <button 
-                        onClick={(e) => { e.stopPropagation(); deleteNode(id); }}
+                        onClick={handleDelete}
                         className="p-1 text-slate-500 hover:text-red-600 hover:bg-red-50 rounded-full transition-colors cursor-pointer"
                         title="Delete Node"
                     >
@@ -78,7 +83,9 @@ export const OCRNode = memo(({ id, data, isConnectable, selected }: NodeProps) =
                         <FileText size={16} strokeWidth={2.5} />
                     </div>
                     <div>
-                        <span className="block text-[10px] font-bold text-slate-800 uppercase tracking-tight leading-none mb-0.5">OCR PROCESSING</span>
+                        <span className="block text-[10px] font-bold text-slate-800 uppercase tracking-tight leading-none mb-0.5 truncate max-w-[150px]">
+                            {String(nodeData.label || 'OCR PROCESSING')}
+                        </span>
                         <span className="text-[8px] font-bold text-purple-500 uppercase tracking-tighter flex items-center gap-0.5">
                             <Cpu size={8} fill="currentColor" /> AI ENGINE
                         </span>
@@ -88,19 +95,23 @@ export const OCRNode = memo(({ id, data, isConnectable, selected }: NodeProps) =
 
             {/* Body Content */}
             <div className="p-3 bg-white space-y-3">
+                 {nodeData.description && (
+                    <p className="text-[9px] text-slate-400 font-medium leading-relaxed line-clamp-2 italic mb-1 px-1">
+                        {String(nodeData.description)}
+                    </p>
+                 )}
                  <div className="bg-slate-50 p-2 rounded-lg border border-slate-100 space-y-2">
                     <div className="flex justify-between items-center text-[10px]">
-                        <span className="text-slate-500 font-medium">Model</span>
-                        <span className="text-slate-700 font-bold bg-white px-1.5 py-0.5 rounded border border-slate-200">
-                            {nodeData.config?.modelName?.replace('gemini-', '') || '1.5-flash'}
+                        <span className="text-slate-500 font-medium tracking-tight">Model</span>
+                        <span className="text-slate-700 font-bold bg-white px-1.5 py-0.5 rounded border border-slate-200 uppercase">
+                            {String(nodeData.config?.modelName?.replace('gemini-', '') || '1.5-flash')}
                         </span>
                     </div>
                     <div className="flex justify-between items-center text-[10px]">
-                        <span className="text-slate-500 font-medium">Credential</span>
-                        <div className={`flex items-center gap-1 font-bold ${nodeData.config?.credentialId ? 'text-emerald-600' : 'text-amber-600'}`}>
-                            <Key size={10} />
-                            {nodeData.config?.credentialId ? 'ACTIVE' : 'MISSING'}
-                        </div>
+                        <span className="text-slate-500 font-medium tracking-tight">Credentials</span>
+                        <span className={`font-bold px-1.5 py-0.5 rounded border ${nodeData.config?.credentialId ? 'text-green-700 bg-green-50 border-green-200' : 'text-amber-700 bg-amber-50 border-amber-200'}`}>
+                            {nodeData.config?.credentialId ? 'SET' : 'MISSING'}
+                        </span>
                     </div>
                  </div>
             </div>
@@ -127,13 +138,13 @@ export const OCRNode = memo(({ id, data, isConnectable, selected }: NodeProps) =
                 type="target" 
                 position={Position.Left} 
                 isConnectable={isConnectable}
-                className="!w-2 !h-4 !bg-slate-400 !border-2 !border-white !rounded-sm transition-all hover:!bg-purple-500 shadow-sm" 
+                className="!w-2 !h-4 !bg-slate-400 !border-2 !border-white !rounded-sm transition-all hover:!bg-purple-500 -left-[7px]" 
             />
             <Handle 
                 type="source" 
                 position={Position.Right} 
                 isConnectable={isConnectable}
-                className="!w-2 !h-4 !bg-slate-400 !border-2 !border-white !rounded-sm transition-all hover:!bg-purple-500 shadow-sm" 
+                className="!w-2 !h-4 !bg-slate-400 !border-2 !border-white !rounded-sm transition-all hover:!bg-purple-500 -right-[7px]" 
             />
         </div>
     );

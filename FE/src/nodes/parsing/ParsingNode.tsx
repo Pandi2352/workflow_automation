@@ -1,14 +1,22 @@
 import { memo } from 'react';
 import { Handle, Position, type NodeProps } from '@xyflow/react';
-import { Cpu, Zap, Trash2, Play, Table } from 'lucide-react';
+import { Cpu, Play, Trash2 } from 'lucide-react';
 import { useWorkflowStore } from '../../store/workflowStore';
 import { axiosInstance } from '../../api/axiosConfig';
 
+interface ParsingNodeData extends Record<string, unknown> {
+    label?: string;
+    description?: string;
+    executionStatus?: string;
+    config?: any;
+}
+
 export const ParsingNode = memo(({ id, data, isConnectable, selected }: NodeProps) => {
+    const nodeData = data as ParsingNodeData;
     const { deleteNode, showToast, currentExecution } = useWorkflowStore();
 
     // Find execution status
-    const nodeStatus = (data as any).executionStatus || currentExecution?.nodeExecutions?.find((ex: any) => ex.nodeId === id)?.status;
+    const nodeStatus = nodeData.executionStatus || currentExecution?.nodeExecutions?.find((ex: any) => ex.nodeId === id)?.status;
     const isRunning = nodeStatus === 'RUNNING';
     const isSuccess = nodeStatus === 'SUCCESS';
     const isFailed = nodeStatus === 'FAILED';
@@ -18,14 +26,19 @@ export const ParsingNode = memo(({ id, data, isConnectable, selected }: NodeProp
         showToast('Testing node...', 'info');
         try {
             await axiosInstance.post('/sample-workflows/nodes/test', {
-                nodeType: 'FILE-PARSE',
-                nodeData: data.config || {},
-                inputs: [] 
+                nodeType: 'PARSING',
+                nodeData: nodeData.config || {},
+                inputs: []
             });
             showToast('Node test successful', 'success');
         } catch (error: any) {
             showToast('Node test failed', 'error', error.message);
         }
+    };
+
+    const handleDelete = (e: React.MouseEvent) => {
+        e.stopPropagation();
+        deleteNode(id);
     };
 
     const getStatusColor = () => {
@@ -38,18 +51,18 @@ export const ParsingNode = memo(({ id, data, isConnectable, selected }: NodeProp
     return (
         <div className={`relative group min-w-[200px] bg-white rounded-xl border-2 transition-all duration-300 ${getStatusColor()}`}>
             
-            {/* Top Toolbar - Actions */}
-            <div className="absolute bottom-full right-0 pb-1 flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-all duration-200 z-50 scale-95 group-hover:scale-100 pointer-events-none group-hover:pointer-events-auto">
+             {/* Hover Toolbar */}
+             <div className="absolute bottom-full right-0 pb-1 flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-all duration-200 z-50 scale-95 group-hover:scale-100 pointer-events-none group-hover:pointer-events-auto">
                  <div className="flex items-center gap-1">
                     <button 
                         onClick={handleTestNode}
                         className="p-1 text-slate-500 hover:text-indigo-600 hover:bg-indigo-50 rounded-full transition-colors cursor-pointer"
                         title="Test Node"
                     >
-                        <Play size={14} fill="currentColor" />
+                        <Play size={14} />
                     </button>
                     <button 
-                        onClick={(e) => { e.stopPropagation(); deleteNode(id); }}
+                        onClick={handleDelete}
                         className="p-1 text-slate-500 hover:text-red-600 hover:bg-red-50 rounded-full transition-colors cursor-pointer"
                         title="Delete Node"
                     >
@@ -57,46 +70,40 @@ export const ParsingNode = memo(({ id, data, isConnectable, selected }: NodeProp
                     </button>
                 </div>
             </div>
-
-            {/* Header Section */}
+             {/* Header */}
             <div className="flex items-center justify-between px-3 py-2 bg-gradient-to-r from-indigo-50 to-white border-b border-indigo-100/50 rounded-t-[10px]">
                 <div className="flex items-center gap-2">
-                    <div className="w-6 h-6 flex items-center justify-center bg-indigo-100 rounded text-indigo-600 shrink-0">
-                        <Cpu size={16} strokeWidth={2.5} />
+                    <div className="p-1.5 bg-indigo-100 rounded-md text-indigo-600">
+                         <Cpu size={16} />
                     </div>
                     <div>
-                        <span className="block text-[10px] font-bold text-slate-800 uppercase tracking-tight leading-none mb-0.5">FILE PARSING</span>
-                        <span className="text-[8px] font-bold text-indigo-500 uppercase tracking-tighter flex items-center gap-0.5">
-                            <Zap size={8} fill="currentColor" /> AI ENGINE
+                        <span className="block text-[10px] font-bold text-slate-800 uppercase tracking-tight leading-none mb-0.5 truncate max-w-[150px]">
+                            {String(nodeData.label || 'AI PARSING')}
                         </span>
+                        <span className="text-[8px] font-bold text-indigo-500 uppercase tracking-tighter">AI ENGINE</span>
                     </div>
                 </div>
             </div>
 
-            {/* Body Content */}
+            {/* Body */}
             <div className="p-3 bg-white space-y-3">
-                 <div className="bg-slate-50 p-2 rounded-lg border border-slate-100">
-                    <span className="block text-xs font-bold text-slate-900 leading-tight truncate px-1" title={data.label as string || 'AI Parsing'}>
-                        {data.label as string || 'AI Parsing'}
-                    </span>
-                    <div className="flex items-center gap-2 mt-1 px-1">
-                        <Table size={10} className="text-slate-400" />
-                        <span className="text-[10px] text-slate-400 font-medium lowercase">structured extraction</span>
-                    </div>
-                    
-                    {/* Confidence Score */}
-                    {(data as any).executionResults?.confidenceScore && (
-                        <div className="mt-2 pt-2 border-t border-slate-100 flex items-center justify-between px-1">
-                            <span className="text-[9px] text-slate-500 font-bold uppercase tracking-wider">Confidence</span>
-                            <span className={`text-[10px] font-bold ${
-                                (data as any).executionResults.confidenceScore > 0.8 ? 'text-emerald-600' : 
-                                (data as any).executionResults.confidenceScore > 0.5 ? 'text-amber-600' : 'text-red-600'
-                            }`}>
-                                {((data as any).executionResults.confidenceScore * 100).toFixed(0)}%
-                            </span>
-                        </div>
-                    )}
+                 {nodeData.description && (
+                    <p className="text-[9px] text-slate-400 font-medium leading-relaxed line-clamp-2 italic mb-1 px-1">
+                        {String(nodeData.description)}
+                    </p>
+                 )}
+                 <div className="bg-slate-50 p-2 rounded-lg border border-slate-100 italic text-[10px] text-slate-500 text-center">
+                    Extracts structured data
                  </div>
+                 
+                 {(data as any).executionResults?.confidenceScore && (
+                     <div className="flex items-center justify-between text-[10px] px-1">
+                         <span className="text-slate-500">Confidence</span>
+                         <span className="text-amber-600 font-bold">
+                             {((data as any).executionResults.confidenceScore * 100).toFixed(0)}%
+                         </span>
+                     </div>
+                 )}
             </div>
 
             {/* Execution Status Indicator */}
@@ -117,17 +124,17 @@ export const ParsingNode = memo(({ id, data, isConnectable, selected }: NodeProp
                 <div className="absolute inset-0 bg-indigo-50/10 backdrop-blur-[0.5px] rounded-xl animate-pulse pointer-events-none" />
             )}
 
-            <Handle 
-                type="target" 
-                position={Position.Left} 
+            <Handle
+                type="target"
+                position={Position.Left}
                 isConnectable={isConnectable}
-                className="!w-2 !h-4 !bg-slate-400 !border-2 !border-white !rounded-sm transition-all hover:!bg-indigo-500 shadow-sm" 
+                className="!w-2 !h-4 !bg-slate-400 !border-2 !border-white !rounded-sm transition-all hover:!bg-indigo-500 shadow-sm"
             />
-            <Handle 
-                type="source" 
-                position={Position.Right} 
+            <Handle
+                type="source"
+                position={Position.Right}
                 isConnectable={isConnectable}
-                className="!w-2 !h-4 !bg-slate-400 !border-2 !border-white !rounded-sm transition-all hover:!bg-indigo-500 shadow-sm" 
+                className="!w-2 !h-4 !bg-slate-400 !border-2 !border-white !rounded-sm transition-all hover:!bg-indigo-500 shadow-sm"
             />
         </div>
     );

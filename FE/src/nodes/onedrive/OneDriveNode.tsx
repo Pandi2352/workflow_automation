@@ -8,6 +8,7 @@ import oneDriveIcon from '../../assets/nodeIcons/ms-onedrive-svgrepo-com.svg';
 
 interface OneDriveNodeData extends Record<string, unknown> {
     label?: string;
+    description?: string;
     executionStatus?: string;
 }
 

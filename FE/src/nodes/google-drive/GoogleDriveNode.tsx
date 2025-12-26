@@ -7,6 +7,7 @@ import googleDriveIcon from '../../assets/nodeIcons/google-drive-svgrepo-com.svg
 
 interface GoogleDriveNodeData extends Record<string, unknown> {
     label?: string;
+    description?: string;
     executionStatus?: string;
 }
 

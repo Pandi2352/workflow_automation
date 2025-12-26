@@ -7,6 +7,7 @@ import gmailIcon from '../../assets/nodeIcons/gmail-icon-logo-svgrepo-com.svg';
 
 interface GmailNodeData extends Record<string, unknown> {
     label?: string;
+    description?: string;
     executionStatus?: string;
     config?: {
         mode?: 'action' | 'trigger';

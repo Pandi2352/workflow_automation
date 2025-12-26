@@ -6,6 +6,7 @@ import { axiosInstance } from '../../api/axiosConfig';
 
 interface HttpNodeData extends Record<string, unknown> {
     label?: string;
+    description?: string;
     executionStatus?: string;
     config?: {
         method?: string;
@@ -87,7 +88,9 @@ export const HttpNode = memo(({ id, data, isConnectable, selected }: NodeProps) 
                          <Globe size={16} />
                     </div>
                     <div>
-                        <span className="block text-[10px] font-bold text-slate-800 uppercase tracking-tight leading-none mb-0.5">HTTP REQUEST</span>
+                        <span className="block text-[10px] font-bold text-slate-800 uppercase tracking-tight leading-none mb-0.5 truncate max-w-[150px]">
+                            {String(nodeData.label || 'HTTP REQUEST')}
+                        </span>
                         <span className="text-[8px] font-bold text-cyan-500 uppercase tracking-tighter">REST API</span>
                     </div>
                 </div>
@@ -95,12 +98,17 @@ export const HttpNode = memo(({ id, data, isConnectable, selected }: NodeProps) 
 
             {/* Body Content */}
             <div className="p-3 bg-white space-y-3">
+                 {nodeData.description && (
+                    <p className="text-[9px] text-slate-400 font-medium leading-relaxed line-clamp-2 italic mb-1 px-1">
+                        {String(nodeData.description)}
+                    </p>
+                 )}
                  <div className="flex items-center gap-2 bg-slate-50 p-2 rounded-lg border border-slate-100">
-                    <span className={`text-[9px] font-bold px-1.5 py-0.5 rounded border leading-none ${methodColor()}`}>
-                        {nodeData.config?.method || 'GET'}
+                     <span className={`text-[9px] font-bold px-1.5 py-0.5 rounded border leading-none ${methodColor()}`}>
+                        {String(nodeData.config?.method || 'GET')}
                     </span>
-                    <span className="text-[10px] font-mono text-slate-600 truncate flex-1" title={nodeData.config?.url}>
-                        {nodeData.config?.url || 'https://api.example.com...'}
+                    <span className="text-[10px] font-mono text-slate-600 truncate flex-1" title={String(nodeData.config?.url || '')}>
+                        {String(nodeData.config?.url || 'https://api.example.com...')}
                     </span>
                  </div>
             </div>

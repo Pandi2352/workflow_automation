@@ -77,9 +77,11 @@ interface WorkflowState {
     executionTrigger: number;
     triggerWorkflowExecution: () => void;
 
+    // Reset
+    resetWorkflowStore: () => void;
+
     // Helpers
     deleteNode: (id: string) => void;
-    resetWorkflowStore: () => void;
 }
 
 const MAX_HISTORY = 20;
@@ -275,6 +277,25 @@ export const useWorkflowStore = create<WorkflowState>()((set, get) => ({
     executionTrigger: 0,
     triggerWorkflowExecution: () => set({ executionTrigger: Date.now() }),
 
+    // Reset State
+    resetWorkflowStore: () => {
+        set({
+            nodes: [],
+            edges: [],
+            selectedNode: null,
+            isDirty: false,
+            past: [],
+            future: [],
+            workflowName: 'Untitled Workflow',
+            workflowDescription: '',
+            isWorkflowActive: true,
+            currentExecution: null,
+            isExecuting: false,
+            executionTrigger: 0,
+            activeTab: 'editor'
+        });
+    },
+
     // Deletion helper
     deleteNode: (id: string) => {
         get().pushToHistory();
@@ -283,22 +304,6 @@ export const useWorkflowStore = create<WorkflowState>()((set, get) => ({
             nodes: nodes.filter(n => n.id !== id),
             edges: edges.filter(e => e.source !== id && e.target !== id),
             isDirty: true
-        });
-    },
-
-    resetWorkflowStore: () => {
-        set({
-            nodes: [],
-            edges: [],
-            past: [],
-            future: [],
-            selectedNode: null,
-            isDirty: false,
-            workflowName: 'Untitled Workflow',
-            workflowDescription: '',
-            isWorkflowActive: true,
-            currentExecution: null,
-            activeTab: 'editor'
         });
     }
 }));

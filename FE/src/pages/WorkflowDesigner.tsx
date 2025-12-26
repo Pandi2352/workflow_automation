@@ -19,6 +19,7 @@ import { NodeConfigPanel as DataMapperNodeConfigPanel } from '../nodes/data-mapp
 import { NodeConfigPanel as ScraperNodeConfigPanel } from '../nodes/scraper/NodeConfigPanel';
 
 import { DesignerHeader } from '../components/designer/DesignerHeader';
+import { CreateWorkflowSelector } from '../components/designer/CreateWorkflowSelector';
 import { ExecutionModeView } from '../components/execution/ExecutionModeView';
 import { useWorkflowStore } from '../store/workflowStore';
 import { workflowService } from '../services/api/workflows';
@@ -28,8 +29,6 @@ import { Toast } from '../common/Toast';
 import { WorkflowCanvas } from '../components/designer/WorkflowCanvas';
 import { UnsavedChangesModal } from '../components/modals/UnsavedChangesModal';
 
-
-import { CreateWorkflowSelector } from '../components/designer/CreateWorkflowSelector';
 
 export const WorkflowDesigner: React.FC = () => {
     const { id } = useParams<{ id: string }>();
@@ -44,8 +43,7 @@ export const WorkflowDesigner: React.FC = () => {
         setWorkflowMetadata, workflowName, workflowDescription, isWorkflowActive,
         toast, showToast, hideToast, executionTrigger, 
         currentExecution, setCurrentExecution,
-        isDirty, setIsDirty,
-        resetWorkflowStore
+        isDirty, setIsDirty, resetWorkflowStore
     } = useWorkflowStore(); 
 
     // -- Unsaved Changes Blocking Logic --
@@ -115,16 +113,6 @@ export const WorkflowDesigner: React.FC = () => {
             loadWorkflow(id);
         }
     }, [id]);
-
-    const handleSelectAi = () => {
-        setShowSelector(false);
-        setIsAiModalOpen(true);
-    };
-
-    const handleSelectScratch = () => {
-        setShowSelector(false);
-        setIsMetadataModalOpen(true);
-    };
 
     const loadWorkflow = async (workflowId: string) => {
         try {
@@ -499,8 +487,18 @@ export const WorkflowDesigner: React.FC = () => {
 
             {showSelector && (
                 <CreateWorkflowSelector 
-                    onSelectAi={handleSelectAi}
-                    onSelectScratch={handleSelectScratch}
+                    onSelectAI={() => {
+                        setShowSelector(false);
+                        setIsAiModalOpen(true);
+                    }}
+                    onSelectScratch={() => {
+                        setShowSelector(false);
+                        setIsMetadataModalOpen(true);
+                    }}
+                    onClose={() => {
+                        setShowSelector(false);
+                        if (nodes.length === 0) navigate('/dashboard');
+                    }}
                 />
             )}
         </div>

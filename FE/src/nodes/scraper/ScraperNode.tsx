@@ -5,19 +5,20 @@ import { useWorkflowStore } from '../../store/workflowStore';
 
 interface ScraperNodeData extends Record<string, unknown> {
     label?: string;
+    description?: string;
+    executionStatus?: string;
     config?: {
         url?: string;
         [key: string]: any;
     };
 }
 
-export const ScraperNode: React.FC<NodeProps> = ({ id, data, selected }) => {
+export const ScraperNode: React.FC<NodeProps> = ({ id, data, selected, isConnectable }) => {
     const nodeData = data as ScraperNodeData;
     const { deleteNode, currentExecution } = useWorkflowStore();
     
     // Find execution status for this node
-    // Priority: 1. data.executionStatus (passed by ExecutionCanvas), 2. currentExecution (from store)
-    const nodeStatus = (data as any).executionStatus || currentExecution?.nodeExecutions?.find((ex: any) => ex.nodeId === id)?.status;
+    const nodeStatus = nodeData.executionStatus || currentExecution?.nodeExecutions?.find((ex: any) => ex.nodeId === id)?.status;
     const isRunning = nodeStatus === 'RUNNING';
     const isSuccess = nodeStatus === 'SUCCESS';
     const isFailed = nodeStatus === 'FAILED';
@@ -37,7 +38,7 @@ export const ScraperNode: React.FC<NodeProps> = ({ id, data, selected }) => {
                  <div className="flex items-center gap-1">
                     <button 
                         className="p-1 text-slate-500 hover:text-indigo-600 hover:bg-indigo-50 rounded-full transition-colors cursor-pointer"
-                        title="Run Now"
+                        title="Test Node"
                     >
                         <Play size={14} />
                     </button>
@@ -57,8 +58,8 @@ export const ScraperNode: React.FC<NodeProps> = ({ id, data, selected }) => {
                     <Earth size={18} />
                 </div>
                 <div className="flex-1 min-w-0">
-                    <h3 className="text-xs font-bold text-slate-800 truncate leading-none mb-1">
-                        {nodeData.label || 'Web Scraper'}
+                    <h3 className="text-xs font-bold text-slate-800 truncate leading-none mb-1 max-w-[150px]">
+                        {String(nodeData.label || 'Web Scraper')}
                     </h3>
                     <div className="flex items-center gap-1">
                         <Layout size={10} className="text-indigo-400" />
@@ -67,11 +68,16 @@ export const ScraperNode: React.FC<NodeProps> = ({ id, data, selected }) => {
                 </div>
             </div>
 
-            {/* Content Preview */}
-            <div className="p-3">
-                <div className="bg-slate-50 rounded-lg p-2 border border-slate-100 mb-2">
+            {/* Body */}
+            <div className="p-3 space-y-3">
+                 {nodeData.description && (
+                    <p className="text-[9px] text-slate-400 font-medium leading-relaxed line-clamp-2 italic mb-1 px-1">
+                        {String(nodeData.description)}
+                    </p>
+                 )}
+                <div className="bg-slate-50 rounded-lg p-2 border border-slate-100">
                     <p className="text-[10px] text-slate-400 font-mono truncate uppercase flex items-center gap-1">
-                        <ArrowRight size={8} /> {nodeData.config?.url || 'No URL configured'}
+                        <ArrowRight size={8} /> {String(nodeData.config?.url || 'No URL configured')}
                     </p>
                 </div>
             </div>
@@ -98,11 +104,13 @@ export const ScraperNode: React.FC<NodeProps> = ({ id, data, selected }) => {
             <Handle
                 type="target"
                 position={Position.Left}
+                isConnectable={isConnectable}
                 className="!w-2 !h-4 !bg-slate-400 !border-2 !border-white !rounded-sm transition-all hover:!bg-indigo-500 hover:!scale-125 shadow-sm"
             />
             <Handle
                 type="source"
                 position={Position.Right}
+                isConnectable={isConnectable}
                 className="!w-2 !h-4 !bg-slate-400 !border-2 !border-white !rounded-sm transition-all hover:!bg-indigo-500 hover:!scale-125 shadow-sm"
             />
         </div>
