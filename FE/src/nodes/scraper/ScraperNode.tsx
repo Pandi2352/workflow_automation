@@ -32,20 +32,23 @@ export const ScraperNode: React.FC<NodeProps> = ({ id, data, selected }) => {
     return (
         <div className={`relative group min-w-[200px] bg-white rounded-xl border-2 transition-all duration-300 ${getStatusColor()}`}>
             
-            {/* Hover Toolbar */}
-            <div className="absolute -top-10 left-1/2 -translate-x-1/2 flex items-center gap-1 bg-white border border-slate-200 rounded-lg p-1 shadow-xl opacity-0 group-hover:opacity-100 transition-all z-10 scale-95 group-hover:scale-100">
-                <button 
-                    className="p-1.5 hover:bg-green-50 text-slate-500 hover:text-green-600 rounded-md transition-colors"
-                >
-                    <Play size={14} fill="currentColor" />
-                </button>
-                <div className="w-[1px] h-4 bg-slate-100 mx-0.5" />
-                <button 
-                    onClick={(e) => { e.stopPropagation(); deleteNode(id); }}
-                    className="p-1.5 hover:bg-red-50 text-slate-500 hover:text-red-600 rounded-md transition-colors"
-                >
-                    <Trash2 size={14} />
-                </button>
+            {/* Top Toolbar - Actions */}
+            <div className="absolute bottom-full right-0 pb-1 flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-all duration-200 z-50 scale-95 group-hover:scale-100 pointer-events-none group-hover:pointer-events-auto">
+                 <div className="flex items-center gap-1">
+                    <button 
+                        className="p-1 text-slate-500 hover:text-indigo-600 hover:bg-indigo-50 rounded-full transition-colors cursor-pointer"
+                        title="Run Now"
+                    >
+                        <Play size={14} />
+                    </button>
+                    <button 
+                        onClick={(e) => { e.stopPropagation(); deleteNode(id); }}
+                        className="p-1 text-slate-500 hover:text-red-600 hover:bg-red-50 rounded-full transition-colors cursor-pointer"
+                        title="Delete Node"
+                    >
+                        <Trash2 size={14} />
+                    </button>
+                </div>
             </div>
 
             {/* Header */}
