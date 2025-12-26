@@ -11,6 +11,7 @@ import { Switch } from '../common/Switch';
 import { Modal } from '../common/Modal';
 
 import { CredentialsList } from '../components/credentials/CredentialsList';
+import { AnimatedWorkflowBackground } from '../components/landing/AnimatedWorkflowBackground';
 
 export const Dashboard: React.FC = () => {
   const navigate = useNavigate();
@@ -99,7 +100,12 @@ export const Dashboard: React.FC = () => {
   );
 
   return (
-    <div className="min-h-screen bg-[#f8fafc] text-slate-900 font-sans">
+    <div className="min-h-screen bg-slate-50/30 font-sans relative overflow-hidden">
+      
+      {/* Background Animation */}
+      <div className="fixed inset-0 z-0">
+         <AnimatedWorkflowBackground />
+      </div>
       <style>{`
         /* Custom Scrollbar */
         ::-webkit-scrollbar {
@@ -119,7 +125,7 @@ export const Dashboard: React.FC = () => {
       `}</style>
       
       {/* Navbar */}
-      <div className="h-16 bg-white border-b border-slate-200 flex items-center px-6 md:px-10 sticky top-0 z-40">
+      <div className="h-16 bg-white/80 border-b border-slate-200/50 flex items-center px-6 md:px-10 sticky top-0 z-40 backdrop-blur-md">
         <div className="flex items-center gap-3">
             <div className="w-8 h-8 bg-black rounded-lg flex items-center justify-center text-white shadow-md">
                 <Zap size={18} fill="currentColor" />
@@ -154,7 +160,7 @@ export const Dashboard: React.FC = () => {
       </div>
 
       {currentView === 'workflows' && (
-      <div className="relative bg-emerald-50/50 border-b border-emerald-100/50 pt-16 pb-20 px-6 md:px-10">
+      <div className="relative pt-16 pb-20 px-6 md:px-10">
         <div className="max-w-3xl mx-auto text-center space-y-6">
             <h1 className="text-3xl font-bold text-slate-900 tracking-tight">
                 What would you like to automate?
@@ -367,7 +373,7 @@ export const Dashboard: React.FC = () => {
                  {/* Add New Card (Ghost) */}
                  <div 
                     onClick={handleCreateWorkflow}
-                    className="border-2 border-dashed border-slate-200 rounded-xl p-4 flex flex-col items-center justify-center text-slate-400 hover:border-slate-300 hover:bg-slate-50/50 hover:text-slate-600 transition-all cursor-pointer h-[160px]"
+                    className="border-2 border-dashed border-slate-200 rounded-xl p-4 flex flex-col items-center justify-center text-slate-400 hover:border-slate-300 hover:bg-slate-50/50 hover:text-slate-600 transition-all cursor-pointer h-[160px] bg-white/40 backdrop-blur-sm"
                  >
                     <div className="w-10 h-10 rounded-full bg-slate-100 flex items-center justify-center mb-2 group-hover:bg-white group-hover:shadow-sm">
                         <Plus size={20} />
