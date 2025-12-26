@@ -11,5 +11,7 @@ export enum SampleNodeType {
 
     SMART_EXTRACTION = 'SMART_EXTRACTION',
     FILE_UPLOAD = 'FILE_UPLOAD',
+    HTTP_REQUEST = 'HTTP_REQUEST',
+    DATA_MAPPER = 'DATA_MAPPER',
 }
 // Force recompile

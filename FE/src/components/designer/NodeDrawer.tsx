@@ -50,6 +50,9 @@ const availableNodes: NodeType[] = [
     
     // Export
     { type: 'HTTP_REQUEST', label: 'HTTP Request', description: 'Send data to external API', icon: ArrowUpRight, color: 'text-cyan-500', category: 'EXPORT' },
+    
+    // Logic/Data
+    { type: 'DATA_MAPPER', label: 'Data Mapper', description: 'Transform data between nodes', icon: Split, color: 'text-pink-500', category: 'CONDITIONAL' },
 ];
 
 const categoryLabels: Record<NodeCategory, string> = {

@@ -19,6 +19,8 @@ import { SmartExtractionNodeStrategy } from '../nodes/smart-extraction.node';
 import { FileUploadNodeStrategy } from '../nodes/file-upload.node';
 import { ParsingService } from '../../node-services/parsing.service';
 import { MongoDBService } from '../../node-services/mongodb.service';
+import { HttpRequestNodeStrategy } from '../../node-services/http-request/http-request.strategy';
+import { DataMapperNodeStrategy } from '../../node-services/data-mapper/data-mapper.strategy';
 
 export interface NodeDefinition {
     type: string;
@@ -66,6 +68,8 @@ export class NodeRegistryService {
 
         this.nodeInstances.set(SampleNodeType.SMART_EXTRACTION, new SmartExtractionNodeStrategy(this.ocrService));
         this.nodeInstances.set(SampleNodeType.FILE_UPLOAD, new FileUploadNodeStrategy());
+        this.nodeInstances.set(SampleNodeType.HTTP_REQUEST, new HttpRequestNodeStrategy());
+        this.nodeInstances.set(SampleNodeType.DATA_MAPPER, new DataMapperNodeStrategy());
 
 
         // Register node definitions
@@ -303,6 +307,67 @@ export class NodeRegistryService {
                     type: 'file',
                     description: 'The file to upload',
                     default: null
+                }
+            }
+        });
+
+        this.nodeDefinitions.set(SampleNodeType.HTTP_REQUEST, {
+            type: SampleNodeType.HTTP_REQUEST,
+            name: 'HTTP Request',
+            description: 'Make HTTP requests to external APIs',
+            category: 'Network',
+            inputs: 1,
+            outputs: 1,
+            configSchema: {
+                method: {
+                    type: 'select',
+                    options: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH'],
+                    default: 'GET',
+                    description: 'HTTP Method'
+                },
+                url: {
+                    type: 'string',
+                    description: 'Request URL',
+                    default: ''
+                },
+                headers: {
+                    type: 'json',
+                    description: 'Headers (JSON)',
+                    default: '{}'
+                },
+                data: {
+                    type: 'json',
+                    description: 'Request Body (JSON)',
+                    default: '{}'
+                }
+            }
+        });
+
+        this.nodeDefinitions.set(SampleNodeType.DATA_MAPPER, {
+            type: SampleNodeType.DATA_MAPPER,
+            name: 'Data Mapper',
+            description: 'Transform and map data between nodes',
+            category: 'Logic',
+            inputs: 1,
+            outputs: 1,
+            configSchema: {
+                mappingType: {
+                    type: 'select',
+                    options: ['visual', 'custom'],
+                    default: 'visual',
+                    description: 'Mapping Method'
+                },
+                mappings: {
+                    type: 'json',
+                    description: 'Visual Mappings Array',
+                    default: '[]',
+                    condition: { mappingType: 'visual' }
+                },
+                expression: {
+                    type: 'string',
+                    description: 'JSONATA Expression',
+                    default: '$',
+                    condition: { mappingType: 'custom' }
                 }
             }
         });

@@ -177,7 +177,12 @@ export class SampleWorkflowService {
             nodeId: 'test-node',
             nodeName: 'Test Node',
             nodeType: nodeType,
-            inputs: inputs.map((val: any) => ({ value: val, nodeId: 'mock', nodeName: 'Mock', edgeId: 'mock' })),
+            inputs: inputs.map((val: any) => ({
+                value: val.value || val,
+                nodeId: val.nodeId || 'mock',
+                nodeName: val.nodeName || 'Mock',
+                edgeId: val.edgeId || 'mock'
+            })),
             data: { config: nodeData },
             retryCount: 0,
             maxRetries: 1

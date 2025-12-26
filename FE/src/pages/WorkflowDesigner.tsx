@@ -14,6 +14,8 @@ import { NodeConfigPanel as MongoDBNodeConfigPanel } from '../nodes/mongodb/Node
 import { NodeConfigPanel as SummarizeNodeConfigPanel } from '../nodes/summarize/NodeConfigPanel';
 import { NodeConfigPanel as SmartExtractionNodeConfigPanel } from '../nodes/smart-extraction/NodeConfigPanel';
 import FileUploadConfigPanel from '../nodes/file-upload/NodeConfigPanel';
+import { NodeConfigPanel as HttpNodeConfigPanel } from '../nodes/http-request/NodeConfigPanel';
+import { NodeConfigPanel as DataMapperNodeConfigPanel } from '../nodes/data-mapper/NodeConfigPanel';
 
 import { DesignerHeader } from '../components/designer/DesignerHeader';
 import { ExecutionModeView } from '../components/execution/ExecutionModeView';
@@ -407,6 +409,18 @@ export const WorkflowDesigner: React.FC = () => {
                                     });
                                     setNodes(updatedNodes);
                                 }}
+                            />
+                        ) : selectedNode && selectedNode.type === 'HTTP_REQUEST' ? (
+                            <HttpNodeConfigPanel
+                                nodeExecutionData={currentExecution?.nodeExecutions?.find(
+                                    (ex: any) => ex.nodeId === selectedNode?.id
+                                )} 
+                            />
+                        ) : selectedNode && selectedNode.type === 'DATA_MAPPER' ? (
+                            <DataMapperNodeConfigPanel
+                                nodeExecutionData={currentExecution?.nodeExecutions?.find(
+                                    (ex: any) => ex.nodeId === selectedNode?.id
+                                )} 
                             />
                         ) : selectedNode && (
                             <NodeConfigPanel 
