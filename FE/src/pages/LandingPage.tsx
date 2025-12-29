@@ -63,7 +63,10 @@ export const LandingPage: React.FC = () => {
                         Start Automating Free
                         <ArrowRight size={20} className="group-hover:translate-x-1 transition-transform" />
                     </button>
-                    <button className="px-8 py-4 bg-white hover:bg-slate-50 border border-slate-200 text-slate-700 rounded-full font-semibold text-lg transition-all shadow-sm hover:shadow-md">
+                    <button 
+                        onClick={() => navigate('/documentation')}
+                        className="px-8 py-4 bg-white hover:bg-slate-50 border border-slate-200 text-slate-700 rounded-full font-semibold text-lg transition-all shadow-sm hover:shadow-md"
+                    >
                         View Documentation
                     </button>
                 </div>
