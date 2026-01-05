@@ -26,6 +26,7 @@ import { MongoDBService } from '../../node-services/mongodb.service';
 import { HttpRequestNodeStrategy } from '../../node-services/http-request/http-request.strategy';
 import { DataMapperNodeStrategy } from '../../node-services/data-mapper/data-mapper.strategy';
 import { ScraperNodeStrategy } from '../../node-services/scraper/scraper.strategy';
+import { CodeNodeStrategy } from '../nodes/code.node';
 
 export interface NodeDefinition {
     type: string;
@@ -53,7 +54,8 @@ export class NodeRegistryService {
         private readonly tesseractOCRService: TesseractOCRService,
         private readonly parsingService: ParsingService,
         private readonly mongoService: MongoDBService,
-        private readonly processedItemService: ProcessedItemService
+        private readonly processedItemService: ProcessedItemService,
+        private readonly codeNodeStrategy: CodeNodeStrategy
     ) {
         this.registerDefaultNodes();
         this.registerParsingNodes();
@@ -80,6 +82,7 @@ export class NodeRegistryService {
         this.nodeInstances.set(SampleNodeType.HTTP_REQUEST, new HttpRequestNodeStrategy());
         this.nodeInstances.set(SampleNodeType.DATA_MAPPER, new DataMapperNodeStrategy());
         this.nodeInstances.set(SampleNodeType.BROWSER_SCRAPER, new ScraperNodeStrategy(this.ocrService));
+        this.nodeInstances.set(SampleNodeType.CODE, this.codeNodeStrategy);
 
         // Register node definitions
         this.nodeDefinitions.set(SampleNodeType.BROWSER_SCRAPER, {

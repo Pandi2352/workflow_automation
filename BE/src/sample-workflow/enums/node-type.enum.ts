@@ -16,5 +16,6 @@ export enum SampleNodeType {
     BROWSER_SCRAPER = 'BROWSER_SCRAPER',
     SURYA_OCR = 'SURYA_OCR',
     TESSERACT_OCR = 'TESSERACT_OCR',
+    CODE = 'CODE',
 }
 // Force recompile

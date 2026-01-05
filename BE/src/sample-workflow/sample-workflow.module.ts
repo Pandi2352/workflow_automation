@@ -25,6 +25,7 @@ import { ProcessedItemService } from './services/processed-item.service';
 import { TriggerState, TriggerStateSchema } from './schemas/trigger-state.schema';
 import { ParsingService } from 'src/node-services/parsing.service';
 import { MongoDBService } from 'src/node-services/mongodb.service';
+import { CodeNodeStrategy } from './nodes/code.node';
 
 @Module({
     imports: [
@@ -55,6 +56,7 @@ import { MongoDBService } from 'src/node-services/mongodb.service';
         SchedulerService,
         GmailPollingService,
         ProcessedItemService,
+        CodeNodeStrategy,
     ],
     exports: [SampleWorkflowService, NodeRegistryService, ExpressionEvaluatorService],
 })

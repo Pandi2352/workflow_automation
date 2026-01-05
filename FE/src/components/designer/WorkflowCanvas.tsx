@@ -32,6 +32,7 @@ import { DataMapperNode } from '../../nodes/data-mapper/DataMapperNode';
 import { ScraperNode } from '../../nodes/scraper/ScraperNode';
 import { SuryaOCRNode } from '../../nodes/surya-ocr/SuryaOCRNode';
 import { TesseractOCRNode } from '../../nodes/tesseract-ocr/TesseractOCRNode';
+import { CodeNode } from '../../nodes/code/CodeNode';
 
 import { DeletableEdge } from './DeletableEdge';
 import { CollaborativeCursors } from './CollaborativeCursors';
@@ -64,6 +65,7 @@ const nodeTypes = {
     BROWSER_SCRAPER: ScraperNode,
     SURYA_OCR: SuryaOCRNode,
     TESSERACT_OCR: TesseractOCRNode,
+    CODE: CodeNode,
     default: GenericNode, // Fallback
     input: GenericNode,
     webhook: GenericNode,

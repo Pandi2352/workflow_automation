@@ -1,5 +1,5 @@
 import React, { useState, useMemo } from 'react';
-import { Search, X, ChevronRight, Zap, Split, ArrowUpRight, Clock, FileText, Database, Cpu, BrainCircuit, Upload, Earth, Type } from 'lucide-react';
+import { Search, X, ChevronRight, Zap, Split, ArrowUpRight, Clock, FileText, Database, Cpu, BrainCircuit, Upload, Earth, Type, Terminal } from 'lucide-react';
 import googleDriveIcon from '../../assets/nodeIcons/google-drive-svgrepo-com.svg';
 import oneDriveIcon from '../../assets/nodeIcons/ms-onedrive-svgrepo-com.svg';
 import gmailIcon from '../../assets/nodeIcons/gmail-icon-logo-svgrepo-com.svg';
@@ -55,6 +55,7 @@ const availableNodes: NodeType[] = [
     { type: 'HTTP_REQUEST', label: 'HTTP Request', description: 'Send data to external API', icon: ArrowUpRight, color: 'text-cyan-500', category: 'EXPORT' },
     
     // Logic/Data
+    { type: 'CODE', label: 'Code Execution', description: 'Run custom Javascript / Python', icon: Terminal, color: 'text-indigo-600', category: 'CONDITIONAL' },
     { type: 'DATA_MAPPER', label: 'Data Mapper', description: 'Transform data between nodes', icon: Split, color: 'text-pink-500', category: 'CONDITIONAL' },
 ];
 

@@ -19,6 +19,7 @@ import { NodeConfigPanel as DataMapperNodeConfigPanel } from '../nodes/data-mapp
 import { NodeConfigPanel as ScraperNodeConfigPanel } from '../nodes/scraper/NodeConfigPanel';
 import { NodeConfigPanel as SuryaOCRNodeConfigPanel } from '../nodes/surya-ocr/NodeConfigPanel';
 import { NodeConfigPanel as TesseractOCRNodeConfigPanel } from '../nodes/tesseract-ocr/NodeConfigPanel';
+import { NodeConfigPanel as CodeNodeConfigPanel } from '../nodes/code/NodeConfigPanel';
 
 import { DesignerHeader } from '../components/designer/DesignerHeader';
 import { CreateWorkflowSelector } from '../components/designer/CreateWorkflowSelector';
@@ -436,6 +437,12 @@ export const WorkflowDesigner: React.FC = () => {
                             />
                         ) : selectedNode && selectedNode.type === 'TESSERACT_OCR' ? (
                             <TesseractOCRNodeConfigPanel
+                                nodeExecutionData={currentExecution?.nodeExecutions?.find(
+                                    (ex: any) => ex.nodeId === selectedNode?.id
+                                )} 
+                            />
+                        ) : selectedNode && selectedNode.type === 'CODE' ? (
+                            <CodeNodeConfigPanel
                                 nodeExecutionData={currentExecution?.nodeExecutions?.find(
                                     (ex: any) => ex.nodeId === selectedNode?.id
                                 )} 
