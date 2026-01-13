@@ -19,23 +19,50 @@ export class AiService {
         }
     }
 
-    async generateWorkflow(prompt: string) {
+    async generateWorkflow(prompt: string, currentNodes: any[] = [], currentEdges: any[] = []) {
         if (!this.model) {
             this.logger.error('Gemini model is not initialized. Aborting generation.');
             throw new Error('Gemini API not initialized. Check server configuration.');
         }
 
-        const systemPrompt = `
-        You are an AI workflow generator. Convert the user's natural language request into a valid JSON workflow structure.
+        const isRefinement = currentNodes.length > 0;
+        const contextStr = isRefinement ? `
+        CURRENT WORKFLOW CONTEXT:
+        Nodes: ${JSON.stringify(currentNodes.map(n => ({ id: n.id, type: n.type, label: n.data?.label })))}
+        Edges: ${JSON.stringify(currentEdges)}
         
+        INSTRUCTIONS FOR REFINEMENT:
+        - The user wants to MODIFY this existing workflow.
+        - You must return the COMPLETE updated workflow (all nodes and edges).
+        - Preserve existing node IDs if they are still relevant.
+        - Add new nodes with unique IDs (e.g., node_${Date.now()}_1).
+        - Connect new nodes to the appropriate place in the flow.
+        - If the user says "add X after Y", break the edge and insert X.
+        ` : '';
+
+        const systemPrompt = `
+        You are an advanced AI workflow architect. Convert the user's natural language request into a valid JSON workflow structure.
+        
+        ${contextStr}
+
         The Output must be a strictly valid JSON object with the following structure:
         {
             "nodes": [
-                { "id": "node_1", "type": "TYPE", "position": { "x": 0, "y": 0 }, "data": { "label": "Label", "config": {} } }
+                { 
+                    "id": "node_1", 
+                    "type": "TYPE", 
+                    "position": { "x": 0, "y": 0 }, 
+                    "data": { 
+                        "label": "Label", 
+                        "config": {} 
+                    } 
+                }
             ],
-            "edges": [
-                { "id": "edge_1", "source": "node_1", "target": "node_2" }
-            ]
+            "edges": [...],
+            "metadata": {
+                "name": "Suggested Workflow Name",
+                "description": "Short description of what this workflow does."
+            }
         }
 
         AVAILABLE NODE TYPES:
@@ -56,15 +83,17 @@ export class AiService {
         10. "MONGODB" (Action)
         
         RULES:
-        - Generate unique IDs for nodes (e.g., node_1, node_2).
+        - Generate unique IDs for nodes.
         - Connect them logically with edges.
-        - Spacing: Increment Y position by 150 for each step (0, 150, 300...).
+        - Spacing: Increment Y position by 150 for each step.
         - Smart Extraction fields should be inferred from context if possible.
-        - Only output valid JSON. Do not include markdown formatting like \`\`\`json.
+        - **MANDATORY**: If the user asks to "parse", "extract", "summarize", or "analyze" a document (PDF, Image, etc.) from any source (Email, Drive, etc.), YOU MUST PLACE AN "OCR" NODE BEFORE the parsing/extraction/summary node. The AI models need text conversion first.
+        - Only output valid JSON. Do not include markdown formatting.
+        - If refining, Return the FULL updated workflow state.
         `;
 
         try {
-            this.logger.log(`Generating workflow for prompt: ${prompt}`);
+            this.logger.log(`Generating workflow for prompt: ${prompt} (Refinement: ${isRefinement})`);
             const result = await this.model.generateContent([
                 systemPrompt,
                 `User Request: ${prompt}`

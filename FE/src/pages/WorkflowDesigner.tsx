@@ -2,7 +2,8 @@ import React, { useEffect, useState } from 'react';
 import { useParams, useNavigate, useBlocker } from 'react-router-dom';
 import { Zap, Plus, Sparkles } from 'lucide-react';
 import { NodeDrawer } from '../components/designer/NodeDrawer';
-import { WorkflowGeneratorModal } from '../components/designer/WorkflowGeneratorModal';
+import { AIChatDrawer } from '../components/designer/AIChatDrawer';
+
 import { NodeConfigPanel } from '../nodes/google-drive/NodeConfigPanel';
 import { NodeConfigPanel as OneDriveNodeConfigPanel } from '../nodes/onedrive/NodeConfigPanel';
 import { NodeConfigPanel as GmailNodeConfigPanel } from '../nodes/gmail/NodeConfigPanel';
@@ -164,12 +165,7 @@ export const WorkflowDesigner: React.FC = () => {
         }
     };
 
-    const handleWorkflowGenerated = (newNodes: any[], newEdges: any[]) => {
-        setNodes(newNodes);
-        setEdges(newEdges);
-        setIsDirty(true);
-        showToast('Workflow generated successfully!', 'success');
-    };
+
 
     const handleMetadataSave = (data: { name: string; description: string; active: boolean }) => {
         setWorkflowMetadata({
@@ -203,13 +199,14 @@ export const WorkflowDesigner: React.FC = () => {
             if (id === 'new') {
                 const newWorkflow = await workflowService.create(payload);
                 currentId = newWorkflow._id;
+                setIsDirty(false); // Reset dirty flag BEFORE navigation
                 navigate(`/workflow/${newWorkflow._id}`, { replace: true });
             } else if (id) {
                 await workflowService.update(id, payload);
+                setIsDirty(false);
             }
             
             showToast('Workflow saved successfully', 'success');
-            setIsDirty(false);
             return currentId;
         } catch (error: any) {
             console.error('Failed to save workflow', error);
@@ -507,10 +504,9 @@ export const WorkflowDesigner: React.FC = () => {
                 }}
             />
 
-            <WorkflowGeneratorModal 
+            <AIChatDrawer 
                 isOpen={isAiModalOpen} 
                 onClose={() => setIsAiModalOpen(false)} 
-                onWorkflowGenerated={handleWorkflowGenerated}
             />
 
             {showSelector && (

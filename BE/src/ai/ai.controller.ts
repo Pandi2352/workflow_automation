@@ -12,6 +12,6 @@ export class AiController {
     @ApiOperation({ summary: 'Generate a workflow structure from natural language' })
     @UsePipes(new ValidationPipe())
     async generateWorkflow(@Body() dto: GenerateWorkflowDto) {
-        return this.aiService.generateWorkflow(dto.prompt);
+        return this.aiService.generateWorkflow(dto.prompt, dto.currentNodes, dto.currentEdges);
     }
 }

@@ -1,4 +1,4 @@
-import { IsString, IsNotEmpty } from 'class-validator';
+import { IsString, IsNotEmpty, IsOptional } from 'class-validator';
 import { ApiProperty } from '@nestjs/swagger';
 
 export class GenerateWorkflowDto {
@@ -6,4 +6,12 @@ export class GenerateWorkflowDto {
     @IsString()
     @IsNotEmpty()
     prompt: string;
+
+    @ApiProperty({ required: false })
+    @IsOptional()
+    currentNodes?: any[];
+
+    @ApiProperty({ required: false })
+    @IsOptional()
+    currentEdges?: any[];
 }

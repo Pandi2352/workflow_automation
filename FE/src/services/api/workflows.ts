@@ -61,8 +61,12 @@ export const workflowService = {
         return response.data;
     },
 
-    generateAIWorkflow: async (prompt: string): Promise<any> => {
-        const response = await axiosInstance.post('/ai/generate-workflow', { prompt });
+    generateAIWorkflow: async (prompt: string, currentNodes: any[] = [], currentEdges: any[] = []): Promise<any> => {
+        const response = await axiosInstance.post('/ai/generate-workflow', {
+            prompt,
+            currentNodes,
+            currentEdges
+        });
         return response.data;
     }
 };
