@@ -24,6 +24,7 @@ import { IfElseNode } from '../../nodes/if-else/IfElseNode';
 import { ParsingNode } from '../../nodes/parsing/ParsingNode';
 import { MongoDBNode } from '../../nodes/mongodb/MongoDBNode';
 import { SummarizeNode } from '../../nodes/summarize/SummarizeNode';
+import { OutlookNode } from '../../nodes/outlook/OutlookNode';
 
 import { SmartExtractionNode } from '../../nodes/smart-extraction/SmartExtractionNode';
 import FileUploadNode from '../../nodes/file-upload/FileUploadNode';
@@ -57,6 +58,7 @@ const nodeTypes = {
     PARSING: ParsingNode,
     MONGODB: MongoDBNode,
     SUMMARIZE: SummarizeNode,
+    OUTLOOK: OutlookNode,
 
     SMART_EXTRACTION: SmartExtractionNode,
     FILE_UPLOAD: FileUploadNode,

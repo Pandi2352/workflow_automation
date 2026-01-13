@@ -1,0 +1,2226 @@
+import { InputSuffix, TextBox } from "@progress/kendo-react-inputs";
+import { Card } from "@progress/kendo-react-layout";
+import { SvgIcon } from "@progress/kendo-react-common";
+import { searchIcon } from "@progress/kendo-svg-icons";
+import { useCallback, useEffect, useRef, useState } from "react";
+import { Button } from "@progress/kendo-react-buttons";
+import { Grid, GridCellProps, GridColumn, GridPageChangeEvent } from "@progress/kendo-react-grid";
+import LeftArrowIcon from "../../assets/icons/LeftArrow.svg"
+import { KendoDeleteConformationComponent } from "../../components/KendoUI/Kendo-Dialog/Kendo-deleteConformationScreen";
+import KendoBreadCrumbsComponent from "../../components/KendoUI/Kendo-Breadcrumbs/kendobreadcrumbs.component";
+import { convertUpperCase, filterObject, formatDate } from "../../utils/utilFuncions";
+import KendoScreenLoaderComponent from "../../components/KendoUI/Kendo-ScreenLoader/kendoscreenloader.component";
+import { Input } from '@progress/kendo-react-inputs';
+import React from 'react';
+import ColumnSelector from "./columnselector";
+import pdfIcon from "../../assets/icons/PictureAsPdf.svg"
+import { masterEndPoints, sweetsEndPoints, userManagementEndPoints } from "../../api/apiEndPoints";
+import axiosInstanceMasters from "../../api/api-masters";
+import CreateRfqForm from "./create-Rfq";
+import Toaster from "../toasterNotification";
+import axiosInstanceSweets from "../../api/axios-sweets";
+import './rfq.css'
+import FileUpload from "../../components/Common/FileUpload/FileUpload";
+import { useRouter } from "@tanstack/react-router";
+import { useNavigate } from "@tanstack/react-router";
+import { useLocation } from "@tanstack/react-router";
+import { xIcon } from "@progress/kendo-svg-icons";
+import axiosInstanceUserManagement from "../../api/axios-userManagement";
+
+const breadCrumbsData = [
+    {
+        id: "1",
+        text: "CRM",
+        path: "/crm/rfq/manage-list"
+    },
+    {
+        id: "2",
+        text: "RFQ",
+        path: "/crm/rfq/manage-list"
+    }
+];
+
+type Column = {
+    field: string;
+    title: string;
+    width?: number;
+    cell?: any;
+    visible?: boolean;
+};
+interface GradeOption {
+    value: string;
+    label: string;
+    product_id: string;
+}
+interface PlantOption {
+    value: string;
+    label: string;
+}
+interface RfqPeriodOption {
+    value: string;
+    label: string;
+}
+
+const SerialNumberCell = (props: GridCellProps) => (
+    <td>{props.dataIndex + 1}</td>
+);
+
+
+
+
+const DateCell = (props: any) => {
+    const { dataItem, field } = props;
+    return (
+        <td>
+            {formatDate(dataItem[field])}
+        </td>
+    );
+};
+const initialColumns: Column[] = [
+    { field: "serial_number", title: "S.No.", width: 70, cell: SerialNumberCell, visible: true },
+    { field: "customer_details.company_name", title: "Customer Name", width: 200, visible: true },
+    { field: "customer_category", title: "Customer Category", width: 200, visible: false },
+    { field: "sugar_grade", title: "Sugar Grade", width: 200, visible: true },
+    { field: "system_predicted_price", title: "System Predicted Price", width: 200, visible: false },
+    { field: "rfq_date", title: "RFQ Date", width: 200, cell: DateCell, visible: true },
+    { field: "quoted_price", title: "Quoted Price", width: 200, visible: false },
+    { field: "volume", title: "Volume (Qtls.)", width: 200, visible: true },
+    { field: "premium", title: "Premium Potential (INR per Qtls)", width: 350, visible: false },
+    { field: "rfq_period", title: "RFQ Frequency", width: 200, visible: true },
+    { field: "credit_days", title: "Credit Days", width: 200, visible: false },
+    { field: "createdAt", title: "Created Date", width: 200, cell: DateCell, visible: true },
+    { field: "teil_service_plant", title: "TEIL Service Plant", width: 200, visible: false },
+    { field: "bid_status", title: "Result", width: 200, visible: true },
+    { field: "bid_loss.competitor_name", title: "Competitor Name", width: 200, visible: false },
+    { field: "KAM", title: "KAM", width: 200, visible: true },
+    { field: "bid_loss.competitor_price", title: "Competitor Price", width: 200, visible: false },
+    { field: "bid_loss.price_difference", title: "Price Difference", width: 200, visible: false },
+    { field: "remarks", title: "Remarks", width: 200, visible: false },
+];
+
+interface PageState {
+    skip: number;
+    take: number;
+}
+const ManageRFQs = () => {
+    // get url query param    
+    const router = useRouter();
+
+
+    const [, setFileName1] = useState<string>('');
+    const [formValues1, setFormValues1] = useState<{ file: File[] }>({ file: [] });
+    const [, setFileLoading] = useState(false);
+    const [, setUploadedFiles] = useState<any[]>([]);
+    const [searchInput, setSearchInput] = useState<string>('');
+    const initialDataState: PageState = { skip: 0, take: 10 };
+    const [page, setPage] = useState<PageState>(initialDataState);
+    const [pageSizeValue, setPageSizeValue] = useState<number | string | undefined>(10);
+
+    const [deleteVisible, setDeleteVisible] = useState<boolean>(false);
+    const [prompt, setPrompt] = useState<string>('');
+    // const [cunstomerName, setCustomerName] = useState<string>('');
+    const [promptTitle,] = useState<string>('Delete');
+    const [deleteID, setDeleteID] = useState<string>('')
+    const [rfqData, setRfqData] = useState<any>(null);
+    const [loading, setLoading] = React.useState<boolean>(true);
+    const [buttonloading, setButtonLoading] = React.useState<boolean>(false);
+    const [editID, setEditID] = useState<string>('');
+    const [editLoading, setEditLoading] = useState<boolean>(true);
+    const [toastMessage, setToastMessage] = React.useState('');
+    const [toastType, setToastType] = React.useState<'success' | 'error' | 'warning' | 'info' | 'none'>('none');
+    const [toastVisible, setToastVisible] = React.useState(false);
+    // const [customerCategoryData, setCustomerCategoryData] = useState<any>([]);
+    const [reasonForLossData, setReasonForLossData] = useState<any>([]);
+    // const [isPoDateEnabled, setIsPoDateEnabled] = useState(false);
+    // const [isLiftingDateEnabled, setIsLiftingDateEnabled] = useState(false);
+    const navigate = useNavigate();
+    const location = useLocation();
+    const [gradeoptions, setGradeOptions] = useState<GradeOption[]>([]);
+    const [rfqPeriodList, setRfqperiodlist] = useState<RfqPeriodOption[]>([]);
+    const [plantNames, setPlantNames] = useState<PlantOption[]>([]);
+    React.useEffect(() => {
+        fetchManageRolesList();
+    }, [page.skip, page.take]);
+
+    // remove query param from url
+    const removeAllQueryParams = () => {
+        // Construct the new URL without any query parameters
+        const newUrl: any = location.pathname;
+        // Use the navigate function to update the URL
+        navigate(newUrl);
+        fetchManageRolesList();
+    }
+
+    const handleRemoveAllParams = () => {
+        removeAllQueryParams(); // This will remove all query parameters from the URL
+    };
+
+    const setPayload = () => {
+        const { search } = router.state.location;
+        const queryParams = new URLSearchParams(search);
+        let filterPayload: any = {
+            skip: page.skip,
+            limit: page.take,
+            customer_ids: queryParams.get("customer_ids") || [],
+            created_by: queryParams.get("created_by") || null,
+            bid_status: queryParams.get("bid_status") || null,
+            channel: queryParams.get("channel") || null,
+        }
+        if (filterPayload?.customer_ids && filterPayload?.customer_ids?.length > 0) {
+            filterPayload.customer_ids = filterPayload?.customer_ids.split(",");
+        }
+        return filterObject(filterPayload);
+    }
+
+    const checkParam = () => {
+        const { search } = router.state.location;
+        const queryParams = new URLSearchParams(search);
+        return [...queryParams].length > 0;
+    }
+
+    const fetchManageRolesList = async () => {
+        setLoading(true);
+        let payload = setPayload();
+        try {
+            const response = await axiosInstanceMasters.post(masterEndPoints.GET_RFQ_LIST, payload);
+            setRfqData(response.data.data || []);
+
+        } catch (error) {
+            console.error("Error fetching employee data: ", error);
+        }
+        setLoading(false);
+    };
+
+    const [formValue, setFormValue] = useState({
+        customername: '',
+        sugargrade: '',
+        RFQdate: '',
+        volume: '',
+        rfqperiod: '',
+        customercategory: '',
+        sugarpredictedprice: '',
+        quotedprice: '',
+        premium: '',
+        creditdays: '',
+        serviceplant: '',
+        bidstatus: '',
+        remarks: '',
+        podate: '',
+        liftingdate: '',
+        competitorname: '',
+        competitorprice: '',
+        pricedifference: '',
+        reasonforRFQloss: '',
+        remarksforloss: '',
+        file: []
+    });
+    const [formValues, setFormValues] = useState({
+        customername: '',
+        sugargrade: '',
+        channel: '',
+        product_id: '',
+        variant_id: '',
+        RFQdate: '',
+        volume: '',
+        rfqperiod: '',
+        customercategory: '',
+        sugarpredictedprice: '',
+        quotedprice: '',
+        premium: '',
+        creditdays: '',
+        serviceplant: '',
+        bidstatus: '',
+        remarks: '',
+        podate: '',
+        liftingdate: '',
+        competitorname: '',
+        competitorprice: '',
+        pricedifference: '',
+        reasonforRFQloss: '',
+        remarksforloss: '',
+        file: []
+    });
+
+    const handleChange = (e: any) => {
+        const { name, value } = e.target;
+        if (name === 'volume') {
+            const decimalPattern = /^(\s{0,1}|\d+(\.\d{0,2})?)$/;
+            if (!decimalPattern.test(value)) {
+                return;
+            }
+        }
+        if (name === 'quotedprice') {
+            const decimalPattern = /^(\s{0,1}|\d+(\.\d{0,2})?)$/;
+            if (!decimalPattern.test(value)) {
+                return;
+            }
+        }
+        if (name === 'sugarpredictedprice') {
+            const decimalPattern = /^(\s{0,1}|\d+(\.\d{0,2})?)$/;
+            if (!decimalPattern.test(value)) {
+                return;
+            }
+        }
+        if (name === 'pricedifference') {
+            const decimalPattern = /^\d+(\.\d{0,2})?$/;
+            if (!decimalPattern.test(value)) {
+                return;
+            }
+        }
+        if (name === 'competitorprice') {
+            const decimalPattern = /^(\s{0,1}|\d+(\.\d{0,2})?)$/;
+            if (!decimalPattern.test(value)) {
+                return;
+            }
+        }
+        setFormValues((prevValues: any) => {
+            const newValues = {
+                ...prevValues,
+                [name]: value
+            };
+
+            if (name === 'quotedprice' || name === 'competitorprice') {
+                newValues.pricedifference = newValues.quotedprice - newValues.competitorprice;
+            }
+
+            if (name === 'RFQdate') {
+                newValues.podate = '';
+                newValues.liftingdate = '';
+                const poDateInput = document.getElementById('podate') as HTMLInputElement | null;
+                if (poDateInput) {
+                    poDateInput.min = value;
+                }
+            }
+
+            if (name === 'podate') {
+
+                newValues.liftingdate = '';
+
+                const liftingDateInput = document.getElementById('liftingdate') as HTMLInputElement | null;
+                if (liftingDateInput) {
+                    liftingDateInput.min = value;
+                }
+            }
+
+            return newValues;
+        });
+    };
+
+
+    // file handling
+
+    const today = new Date().toISOString().split('T')[0];
+
+    const [errors, setErrors] = useState({
+        customername: '',
+        sugar_grade: '',
+        RFQdate: '',
+        volume: '',
+        quotedprice: '',
+        serviceplant: '',
+        bidstatus: ''
+
+    });
+    const [touched, setTouched] = useState({
+        customername: false,
+        sugar_grade: false,
+        RFQdate: false,
+        volume: false,
+        quotedprice: false,
+        serviceplant: false,
+        bidstatus: false
+    });
+    useEffect(() => {
+        validateForm()
+    }, [formValues, touched])
+    const validateForm = () => {
+        let newErrors = { ...errors };
+
+        newErrors.customername = formValues.customername.length === 0 ? 'Customer name is required' : '';
+        newErrors.sugar_grade = formValues.sugargrade.length === 0 ? 'Sugar grade is required' : '';
+        newErrors.RFQdate = formValues.RFQdate.length === 0 ? 'RFQ date is required' : '';
+        newErrors.volume = formValues.volume.length === 0 ? ' Volume is required' : '';
+        newErrors.quotedprice = formValues.quotedprice.length === 0 ? 'Quoted price  is required' : '';
+        newErrors.serviceplant = formValues.serviceplant.length === 0 ? ' Service plant is required' : '';
+        newErrors.bidstatus = formValues.bidstatus.length === 0 ? ' Bid status is required' : '';
+
+
+        setErrors(newErrors);
+
+        return Object.values(newErrors).every((error) => error === '');
+    };
+    const handleBlur = (event: any): void => {
+        const { name } = event.target;
+        setTouched((prevTouched: any) => ({
+            ...prevTouched,
+            [name]: true,
+        }));
+
+
+    };
+    const fetchReasonForLoss = async () => {
+        try {
+            const response = await axiosInstanceMasters.get(masterEndPoints.GET_REASON_FOR_LOSS_LIST);
+            const fullResponse = response.data.data;
+            console.log('reason', fullResponse);
+
+            const data = fullResponse.map((item: any) => item?.reason);
+            setReasonForLossData(data);
+        } catch (error) {
+            console.error("Error fetching Plant data", error);
+        }
+    };
+    // const fetchCustomerCategory = async () => {
+    //     try {
+    //         const response = await axiosInstanceMasters.get(masterEndPoints.AGENT_CATEGORY_LIST);
+    //         const fullResponse = response.data.data;
+    //         const categories = fullResponse.map((item: any) => item?.category);
+    //         setCustomerCategoryData(categories);
+    //     } catch (error) {
+    //         console.error("Error fetching Plant data", error);
+    //     }
+    // };
+    useEffect(() => {
+        // fetchCustomerCategory();
+        fetchReasonForLoss();
+    }, [])
+    const closeEdit = async () => {
+        await fetchManageRolesList();
+
+    }
+    const handleSubmit = async () => {
+        const isValid = validateForm();
+        setTouched({
+            customername: true,
+            sugar_grade: true,
+            RFQdate: true,
+            volume: true,
+            quotedprice: true,
+            serviceplant: true,
+            bidstatus: true
+        });
+
+        if (!isValid) {
+            return;
+        }
+        setLoading(true);
+        try {
+            const payload = {
+                customer_id: formValues?.customername,
+                sugar_grade: formValues?.sugargrade,
+                rfq_date: formValues?.RFQdate,
+                channel: formValues.channel,
+                variant_id: formValues.variant_id,
+                product_id: formValues.product_id,
+                volume: Number(formValues?.volume),
+                rfq_period: formValues?.rfqperiod,
+                customer_category: formValues?.customercategory,
+                system_predicted_price: formValues.sugarpredictedprice !== '' ? Number(formValues.sugarpredictedprice) : null,
+                quoted_price: Number(formValues?.quotedprice),
+                premium: Number(formValues?.premium),
+                credit_days: formValues?.creditdays,
+                teil_service_plant: formValues?.serviceplant,
+                bid_status: formValues?.bidstatus,
+                remarks: formValues?.remarks,
+                bid_win: {
+                    po_date: formValues?.podate || "",
+                    lifting_date: formValues?.liftingdate || "",
+                    documents_upload: formValues?.file || "",
+                },
+                bid_loss: {
+                    competitor_name: formValues.competitorname,
+                    competitor_price: formValues.competitorprice !== '' ? Number(formValues.competitorprice) : null,
+                    price_difference: formValues.pricedifference !== '' ? Number(formValues.pricedifference) : null,
+                    reason_for_rfq_loss: formValues.reasonforRFQloss,
+                    remark: formValues.remarksforloss
+                }
+            };
+            setLoading(false)
+            await editExistingRfq(editID, payload)
+
+
+        }
+        catch (error: any) {
+            setLoading(false);
+            if (error.response && error.response.data && error.response.data.error) {
+                const { error_description } = error.response.data.error;
+                setToastMessage(error_description);
+                setToastType('error');
+                setToastVisible(true);
+            }
+        }
+    };
+
+
+    const handleCancelClick = (e: any, index: number) => {
+        e.preventDefault();
+        setUploadedFiles((prevFiles) => prevFiles.filter((_, i) => i !== index));
+        setFormValues((prevValues: any) => ({
+            ...prevValues,
+            file: prevValues.file.filter((_: any, i: any) => i !== index),
+        }));
+    };
+
+    const handleFileUpload = (fileData: any) => {
+        setUploadedFiles((prevFiles) => [...prevFiles, fileData]);
+        setFormValues((prevValues: any) => ({
+            ...prevValues,
+            file: [...prevValues.file, fileData],
+        }));
+    };
+    const editExistingRfq = async (id: string, payload: any) => {
+        setButtonLoading(true);
+        try {
+            const response = await axiosInstanceMasters.put(masterEndPoints.GET_RFQ_DETAILS + "/" + id, payload);
+            if (response.data.success === true) {
+                // Close the offcanvas element
+                closeOffcanvas(editOffcanvas)
+                setToastMessage('RFQ updated successfully');
+                setToastType('success');
+                setToastVisible(true);
+                fetchManageRolesList();
+            }
+        } catch (error: any) {
+            if (error.response && error.response.data && error.response.data.error) {
+                const { error_description } = error.response.data.error;
+                setToastMessage(error_description);
+                setToastType('error');
+                setToastVisible(true);
+            }
+        } finally {
+            setButtonLoading(false);
+        }
+    };
+
+
+
+    const handleSearchChange = useCallback((event: any) => {
+
+        const value = event.target.value as string;
+        if (!/^[A-Za-z0-9\s]*$/.test(value)) {
+            setToastVisible(true);
+            setToastType('error');
+            setToastMessage("Only alpha numeric characters and spaces are allowed in search");
+            return; // Exit if validation fails
+        } else {
+            setSearchInput(event.target.value);
+        }
+    }, []);
+
+    const pageChange = (event: GridPageChangeEvent) => {
+        const take = event.page.take;
+        const newSkip = event.page.skip;
+        setPage({
+            ...page,
+            skip: newSkip,
+            take: take,
+        });
+
+        setPageSizeValue(event.targetEvent?.value);
+    };
+
+    const toogleDeleteDialog = () => {
+        setDeleteVisible(!deleteVisible)
+    };
+    const formatDateForInput = (date: string) => {
+        const dateObject = new Date(date);
+        const year = dateObject.getFullYear();
+        const month = String(dateObject.getMonth() + 1).padStart(2, '0'); // Months are zero-based
+        const day = String(dateObject.getDate()).padStart(2, '0');
+        return `${year}-${month}-${day}`;
+    };
+
+    const handleClear = () => {
+        setSearchInput('');
+        processedData();
+    };
+
+    const getRfqDetails = async (id: string) => {
+        setEditLoading(true);
+        try {
+            const response = await axiosInstanceMasters.get(masterEndPoints.GET_RFQ_DETAILS + "/" + id);
+            console.log(gradeoptions, "gradeoptions", response?.data?.data?.sugar_grade);
+            const selectedGrade = gradeoptions.find(option => option.value === response?.data?.data?.sugar_grade);
+            const selectedServicePlant = plantNames.find(option => option.value === response?.data?.data?.teil_service_plant);
+            console.log(rfqPeriodList, "rfqPeriodList");
+
+            const selectedRfqPeriod = rfqPeriodList.find(option => option.value === response?.data?.data?.rfq_period);
+            console.log(selectedRfqPeriod, "bbb1");
+            setEditID(id);
+            setFormValues({
+                customername: response?.data?.data?.customer_id,
+                // sugargrade: response?.data?.data?.sugar_grade,
+                sugargrade: selectedGrade ? selectedGrade.value : '',
+                channel: response?.data.data.channel,
+                product_id: response?.data.data.product_id,
+                variant_id: response?.data.data.variant_id,
+                RFQdate: formatDateForInput(response.data.data.rfq_date) || "",
+                volume: response?.data?.data?.volume,
+                rfqperiod: selectedRfqPeriod ? selectedRfqPeriod.value : "",
+                customercategory: response.data.data.customer_category,
+                sugarpredictedprice: response.data.data.system_predicted_price,
+                quotedprice: response.data.data.quoted_price,
+                premium: response.data.data.premium,
+                creditdays: response.data.data.credit_days,
+                serviceplant: selectedServicePlant ? selectedServicePlant.value : '',
+                bidstatus: response.data.data.bid_status,
+                remarks: response.data.data.remarks,
+                podate: response.data.data.bid_win.po_date || '',
+                liftingdate: response.data.data.bid_win.lifting_date || '',
+                competitorname: response.data.data.bid_loss.competitor_name,
+                competitorprice: response.data.data.bid_loss.competitor_price || '',
+                pricedifference: response.data.data.bid_loss.price_difference,
+                reasonforRFQloss: response.data.data.bid_loss.reason_for_rfq_loss,
+                remarksforloss: response.data.data.bid_loss.remark,
+                file: response.data.data.bid_win.documents_upload
+            })
+        }
+        catch (error) {
+            console.error("Error: Unable to fetch Meeting Deetails by ID", error)
+        }
+        setEditLoading(false);
+    }
+    const getRfqViewDetails = async (id: string) => {
+
+
+        setEditLoading(true);
+        try {
+            const response = await axiosInstanceMasters.get(masterEndPoints.GET_RFQ_DETAILS + "/" + id);
+            console.log(gradeoptions, "gradeoptions", response?.data?.data);
+
+            const selectedGrade = gradeoptions.find(option => option.value === response?.data?.data?.sugar_grade);
+            console.log(selectedGrade, "selectedGrade");
+            const selectedServicePlant = plantNames.find(option => option.value === response?.data?.data?.teil_service_plant);
+            const selectedRfqPeriod = rfqPeriodList.find(option => option.value === response?.data?.data?.rfq_period);
+            console.log(selectedRfqPeriod, "bbbbb");
+
+            setFormValue({
+                customername: response?.data?.data?.customer_id,
+                sugargrade: selectedGrade ? selectedGrade.label : '',
+                // sugargrade:  '',
+                RFQdate: formatDateForInput(response.data.data.rfq_date) || "",
+                volume: response?.data?.data?.volume,
+                // rfqperiod: response?.data?.data?.rfq_period,
+                rfqperiod: selectedRfqPeriod ? selectedRfqPeriod.value : "",
+                customercategory: response.data.data.customer_category,
+                sugarpredictedprice: response.data.data.system_predicted_price,
+                quotedprice: response.data.data.quoted_price,
+                premium: response.data.data.premium,
+                creditdays: response.data.data.credit_days,
+                serviceplant: selectedServicePlant ? selectedServicePlant.value : '',
+                bidstatus: response.data.data.bid_status,
+                remarks: response.data.data.remarks,
+                podate: response.data.data.bid_win.po_date || '',
+                liftingdate: response.data.data.bid_win.lifting_date || '',
+                competitorname: response.data.data.bid_loss.competitor_name,
+                competitorprice: response.data.data.bid_loss.competitor_price || '',
+                pricedifference: response.data.data.bid_loss.price_difference,
+                reasonforRFQloss: response.data.data.bid_loss.reason_for_rfq_loss,
+                remarksforloss: response.data.data.bid_loss.remark,
+                file: response.data.data.bid_win.documents_upload
+            })
+        }
+        catch (error) {
+            console.error("Error: Unable to fetch Meeting Deetails by ID", error)
+        }
+        setEditLoading(false);
+    }
+
+    const ActionsCell = (props: any) => {
+        const permissions = JSON.parse(sessionStorage.getItem('permissions') || '[]');
+        // console.log(permissions, "permissions");
+
+        const hasReadAccess = permissions.includes('crm_rfq_read');
+        const hasWriteAccess = permissions.includes('crm_rfq_write');
+        const handleRFQView = () => {
+            getRfqViewDetails(props.dataItem._id);
+        }
+        const handleRFQEdit = () => {
+            getRfqDetails(props.dataItem._id)
+        }
+        const handleRFQDelete = () => {
+            handleDelete(props.dataItem);
+        }
+        return (
+            <td className="cursor-pointer">
+                {hasReadAccess && (
+                    <button
+                        className="me-3 custom-focus"
+                        data-bs-toggle="offcanvas"
+                        data-bs-target="#offcanvasRight"
+                        aria-controls="offcanvasRight"
+                        title="View"
+                        style={{ color: '#17479E', cursor: 'pointer', border: 'none', background: 'none' }}
+                        onClick={handleRFQView}
+                        tabIndex={0}
+                        role="button"
+                        aria-label="View RFQ"
+                    >
+
+                        <i
+                            className="bx bx-show"
+                        >
+                        </i>
+                    </button>
+
+                )}
+
+                {hasWriteAccess && (
+                    <>
+                        <button
+                            className="me-3 custom-focus"
+                            onClick={handleRFQEdit}
+                            tabIndex={0}
+                            data-bs-toggle="offcanvas"
+                            title="Edit"
+                            role="button"
+                            aria-label="Edit RFQ"
+                            data-bs-target="#offCanvasEditRFQ"
+                            aria-controls="offCanvasEditRFQ"
+                            style={{ color: "#2874FF", border: 'none', background: 'none' }}
+                        >
+
+                            <i
+                                className="bx bx-edit-alt"
+                            >
+                            </i>
+                        </button>
+                        <i
+                            className="bx bx-trash-alt custom-focus"
+                            title="Delete"
+                            onClick={handleRFQDelete}
+                            tabIndex={0}
+                            onKeyDown={((e) => {
+                                if (e.key === 'Enter') {
+                                    e.preventDefault();
+                                    handleRFQDelete()
+                                }
+                            })}
+                            style={{ color: "#DA1A1A" }}
+                        >
+
+                        </i>
+                    </>
+                )}
+
+            </td>
+        );
+    };
+
+    const handleDelete = (id: any) => {
+        setDeleteID('');
+        setPrompt('');
+        if (id && id.customer_details && id.customer_details.company_name) {
+            setPrompt(`Are you sure you want to delete the RFQ <b>${id.customer_details.company_name}</b>?`);
+        } else {
+            setPrompt(`Are you sure you want to delete this RFQ?`);
+        }
+        setDeleteID(id._id);
+        toogleDeleteDialog();
+    };
+
+
+    const handleDialogDelete = (response: 'cancel' | 'yes') => {
+        if (response === 'cancel') {
+            toogleDeleteDialog();
+        } else if (response === 'yes') {
+            deleteCall(deleteID);
+        }
+    };
+
+    const deleteCall = async (id: string) => {
+        try {
+            const response = await axiosInstanceMasters.delete(masterEndPoints.DELETE_RFQ + "/" + id);
+            if (response.data.success) {
+                setDeleteVisible(false);
+                fetchManageRolesList();
+                setToastMessage('RFQ deleted successfully');
+                setToastType('success');
+                setToastVisible(true);
+            }
+            setDeleteVisible(false);
+        }
+        catch (error) {
+            console.error("Employee Delete is Failed")
+        }
+    };
+    const [columns, setColumns] = useState<Column[]>(initialColumns);
+
+
+
+    const processedData = rfqData?.saved_rfq
+        // First, filter the data based on the search input
+        .filter((item: any) =>
+            (item.customer_details?.company_name || '')?.toLowerCase()?.includes(searchInput?.trim()?.toLowerCase()) ||
+            (item.bid_status || '')?.toLowerCase().includes(searchInput?.trim()?.toLowerCase())
+        )
+        // Then, map the filtered data to include additional fields
+        .map((item: any) => {
+            const sugarGradeOption = gradeoptions?.find(option => option.value === item.sugar_grade);
+            const sugarGradeLabel = sugarGradeOption ? sugarGradeOption.label : '';
+            const selectedRfqPeriod = rfqPeriodList.find(option => option.value === item.rfq_period);
+            console.log(selectedRfqPeriod, "selectedRfqPeriod");
+
+            const rfq_periodLabel = selectedRfqPeriod ? selectedRfqPeriod.label : '';
+            const selectedServicePlant = plantNames.find(option => option.value === item.teil_service_plant);
+            const serviceplantLabel = selectedServicePlant ? selectedServicePlant.label : '';
+            return {
+                ...item,
+                sugar_grade: sugarGradeLabel,
+                rfq_period: rfq_periodLabel,
+                teil_service_plant: serviceplantLabel,
+                credit_days: item.credit_days,
+                bid_loss: {
+                    ...item.bid_loss,
+                    competitor_price: item.bid_loss?.competitor_price === null ? '--' : item.bid_loss.competitor_price,
+                    price_difference: item.bid_status === "LOSS" ? item.bid_loss?.price_difference || '--' : '--'
+
+                },
+                system_predicted_price: item.system_predicted_price === null ? '--' : item.system_predicted_price,
+                KAM: item.employee_info ? `${item.employee_info.given_name} ${item.employee_info.family_name}` : ''
+            };
+        });
+    const userSub = sessionStorage.getItem('userSub') || '';
+
+    const updateSelectedColumns = async (selectedColumns: string[]) => {
+        try {
+            const response = await axiosInstanceUserManagement.put(
+                userManagementEndPoints.SWEETS_UPDATE_COLUMNS,
+                {
+                    sub: userSub,
+                    screen_name: "rfq",
+                    column_names: selectedColumns,
+                }
+            );
+
+            if (response.data.success) {
+                console.log("Columns updated successfully");
+            }
+
+        } catch (error) {
+            console.error("Failed to update selected columns", error);
+        }
+    };
+
+    const handleColumnChange = (selectedColumns: { [key: string]: boolean }) => {
+        const updatedColumns = initialColumns.map((column) => ({
+            ...column,
+            visible: selectedColumns[column.field],
+        }));
+
+        const selectedColumnNames = updatedColumns
+            .filter((column) => column.visible)
+            .map((column) => column.title);
+
+        console.log("Selected Columns:", selectedColumnNames);
+
+        // setSelectedColumns(selectedColumnNames);
+
+        updateSelectedColumns(selectedColumnNames);
+        setColumns(updatedColumns);
+
+    };
+
+    useEffect(() => {
+        getSelectedColumns(userSub)
+        setColumns(columns.length > 0 ? columns : initialColumns)
+    }, [])
+
+    const getSelectedColumns = async (userSub: any) => {
+        try {
+            const response = await axiosInstanceUserManagement.get(
+                `${userManagementEndPoints.SWEETS_UPDATE_COLUMNS}/${userSub}`,
+                {
+                    params: { screen_name: 'rfq' },
+                }
+            );
+
+            if (response.data.success && response.data.data.length > 0 && response.data.data[0].column_names.length > 0) {
+                const columnNamesFromResponse = response.data.data[0].column_names;
+
+                // Map columns based on response
+                const updatedColumns = initialColumns.map(column => ({
+                    ...column,
+                    visible: columnNamesFromResponse.includes(column.title), // Set visibility based on response
+                }));
+
+                setColumns(updatedColumns);
+                console.log("Updated Columns:", updatedColumns);
+            } else {
+                // If the response is empty, use the initialColumns without modifying the visibility
+                setColumns(initialColumns);
+                console.log("Response was empty, using initial columns:", initialColumns);
+            }
+        } catch (error) {
+            console.error("Failed to fetch selected columns", error);
+            // On error, fallback to initialColumns
+            setColumns(initialColumns);
+        }
+    };
+
+
+
+    const [updatedColumn, setUpdatedColumns] = useState<any>([])
+
+    // const getFilteredRolesData = () => {
+    //     if (searchInput === '') {
+    //       return rfqData;
+    //     }
+    //     return rfqData.saved_rfq.filter((role: any) =>
+    //       role.customer_id.toLowerCase().includes(searchInput.toLowerCase())
+    //     );
+    //   };
+
+    useEffect(() => {
+        getCompanyNames();
+        getGradeList();
+        getRfqPeriodList();
+        getPlantNames();
+
+    }, [])
+    const [companyNames, setCompanyNames] = useState([]);
+
+
+
+    const getCompanyNames = async () => {
+        try {
+            const response = await axiosInstanceSweets.get(sweetsEndPoints.GET_COMPANY_NAME);
+            if (response?.data?.success) {
+                const companyOptions = response?.data?.data?.map((item: any) => ({
+                    value: item._id,
+                    label: item.company_name // Use item.rfq_period for the label
+                }));
+                setCompanyNames(companyOptions);
+            }
+        } catch (error) {
+            console.error("Error fetching RFQ period list:", error);
+        }
+    };
+
+    const getGradeList = async () => {
+        try {
+            const response = await axiosInstanceMasters.get(masterEndPoints.GET_SUGAR_LIST);
+            if (response?.data?.success) {
+                console.log(response?.data?.data, "data");
+
+                const gradeoptions = response?.data?.data?.map((item: any) => ({
+                    value: item._id,
+                    label: item.name,
+                    product_id: item.product_id
+                }));
+
+                setGradeOptions(gradeoptions);
+            }
+        } catch (error) {
+            console.error("Error fetching segment list:", error);
+        }
+    };
+
+    const getRfqPeriodList = async () => {
+        try {
+            const response = await axiosInstanceMasters.get(masterEndPoints.GET_RFQ_PERIOD_LIST);
+            if (response?.data?.success) {
+                console.log(response?.data?.data, "nnn");
+
+                const periodOptions = response?.data?.data?.map((item: any) => ({
+                    value: item._id,
+                    label: item.rfq_period // Use item.rfq_period for the label
+                }));
+                setRfqperiodlist(periodOptions);
+            }
+        } catch (error) {
+            console.error("Error fetching RFQ period list:", error);
+        }
+    };
+
+    const getPlantNames = async () => {
+        try {
+            const response = await axiosInstanceMasters.get(masterEndPoints.GET_PLANT_NAMES);
+            if (response?.data?.success) {
+                console.log(response?.data?.data, "mmm");
+
+                const plantOptions = response?.data?.data?.map((item: any) => ({
+                    value: item._id,
+                    label: item.name
+                }));
+                setPlantNames(plantOptions);
+            }
+        } catch (error) {
+            console.error("Error fetching RFQ period list:", error);
+        }
+    };
+    const getCompanyInfo = async (id: any) => {
+        try {
+            const response = await axiosInstanceSweets.get(sweetsEndPoints.GET_COMPANY_INFO + "/" + id);
+
+            setFormValues(prevState => ({
+                ...prevState,
+                customercategory: response.data.data.customer_category || "-",
+                premium: response.data.data.premium_potential,
+                channel: response.data.data.channel,
+                creditdays: response?.data?.data?.credit_period
+            }));
+
+        } catch (error) {
+            console.error("Error fetching RFQ period list:", error);
+        }
+    };
+    const handleChange1 = (selectedOption: any) => {
+        setFormValues({
+            ...formValues,
+
+            sugargrade: selectedOption ? selectedOption.label : '',
+            variant_id: selectedOption ? selectedOption.value : '',
+            product_id: selectedOption ? selectedOption.product_id : ''
+        });
+    };
+
+    const handleChange2 = (selectedOption: any) => {
+        setFormValues({ ...formValues, rfqperiod: selectedOption ? selectedOption.value : '' });
+    };
+    const handleChange3 = (selectedOption: any) => {
+        setFormValues({ ...formValues, customername: selectedOption ? selectedOption.value : '' });
+        const leadId = selectedOption ? (selectedOption.value || selectedOption.value) : '';
+        getCompanyInfo(leadId)
+
+        console.log(selectedOption ? (selectedOption.value || selectedOption.value) : '');
+    };
+
+
+    const handleChange4 = (selectedOption: any) => {
+        setFormValues({ ...formValues, serviceplant: selectedOption ? selectedOption.value : '' });
+    };
+
+    // Clean up object URLs when files are removed or component unmounts
+    useEffect(() => {
+        return () => {
+            formValues.file.forEach((file: any) => {
+                URL.revokeObjectURL(file.url);
+            });
+        };
+    }, [formValues.file]);
+
+    const editOffcanvas = useRef<HTMLDivElement>(null)
+
+    const closeOffcanvas = (ref: React.RefObject<HTMLDivElement>) => {
+        const offcanvasElement = ref.current;
+
+        if (offcanvasElement) {
+            offcanvasElement.classList.remove("show");
+            offcanvasElement.setAttribute("aria-hidden", "true");
+            offcanvasElement.removeAttribute("aria-modal");
+            const backdrop = document.querySelector(".offcanvas-backdrop");
+            if (backdrop) {
+                backdrop.remove();
+            }
+            setTimeout(() => {
+                offcanvasElement.style.visibility = "";
+            }, 100);
+        }
+    }
+
+    const openFile = (url: string) => {
+        window.open(url, '_blank');
+    };
+
+    const permissions = JSON.parse(sessionStorage.getItem('permissions') || '[]');
+    // console.log(permissions, "permissions");
+
+    const hasWriteAccess = permissions.includes('crm_rfq_write');
+    // Keyboard start
+    const toggleDatePicker = (pickerOpen: boolean, setPickerOpen: (open: boolean) => void, inputRef: React.RefObject<HTMLInputElement>, setInputType: React.Dispatch<React.SetStateAction<string>>) => {
+        if (pickerOpen) {
+            inputRef.current?.blur();
+        } else {
+            setInputType('date');
+            setTimeout(() => {
+                inputRef.current?.focus();
+                inputRef.current?.showPicker?.();
+            }, 0);
+        }
+        setPickerOpen(false);
+    };
+    const handleDateInputKeyDown = (event: React.KeyboardEvent<HTMLInputElement>, pickerOpen: boolean, setPickerOpen: (open: boolean) => void, inputRef: React.RefObject<HTMLInputElement>, setInputType: React.Dispatch<React.SetStateAction<string>>) => {
+        if (event.key === 'Enter' || event.key === ' ') {
+            event.preventDefault();
+            toggleDatePicker(pickerOpen, setPickerOpen, inputRef, setInputType);
+        }
+        else {
+            setInputType('text');
+        }
+    };
+    const rfqDateRef = useRef<HTMLInputElement>(null);
+    const [, setUnusedType] = useState<string>("date");
+    const [rfqDatePickerOpen, setRfqDatePickerOpen] = useState<boolean>(false);
+    const poDateRef = useRef<HTMLInputElement>(null);
+    const [poDatePickerOpen, setPoDatePickerOpen] = useState<boolean>(false);
+    const liftingDateRef = useRef<HTMLInputElement>(null);
+    const [liftingDatePickerOpen, setLifingDatePickerOpen] = useState<boolean>(false);
+    // Keyboard end
+
+    return (
+        <div className="px-md-4">
+            <Toaster
+                message={toastMessage}
+                type={toastType}
+                visible={toastVisible}
+                onClose={() => setToastVisible(false)}
+            />
+            <KendoDeleteConformationComponent visible={deleteVisible} title={promptTitle} data={prompt || "Are you sure you want to delete the RFQ ?"} onResponse={handleDialogDelete} />
+            <div className="row d-flex justify-content-between align-items-center mt-4">
+                <div className="col">
+                    <KendoBreadCrumbsComponent items={breadCrumbsData} />
+                </div>
+            </div>
+            <div className="row mx-0">
+                <Card style={{ height: "100%" }}>
+                    <div className="mt-3 mb-3">
+
+
+                        <div className="row">
+                            <div className="col-12 col-lg-4">
+                                <TextBox
+                                    value={searchInput}
+                                    onChange={handleSearchChange}
+                                    placeholder="Search by customer name"
+                                    style={{ color: "#697A8D" }}
+                                    className="p-1 w-100"
+                                    autoComplete="off"
+                                    suffix={() => (
+                                        <>
+                                            <InputSuffix>
+                                                {searchInput ? (
+                                                    <SvgIcon icon={xIcon} onClick={handleClear} style={{ cursor: 'pointer', marginRight: "8px" }} />
+                                                ) : (
+                                                    <SvgIcon icon={searchIcon} style={{ marginRight: "8px" }} />
+                                                )}
+                                            </InputSuffix>
+                                        </>
+                                    )}
+                                />
+
+                            </div>
+                            <div className="col-12 col-lg-5 d-flex align-items-center">
+                                <ColumnSelector columns={columns} onChange={handleColumnChange} />
+                                {checkParam() && <span className="btn btn-link fw-bold p-0 px-2 mt-2" onClick={handleRemoveAllParams} style={{ cursor: 'pointer', color: '#17479E' }}>
+                                    RESET FILTER
+                                </span>}
+                            </div>
+                            <div className="col-12 col-lg-3 d-flex justify-content-lg-end mt-2 mt-lg-0">
+
+                                {hasWriteAccess && (
+                                    <Button
+                                        className="btn btn-primary w-lg-auto me-0 me-md-4 custom-focus"
+                                        data-bs-toggle="offcanvas"
+                                        data-bs-target="#offCanvasCreateRFQ"
+                                        aria-controls="offCanvasCreateRFQ"
+                                    >
+                                        {convertUpperCase("Create RFQ")}
+                                    </Button>
+                                )}
+
+                            </div>
+                        </div>
+                    </div>
+
+                    {loading ? (
+                        <div className="d-flex justify-content-center align-items-center" style={{ height: 300 }} >
+                            <KendoScreenLoaderComponent loaderType={"converging-spinner"} loaderColor={"tertiary"} loaderSize={"medium"} />
+                        </div>
+                    ) : (
+                        <>
+                            <div>
+                                <Grid
+                                    data={processedData}
+                                    skip={page.skip}
+                                    take={page.take}
+                                    total={rfqData?.total_count}
+                                    pageable={{ buttonCount: 4, pageSizes: [5, 10, 15], pageSizeValue: pageSizeValue }}
+                                    onPageChange={pageChange}
+
+                                >
+                                    {columns
+                                        .filter((column) => column.visible !== false || column.field === 'serial_number')
+                                        .map((column) => (
+                                            <GridColumn
+                                                key={column.field}
+                                                field={column.field}
+                                                title={column.title}
+                                                width={column.width}
+                                                cell={column.cell}
+                                                headerClassName="fw-bolder"
+                                            />
+                                        ))}
+
+                                    <GridColumn
+                                        field="Action"
+                                        title="Action"
+                                        width={150}
+                                        cell={ActionsCell}
+                                        headerClassName="fw-bolder"
+                                    />
+                                </Grid>
+
+                            </div>
+                        </>
+                    )}
+
+                </Card>
+            </div>
+
+            {/* Offcanvas Start Create RFQ */}
+            <CreateRfqForm onSuccess={fetchManageRolesList} />
+            {/* Offcanvas End Create RFQ */}
+
+            {/* Offcanvas Start Edit RFQ */}
+            <div className="offcanvas offcanvas-end p-2" id="offCanvasEditRFQ" style={{ width: '818px' }} ref={editOffcanvas} aria-labelledby="offcanvasRightLabel">
+                <div style={{ width: '100%', height: "100%", overflowY: "auto", overflowX: 'hidden', scrollbarWidth: 'none' }}>
+                    <div>
+                        <Toaster
+                            message={toastMessage}
+                            type={toastType}
+                            visible={toastVisible}
+                            onClose={() => setToastVisible(false)}
+                        />
+                        <div className="p-4">
+                            <div className="">
+                                <button
+                                    data-bs-dismiss="offcanvas"
+                                    className="custom-focus ms-3"
+                                    aria-label="Close"
+                                    role="button"
+                                    style={{ border: 'none', background: 'none', width: '36px', height: '25px' }}
+                                >
+                                    <img src={LeftArrowIcon}
+                                        className="mb-2"
+                                        alt="Left Arrow  Icon"
+                                        width={24} height={24}
+                                        data-bs-dismiss="offcanvas" onClick={closeEdit} aria-label="Close" />
+                                </button>
+                                <h3 className="offcanvas-title d-inline ms-0 black-color-text offcanvas-title" id="offCanvasCreateRFQLabel">Edit RFQ</h3>
+
+                            </div>
+
+                            {editLoading ? (
+                                <div className="d-flex justify-content-center align-items-center" style={{ height: 300 }} >
+                                    <KendoScreenLoaderComponent loaderType={"converging-spinner"} loaderColor={"tertiary"} loaderSize={"medium"} />
+                                </div>
+                            ) : (
+
+                                <div className="offcanvas-body " style={{ overflowY: 'auto', overflowX: 'hidden', scrollbarWidth: 'none' }}>
+                                    <form action="" className="mt-2">
+
+                                        <div className="container">
+                                            <div className="row mb-3">
+                                                <div className="col">
+                                                    <label htmlFor="customername" className='crm-label mb-2' >Customer name<span className="crm-requried-mark">*</span></label>
+                                                    <select
+                                                        className="form-select crm-input-select"
+                                                        id="customername"
+                                                        name="customername"
+                                                        value={formValues.customername}
+                                                        onBlur={handleBlur}
+                                                        onChange={(e) => {
+                                                            const selectedOption = companyNames.find((option: any) => option.value === e.target.value);
+                                                            handleChange3(selectedOption)
+                                                        }
+                                                        }
+                                                        style={{ padding: "9px 14px 10.94px 14px", textTransform: "capitalize", color: formValues.customername === "" ? '(var(--triveni-placeholder-color)' : 'var(--triveni-input-header-color)' }}
+                                                        required
+                                                    >
+                                                        <option value="" disabled hidden>Select customer name</option>
+                                                        {companyNames.map((option: any) => (
+                                                            <option key={option?.value} value={option?.value} style={{ textTransform: "capitalize" }}>
+                                                                {option?.label?.toLowerCase()}
+                                                            </option>
+                                                        ))}
+                                                    </select>
+
+                                                    {errors.customername && touched.customername && <div className="crm-error-txt-color">{errors.customername}</div>}
+
+                                                </div>
+                                                <div className="col">
+                                                    <label htmlFor="sugargrade" className='crm-label mb-2'>Sugar grade<span className="crm-requried-mark">*</span></label>
+                                                    <select
+                                                        value={formValues.sugargrade}
+                                                        className="form-select crm-input-select"
+                                                        id="sugar_grade"
+                                                        name="sugar_grade"
+                                                        onBlur={handleBlur}
+                                                        onChange={(e) => {
+                                                            const selectedOption = gradeoptions.find((option: any) => option.value === e.target.value);
+                                                            handleChange1(selectedOption);
+                                                        }}
+                                                        style={{ padding: "9px 14px 10.94px 14px" }}
+                                                    >
+                                                        <option value="" disabled hidden>Select sugar grade</option>
+                                                        {gradeoptions.map((option: any, index: any) => (
+                                                            <option key={`${option.value}-${index}`} value={option.value}>
+                                                                {option.label}
+                                                            </option>
+                                                        ))}
+                                                    </select>
+                                                    {errors.sugar_grade && touched.sugar_grade && <div className="crm-error-txt-color">{errors.sugar_grade}</div>}
+
+                                                </div>
+                                            </div>
+                                            <div className="row mb-3">
+                                                <div className="col">
+                                                    <label htmlFor="RFQdate" className='crm-label mb-2'>RFQ date<span className="crm-requried-mark">*</span></label>
+                                                    <input type="date" name="RFQdate" id="RFQdate" className="form-control"
+                                                        onBlur={handleBlur}
+                                                        max={today}
+                                                        ref={rfqDateRef}
+                                                        onClick={() =>
+                                                            toggleDatePicker(
+                                                                rfqDatePickerOpen,
+                                                                setRfqDatePickerOpen,
+                                                                rfqDateRef,
+                                                                setUnusedType
+                                                            )
+                                                        }
+                                                        onKeyDown={(e) => {
+                                                            const allowedKeys = ['Enter', 'Tab', 'Escape'];
+                                                            if (!allowedKeys.includes(e.key)) {
+                                                                e.preventDefault();
+                                                            }
+                                                            handleDateInputKeyDown(
+                                                                e,
+                                                                rfqDatePickerOpen,
+                                                                setRfqDatePickerOpen,
+                                                                rfqDateRef,
+                                                                setUnusedType
+                                                            );
+                                                        }}
+                                                        value={formValues.RFQdate} onChange={handleChange} style={{ padding: "9px 14px 10.94px 14px", color: formValues.RFQdate ? "var(--triveni-input-header-color)" : "var(--triveni-placeholder-color)" }} />
+                                                    {errors.RFQdate && touched.RFQdate && <div className="crm-error-txt-color">{errors.RFQdate}</div>}
+
+                                                </div>
+                                                <div className="col">
+                                                    <label htmlFor="volume" className='crm-label mb-2'>Volume(Qtls)<span className="crm-requried-mark">*</span></label>
+                                                    <Input
+                                                        type="number"
+                                                        id="volume"
+                                                        name="volume"
+                                                        className="crm-input-styles"
+                                                        value={formValues.volume}
+                                                        onChange={handleChange}
+                                                        onKeyDown={(e) => {
+                                                            if (e.key === '.' || e.key === '-' || e.key === 'e') {
+                                                                e.preventDefault();
+                                                            }
+                                                        }}
+                                                        onBlur={handleBlur}
+                                                        placeholder='Enter volume'
+                                                        autoComplete="off"
+                                                        style={{ padding: "9px 14px 10.94px 14px" }}
+                                                    />
+                                                    {errors.volume && touched.volume && <div className="crm-error-txt-color">{errors.volume}</div>}
+                                                </div>
+                                            </div>
+                                            <div className="row mb-3">
+                                                <div className="col">
+                                                    <label htmlFor="rfqperiod" className='crm-label mb-2'>RFQ frequency</label>
+                                                    <select
+                                                        value={formValues.rfqperiod}
+                                                        className="form-select crm-input-select"
+                                                        style={{ padding: "9px 14px 10.94px 14px", color: formValues.rfqperiod === "" ? '(var(--triveni-placeholder-color)' : 'var(--triveni-input-header-color)' }}
+                                                        onChange={(e) => handleChange2(rfqPeriodList.find((option: any) => option.value === e.target.value))}>
+                                                        <option value="" disabled>Select RFQ frequency</option>
+                                                        {rfqPeriodList.map((option: any, index: any) => (
+                                                            <option key={`${option.value}-${index}`} value={option.value}>
+                                                                {option.label}
+                                                            </option>
+                                                        ))}
+                                                    </select>
+                                                </div>
+                                                <div className="col">
+                                                    <label htmlFor="customercategory" className='crm-label mb-2'>Customer category</label>
+                                                    {/* <select
+                                                    className="form-select text-dark"
+                                                    id="customercategory"
+                                                    name="customercategory"
+                                                    onChange={handleChange}
+                                                    style={{ padding: "9px 14px 10.94px 14px", textTransform: "capitalize" }}
+                                                    value={formValues.customercategory}
+                                                >
+                                                    <option value="">Select Customer category</option>
+                                                    {customerCategoryData.map((item: any, index: number) => (
+                                                        <option key={index} value={item}>
+                                                            {item}
+                                                        </option>
+                                                    ))}
+                                                </select> */}
+                                                    <Input
+                                                        id="customercategory"
+                                                        name="customercategory"
+                                                        value={formValues.customercategory}
+                                                        // onChange={handleChange}
+                                                        className="crm-input-styles"
+                                                        readOnly
+                                                        placeholder=''
+                                                        style={{ padding: "9px 14px 10.94px 14px" }}
+
+                                                    />
+                                                </div>
+                                            </div>
+                                            <div className="row mb-3">
+                                                <div className="col">
+                                                    <label htmlFor="sugarpredictedprice" className='crm-label mb-2'>System predicted price</label>
+                                                    <Input
+                                                        id="sugarpredictedprice"
+                                                        name="sugarpredictedprice"
+                                                        type="number"
+                                                        className="crm-input-styles"
+                                                        value={formValues.sugarpredictedprice}
+                                                        onChange={handleChange}
+                                                        placeholder='Enter system predicted price'
+                                                        style={{ padding: "9px 14px 10.94px 14px" }}
+
+                                                    />
+                                                </div>
+                                                <div className="col">
+                                                    <label htmlFor="quotedprice" className='crm-label mb-2'>Quoted price<span className="crm-requried-mark">*</span></label>
+                                                    <Input
+                                                        id="quotedprice"
+                                                        name="quotedprice"
+                                                        type="number"
+                                                        className="crm-input-styles"
+                                                        value={formValues.quotedprice}
+                                                        onChange={handleChange}
+                                                        onBlur={handleBlur}
+                                                        placeholder='Enter quoted price'
+                                                        style={{ padding: "9px 14px 10.94px 14px" }}
+                                                    />
+                                                    {errors.quotedprice && touched.quotedprice && <div className="crm-error-txt-color">{errors.quotedprice}</div>}
+
+                                                </div>
+                                            </div>
+                                            <div className="row mb-3">
+                                                <div className="col">
+                                                    <label htmlFor="premium" className='crm-label mb-2'>Premium potential (INR per Qtls) </label>
+                                                    <Input
+                                                        id="premium"
+                                                        type="number"
+                                                        name="premium"
+                                                        className="crm-input-styles"
+                                                        value={formValues.premium}
+                                                        onChange={handleChange}
+                                                        placeholder=''
+                                                        style={{ padding: "9px 14px 10.94px 14px" }}
+                                                        readOnly
+                                                    />
+                                                </div>
+                                                <div className="col">
+                                                    <label htmlFor="creditdays" className='crm-label mb-2'>Credit days</label>
+                                                    <Input
+                                                        id="creditdays"
+                                                        name="creditdays"
+                                                        className="crm-input-styles"
+                                                        readOnly
+                                                        value={formValues.creditdays}
+                                                        placeholder='Enter credit days'
+                                                        style={{ padding: "9px 14px 10.94px 14px" }}
+
+                                                    />
+                                                </div>
+                                            </div>
+                                            <div className="row mb-3">
+                                                <div className="col">
+                                                    <label htmlFor="TEILserviceplant" className='crm-label mb-2' >TEIL service plant<span className="crm-requried-mark">*</span></label>
+                                                    <select
+                                                        value={formValues.serviceplant}
+                                                        className="form-select crm-input-select"
+                                                        onBlur={handleBlur}
+                                                        style={{ padding: "9px 14px 10.94px 14px", textTransform: 'capitalize', color: formValues.serviceplant === "" ? '(var(--triveni-placeholder-color)' : 'var(--triveni-input-header-color)' }}
+                                                        onChange={(e) => handleChange4(plantNames.find((option: any) => option.value === e.target.value))}>
+                                                        <option value="" disabled hidden>Select TEIL service plant</option>
+                                                        {plantNames.map((option: any, index: any) => (
+                                                            <option key={`${option.value}-${index}`} value={option.value}>
+                                                                {option.label}
+                                                            </option>
+                                                        ))}
+                                                    </select>
+                                                    {errors.serviceplant && touched.serviceplant && <div className="crm-error-txt-color">{errors.serviceplant}</div>}
+                                                </div>
+                                                <div className="col">
+                                                    <label htmlFor="Bidstatus" className='crm-label mb-2'>Bid status<span className="crm-requried-mark">*</span></label>
+                                                    <select
+                                                        className="form-select crm-input-select"
+                                                        id="bidstatus"
+                                                        name="bidstatus"
+                                                        value={formValues.bidstatus}
+                                                        onChange={handleChange}
+                                                        onBlur={handleBlur}
+                                                        style={{ padding: "9px 14px 10.94px 14px", textTransform: "capitalize", color: formValues.bidstatus === "" ? '(var(--triveni-placeholder-color)' : 'var(--triveni-input-header-color)' }}
+                                                        required
+                                                    >
+                                                        <option value="" disabled hidden>Select bid status </option>
+                                                        <option value="WIN">Win</option>
+                                                        <option value="LOSS">Loss</option>
+
+                                                    </select>
+                                                    {errors.bidstatus && touched.bidstatus && <div className="crm-error-txt-color">{errors.bidstatus}</div>}
+                                                </div>
+                                            </div>
+
+                                            <div className="row">
+                                                <div className="col-12">
+                                                    <label htmlFor="remarks" className='crm-label mb-2'>Remarks</label>
+                                                    <textarea
+                                                        id="remarks"
+                                                        name="remarks"
+                                                        rows={3}
+                                                        className="form-control text-dark"
+                                                        value={formValues.remarks}
+                                                        onChange={handleChange}
+                                                        placeholder='Enter remarks'
+                                                        style={{ padding: "9px 14px 10.94px 14px" }}
+                                                        autoComplete="off"
+                                                    ></textarea>
+                                                </div>
+
+                                            </div><br></br><br></br>
+
+                                            {formValues.bidstatus === 'WIN' && (
+                                                <>
+                                                    <div className="row mb-3">
+                                                        <div className="col">
+                                                            <label htmlFor="podate" className='crm-label mb-2'>P.O date</label>
+                                                            <input
+                                                                type="date"
+                                                                className="form-control"
+                                                                id="podate"
+                                                                name="podate"
+                                                                // onKeyDown={(e) => e.preventDefault()}
+                                                                value={formValues.podate.split('T')[0] || ''}
+                                                                min={formValues.RFQdate}  // Set min date to RFQ date
+                                                                onChange={handleChange}
+                                                                ref={poDateRef}
+                                                                onClick={(e) => {
+                                                                    if (!formValues.RFQdate) {
+                                                                        e.preventDefault();
+                                                                        setToastMessage('Please set the RFQ date');
+                                                                        setToastType('error');
+                                                                        setToastVisible(true);
+                                                                    }
+                                                                    else {
+                                                                        toggleDatePicker(
+                                                                            poDatePickerOpen,
+                                                                            setPoDatePickerOpen,
+                                                                            poDateRef,
+                                                                            setUnusedType
+                                                                        );
+                                                                    }
+                                                                }}
+                                                                onKeyDown={(e) => {
+                                                                    const allowedKeys = ['Enter', 'Tab', 'Escape', 'Shift'];
+                                                                    const isShiftTab = e.shiftKey && e.key === 'Tab';
+                                                                    if (allowedKeys.includes(e.key) || isShiftTab) {
+                                                                        if (!formValues.RFQdate) {
+                                                                            setToastMessage('Please set the RFQ date');
+                                                                            setToastType('error');
+                                                                            setToastVisible(true);
+                                                                        } else {
+                                                                            handleDateInputKeyDown(
+                                                                                e,
+                                                                                poDatePickerOpen,
+                                                                                setPoDatePickerOpen,
+                                                                                poDateRef,
+                                                                                setUnusedType
+                                                                            );
+                                                                        }
+                                                                    }
+                                                                }}
+                                                                style={{ padding: "9px 14px 10.94px 14px", color: formValues.podate.split('T')[0] ? "var(--triveni-input-header-color)" : "var(--triveni-placeholder-color)" }}
+                                                            />
+                                                        </div>
+
+                                                        <div className="col">
+                                                            <label htmlFor="liftingdate" className='crm-label mb-2'>Lifting date</label>
+                                                            <input
+                                                                type="date"
+                                                                className="form-control"
+                                                                ref={liftingDateRef}
+                                                                id="liftingdate"
+                                                                name="liftingdate"
+                                                                value={formValues.liftingdate.split('T')[0] || ''}
+                                                                min={formValues.podate}  // Set min date to P.O. date
+                                                                onChange={handleChange}
+                                                                onClick={(e) => {
+                                                                    if (!formValues.podate) {
+                                                                        e.preventDefault();
+                                                                        setToastMessage('Please set the P.O date');
+                                                                        setToastType('error');
+                                                                        setToastVisible(true);
+                                                                    }
+                                                                    else {
+                                                                        toggleDatePicker(
+                                                                            liftingDatePickerOpen,
+                                                                            setLifingDatePickerOpen,
+                                                                            liftingDateRef,
+                                                                            setUnusedType
+                                                                        );
+                                                                    }
+                                                                }}
+                                                                onKeyDown={(e) => {
+                                                                    const allowedKeys = ['Enter', 'Tab', 'Escape', 'Shift'];
+                                                                    const isShiftTab = e.shiftKey && e.key === 'Tab';
+                                                                    if (allowedKeys.includes(e.key) || isShiftTab) {
+                                                                        if (!formValues.podate) {
+                                                                            setToastMessage('Please set the P.O date');
+                                                                            setToastType('error');
+                                                                            setToastVisible(true);
+                                                                        } else {
+                                                                            handleDateInputKeyDown(
+                                                                                e,
+                                                                                liftingDatePickerOpen,
+                                                                                setLifingDatePickerOpen,
+                                                                                liftingDateRef,
+                                                                                setUnusedType
+                                                                            );
+                                                                        }
+                                                                    }
+                                                                }}
+                                                                style={{ padding: "9px 14px 10.94px 14px", color: formValues.liftingdate.split('T')[0] ? "var(--triveni-input-header-color)" : "var(--triveni-placeholder-color)" }}
+
+                                                            />
+                                                        </div>
+
+                                                    </div>
+                                                    <div className="row mb-3">
+                                                        <label htmlFor="file" className="crm-label mb-2">Documents upload</label>
+                                                        <div className="col-6" >
+
+                                                            <FileUpload
+                                                                setFileName={setFileName1}
+                                                                formValues={formValues1}
+                                                                setFormValues={setFormValues1}
+                                                                onFileUpload={handleFileUpload}
+                                                                btnLoading={setFileLoading}
+                                                            />
+
+                                                            {
+                                                                formValues.file.map((file: any, index: number) => (
+                                                                    <div key={index} style={{ display: 'flex', alignItems: 'center', marginTop: '5px' }} className="text-dark">
+                                                                        <div onClick={() => openFile(file.url)}>
+
+                                                                            <span style={{ marginRight: '10px' }}>
+                                                                                <img
+                                                                                    key={index}
+                                                                                    src={pdfIcon}
+                                                                                    alt="PDF Icon"
+                                                                                    style={{ cursor: 'pointer', marginRight: '8px' }}
+
+                                                                                />
+                                                                            </span>
+                                                                            <span>{file.file_name}</span>
+                                                                        </div>
+                                                                        <div>
+
+                                                                            <span
+                                                                                className="input-group-text"
+                                                                                title='Delete'
+                                                                                style={{ cursor: 'pointer', color: '#32475C', marginLeft: '10px', border: 'none' }}
+                                                                                tabIndex={0}
+                                                                                onClick={(e) => handleCancelClick(e, index)}
+                                                                                onKeyDown={(e) => { if (e.key === "Enter") { handleCancelClick(e, index) } }}
+                                                                            >
+                                                                                <i className="fas fa-times crm-error-txt-color"></i>
+                                                                            </span>
+                                                                        </div>
+                                                                    </div>
+                                                                ))
+                                                            }
+
+                                                        </div>
+
+                                                    </div>
+                                                </>
+
+                                            )}
+                                            {formValues.bidstatus === 'LOSS' && (
+
+                                                <>
+                                                    <div className="row mb-3">
+                                                        <div className="col">
+                                                            <label htmlFor="competitorname" className='crm-label mb-2'>Competitor name</label>
+                                                            <Input type="text"
+                                                                id="competitorname"
+                                                                name="competitorname"
+                                                                className="form-control"
+
+                                                                value={formValues.competitorname}
+                                                                onChange={handleChange}
+                                                                placeholder="Enter competitor name"
+                                                                style={{ padding: "9px 14px 10.94px 14px" }} />
+                                                        </div>
+                                                        <div className="col">
+                                                            <label htmlFor="competitorprice" className='crm-label mb-2'>Competitor price</label>
+                                                            <Input type="number"
+                                                                id="competitorprice"
+                                                                name="competitorprice"
+                                                                className="form-control"
+                                                                value={formValues.competitorprice}
+                                                                onChange={handleChange}
+                                                                placeholder="Enter competitor price"
+                                                                style={{ padding: "9px 14px 10.94px 14px" }}
+                                                            />
+                                                        </div>
+                                                    </div>
+                                                    <div className="row mb-3">
+                                                        <div className="col">
+                                                            <label htmlFor="pricedifference" className='crm-label mb-2'>Price difference</label>
+                                                            <Input type="number"
+                                                                id="pricedifference"
+                                                                name="pricedifference"
+                                                                className="form-control"
+                                                                readOnly
+                                                                value={formValues.pricedifference}
+                                                                onChange={handleChange}
+                                                                placeholder="Enter price difference"
+                                                                style={{ padding: "9px 14px 10.94px 14px" }} />
+                                                        </div>
+
+                                                        <div className="col">
+                                                            <label htmlFor="reasonforRFQloss" className='crm-label mb-2'>Reason for RFQ loss</label>
+                                                            <select
+                                                                className="form-select text-dark"
+                                                                id="reasonforRFQloss"
+                                                                name="reasonforRFQloss"
+                                                                onChange={handleChange}
+                                                                style={{ padding: "9px 14px 10.94px 14px" }}
+                                                                value={formValues.reasonforRFQloss}
+                                                            >
+                                                                <option value="">Select reason</option>
+                                                                {reasonForLossData.map((item: any, index: number) => (
+                                                                    <option key={index} value={item}>
+                                                                        {item}
+                                                                    </option>
+                                                                ))}
+                                                            </select>
+                                                        </div>
+                                                    </div>
+                                                    <div className="row mb-3">
+                                                        <div className="col-12">
+                                                            <label htmlFor="remarksforloss" className='crm-label mb-2'>Remarks for loss</label>
+                                                            <textarea
+                                                                id="remarksforloss"
+                                                                name="remarksforloss"
+                                                                className="form-control text-dark"
+                                                                rows={3}
+                                                                value={formValues.remarksforloss}
+                                                                onChange={handleChange}
+                                                                placeholder="Enter remarks"
+                                                                style={{ padding: "9px 14px 10.94px 14px" }} ></textarea>
+                                                        </div>
+
+                                                    </div>
+                                                </>
+
+                                            )}
+                                            <div className="d-flex justify-content-end mt-4">
+                                                <button
+                                                    type="button"
+                                                    className="btn px-4 py-2 ms-3 btn-outline custom-focus"
+                                                    data-bs-dismiss="offcanvas"
+                                                    style={{
+                                                        borderColor: '#17479E',
+                                                        color: "#17479E"
+                                                    }}
+                                                    onClick={closeEdit}
+                                                >
+                                                    CANCEL
+                                                </button>
+                                                <button
+                                                    type="button"
+                                                    className="btn btn-primary px-4 py-2 ms-3 custom-focus"
+                                                    onClick={() => {
+                                                        handleSubmit();
+
+                                                    }}
+
+
+
+                                                >
+                                                    {buttonloading && (
+                                                        <span className="spinner-border spinner-border-sm text-light me-1" role="status" aria-hidden="true"></span>
+                                                    )}
+                                                    UPDATE
+                                                </button>
+                                            </div>
+                                        </div>
+                                    </form>
+                                </div>
+                            )}
+                        </div>
+                    </div>
+                </div>
+            </div>
+            {/* Offcanvas End Edit RFQ */}
+
+            {/* Offcanvas start View RFQ */}
+            <div className="offcanvas offcanvas-end" id="offcanvasRight" style={{ width: '818px' }} aria-labelledby="offcanvasRightLabel">
+                <div style={{ width: '100%', height: "100%", overflowY: "auto", overflowX: 'hidden', scrollbarWidth: 'none' }}>
+                    <div>
+                        <div className="p-5">
+                            <div className="">
+                                <button
+                                    data-bs-dismiss="offcanvas"
+                                    className="custom-focus ms-3"
+                                    aria-label="Close"
+                                    role="button"
+                                    style={{ border: 'none', background: 'none', width: '36px', height: '25px' }}
+                                >
+                                    <img src={LeftArrowIcon}
+                                        className="mb-2"
+                                        alt="Left Arrow  Icon"
+                                        width={24} height={24}
+                                        data-bs-dismiss="offcanvas"
+                                        onClick={closeEdit} aria-label="Close" />
+                                </button>
+                                <h3 className="offcanvas-title d-inline ms-0 black-color-text offcanvas-title" id="offCanvasCreateRFQLabel">View RFQ</h3>
+
+                            </div>
+
+                            {editLoading ? (
+                                <div className="d-flex justify-content-center align-items-center" style={{ height: 300 }} >
+                                    <KendoScreenLoaderComponent loaderType={"converging-spinner"} loaderColor={"tertiary"} loaderSize={"medium"} />
+                                </div>
+                            ) : (
+
+                                <div className="offcanvas-body " style={{ overflowY: 'auto', overflowX: 'hidden', scrollbarWidth: 'none' }}>
+                                    <form action="" className="mt-2">
+
+                                        <div className="container">
+                                            <div className="row mb-3">
+                                                <div className="col">
+                                                    <label htmlFor="customername" className='crm-label mb-2' >Customer name<span className="crm-requried-mark">*</span></label>
+                                                    <select
+                                                        className="form-select crm-input-select"
+                                                        id="customername"
+                                                        name="customername"
+                                                        value={formValue.customername}
+                                                        disabled
+                                                        style={{ padding: "9px 14px 10.94px 14px", textTransform: "capitalize" }}
+                                                    >
+                                                        {companyNames.map((option: any) => (
+                                                            <option key={option.value} value={option.value} style={{ textTransform: "capitalize" }}>
+                                                                {option?.label?.toLowerCase()}
+                                                            </option>
+                                                        ))}
+                                                    </select>
+                                                </div>
+                                                <div className="col">
+                                                    <label htmlFor="sugargrade" className='crm-label mb-2'>Sugar grade<span className="crm-requried-mark">*</span></label>
+                                                    <select
+                                                        value={formValue.sugargrade}
+                                                        className="form-select crm-input-select"
+                                                        id="sugar_grade"
+                                                        name="sugar_grade"
+                                                        disabled
+                                                        style={{ padding: "9px 14px 10.94px 14px", textTransform: "capitalize" }}
+                                                    >
+                                                        {gradeoptions.map((option: any, index: any) => (
+                                                            <option key={`${option.value}-${index}`} value={option.label}>
+                                                                {option.label}
+                                                            </option>
+                                                        ))}
+                                                    </select>
+                                                </div>
+                                            </div>
+                                            <div className="row mb-3">
+                                                <div className="col">
+                                                    <label htmlFor="RFQdate" className='crm-label mb-2'>RFQ date<span className="crm-requried-mark">*</span></label>
+                                                    <input type="date" name="RFQdate" id="RFQdate" className="form-control"
+                                                        value={formValue.RFQdate}
+                                                        style={{ padding: "9px 14px 10.94px 14px", color: formValue.RFQdate ? "var(--triveni-input-header-color)" : "var(--triveni-placeholder-color)", cursor: 'default' }}
+
+                                                        // onKeyDown={(e) => e.preventDefault()}
+                                                        disabled
+                                                        onClick={((e) => {
+                                                            e.preventDefault();
+                                                        })} />
+                                                </div>
+                                                <div className="col">
+                                                    <label htmlFor="volume" className='crm-label mb-2'>Volume(Qtls)<span className="crm-requried-mark">*</span></label>
+                                                    <Input
+                                                        type="number"
+                                                        id="volume"
+                                                        name="volume"
+                                                        className="crm-input-styles"
+                                                        value={formValue.volume}
+                                                        placeholder='Enter volume'
+                                                        disabled
+                                                        style={{ padding: "9px 14px 10.94px 14px" }}
+                                                    />
+                                                </div>
+                                            </div>
+                                            <div className="row mb-3">
+                                                <div className="col">
+                                                    <label htmlFor="rfqperiod" className='crm-label mb-2'>RFQ frequency</label>
+                                                    <select
+                                                        value={formValue.rfqperiod}
+                                                        className="form-select crm-input-select"
+                                                        style={{ padding: "9px 14px 10.94px 14px", color: formValues.rfqperiod === "" ? '(var(--triveni-placeholder-color)' : 'var(--triveni-input-header-color)' }}
+                                                        disabled>
+                                                        <option value="" disabled hidden>Select RFQ frequency</option>
+                                                        {rfqPeriodList.map((option: any, index: any) => (
+                                                            <option key={`${option.value}-${index}`} value={option.value}>
+                                                                {option.label}
+                                                            </option>
+                                                        ))}
+                                                    </select>
+                                                </div>
+                                                <div className="col">
+                                                    <label htmlFor="customercategory" className='crm-label mb-2'>Customer category</label>
+                                                    <Input
+                                                        id="customercategory"
+                                                        name="customercategory"
+                                                        value={formValue.customercategory}
+                                                        disabled
+                                                        placeholder='Customer Category'
+                                                        className="crm-input-styles"
+                                                        style={{ padding: "9px 14px 10.94px 14px" }}
+
+                                                    />
+                                                </div>
+                                            </div>
+                                            <div className="row mb-3">
+                                                <div className="col">
+                                                    <label htmlFor="sugarpredictedprice" className='crm-label mb-2'>System predicted price</label>
+                                                    <Input
+                                                        id="sugarpredictedprice"
+                                                        name="sugarpredictedprice"
+                                                        type="number"
+                                                        value={formValue.sugarpredictedprice}
+                                                        placeholder='Enter system predicted price'
+                                                        className="crm-input-styles"
+                                                        disabled
+                                                        style={{ padding: "9px 14px 10.94px 14px" }}
+
+                                                    />
+                                                </div>
+                                                <div className="col">
+                                                    <label htmlFor="quotedprice" className='crm-label mb-2'>Quoted price<span className="crm-requried-mark">*</span></label>
+                                                    <Input
+                                                        id="quotedprice"
+                                                        name="quotedprice"
+                                                        type="number"
+                                                        className="crm-input-styles"
+                                                        value={formValue.quotedprice}
+                                                        placeholder='Enter quoted price'
+                                                        style={{ padding: "9px 14px 10.94px 14px" }}
+                                                        disabled
+                                                    />
+                                                </div>
+                                            </div>
+                                            <div className="row mb-3">
+                                                <div className="col">
+                                                    <label htmlFor="premium" className='crm-label mb-2'>Premium potential (INR per Qtls) </label>
+                                                    <Input
+                                                        id="premium"
+                                                        type="number"
+                                                        name="premium"
+                                                        className="crm-input-styles"
+                                                        value={formValue.premium}
+                                                        placeholder='Enter premium potential'
+                                                        style={{ padding: "9px 14px 10.94px 14px" }}
+                                                        disabled
+                                                    />
+                                                </div>
+                                                <div className="col">
+                                                    <label htmlFor="creditdays" className='crm-label mb-2'>Credit days</label>
+                                                    <Input
+                                                        id="creditdays"
+                                                        name="creditdays"
+                                                        className="crm-input-styles"
+                                                        value={formValue.creditdays}
+                                                        disabled
+                                                        placeholder='Enter credit days'
+                                                        style={{ padding: "9px 14px 10.94px 14px" }}
+                                                    />
+                                                </div>
+                                            </div>
+                                            <div className="row mb-3">
+                                                <div className="col">
+                                                    <label htmlFor="TEILserviceplant" className='crm-label mb-2' >TEIL service plant<span className="crm-requried-mark">*</span></label>
+                                                    <select
+                                                        value={formValue.serviceplant}
+                                                        className="form-select crm-input-select"
+                                                        style={{ padding: "9px 14px 10.94px 14px", textTransform: 'capitalize' }}
+                                                        disabled
+                                                    >
+                                                        {plantNames.map((option: any, index: any) => (
+                                                            <option key={`${option.value}-${index}`} value={option.value}>
+                                                                {option.label}
+                                                            </option>
+                                                        ))}
+                                                    </select>
+                                                </div>
+                                                <div className="col">
+                                                    <label htmlFor="Bidstatus" className='crm-label mb-2'>Bid status<span className="crm-requried-mark">*</span></label>
+                                                    <select
+                                                        className="form-select crm-input-select"
+                                                        id="bidstatus"
+                                                        name="bidstatus"
+                                                        value={formValue.bidstatus}
+                                                        style={{ padding: "9px 14px 10.94px 14px", textTransform: "capitalize" }}
+                                                        disabled
+                                                    >
+                                                        <option value="">Select bid status </option>
+                                                        <option value="WIN">Win</option>
+                                                        <option value="LOSS">Loss</option>
+
+                                                    </select>
+                                                </div>
+                                            </div>
+
+                                            <div className="row">
+                                                <div className="col-12">
+                                                    <label htmlFor="remarks" className='crm-label mb-2'>Remarks</label>
+                                                    <textarea
+                                                        id="remarks"
+                                                        name="remarks"
+                                                        rows={3}
+                                                        className="form-control text-dark"
+                                                        value={formValue.remarks}
+                                                        placeholder='Enter remarks'
+                                                        style={{ padding: "9px 14px 10.94px 14px" }}
+                                                        disabled
+                                                    ></textarea>
+                                                </div>
+
+                                            </div><br></br><br></br>
+
+                                            {formValue.bidstatus === 'WIN' && (
+                                                <>
+                                                    <div className="row mb-3">
+                                                        <div className="col">
+                                                            <label htmlFor="podate" className='crm-label mb-2'>P.O date</label>
+                                                            <input type="date"
+                                                                className="form-control"
+                                                                id="podate" name="podate"
+                                                                defaultValue={formValue.podate.split('T')[0] || ''}
+                                                                // onKeyDown={(e) => e.preventDefault()}
+                                                                disabled
+                                                                style={{ padding: "9px 14px 10.94px 14px", color: formValue.podate.split('T')[0] ? "var(--triveni-input-header-color)" : "var(--triveni-placeholder-color)", cursor: 'default' }}
+                                                            />
+                                                        </div>
+                                                        <div className="col">
+                                                            <label htmlFor="liftingdate" className='crm-label mb-2'>Lifting date</label>
+                                                            <input type="date"
+                                                                className="form-control"
+                                                                id="liftingdate"
+                                                                name="liftingdate"
+                                                                defaultValue={(formValue.liftingdate.split('T')[0] || '')}
+                                                                disabled
+                                                                // onKeyDown={(e) => e.preventDefault()}
+                                                                style={{ padding: "9px 14px 10.94px 14px", color: formValue.liftingdate.split('T')[0] ? "var(--triveni-input-header-color)" : "var(--triveni-placeholder-color)", cursor: 'default' }}
+                                                            />
+                                                        </div>
+                                                    </div>
+                                                    <div className="row mb-3">
+                                                        <label htmlFor="file" className="crm-label mb-2">Documents upload</label>
+                                                        <div className="col-6" >
+                                                            <div className="input-group">
+                                                                <div className="file-upload-container col">
+                                                                    <label htmlFor="file-upload" className="file-upload-label"
+                                                                        style={{ color: '#000000', cursor: 'default' }}
+                                                                    >
+                                                                        Upload
+                                                                        <i className="fas fa-upload file-upload-icon"></i>
+                                                                    </label>
+                                                                    <input
+                                                                        id="file-upload"
+                                                                        type="file"
+                                                                        disabled
+                                                                        className="file-upload-input"
+                                                                    />
+                                                                </div>
+                                                            </div>
+
+                                                            {/* <div className="input-group">
+                                                                <input
+                                                                    type="text"
+                                                                    // value={fileName}
+                                                                    placeholder="Upload file"
+                                                                    className="form-control"
+                                                                    readOnly
+                                                                    style={{ width: "250px", height: '40px' }}
+                                                                />
+                                                                <span
+                                                                    className="input-group-text"
+                                                                    id="basic-addon2"
+
+                                                                >
+                                                                    <i className="fas fa-upload"></i>
+                                                                </span>
+                                                                <input
+                                                                    type="file"
+                                                                    readOnly
+                                                                    style={{ display: 'none' }}
+                                                                />
+                                                            </div> */}
+
+                                                            {
+                                                                formValue.file.map((file: any, index: number) => (
+                                                                    <div key={index} style={{ display: 'flex', alignItems: 'center', marginTop: '5px' }} className="text-dark">
+                                                                        <div onClick={() => openFile(file.url)}>
+
+                                                                            <span style={{ marginRight: '10px' }}>
+                                                                                <img
+                                                                                    key={index}
+                                                                                    src={pdfIcon}
+                                                                                    alt="PDF Icon"
+                                                                                    style={{ cursor: 'pointer', marginRight: '8px' }}
+
+                                                                                />
+                                                                            </span>
+                                                                            <span style={{ cursor: 'pointer' }}>{file.file_name}</span>
+                                                                        </div>
+                                                                        {/* <span
+                                                                            className="input-group-text"
+                                                                            title='Delete'
+                                                                            style={{ cursor: 'pointer', color: '#32475C', marginLeft: '10px', border: 'none' }}
+
+                                                                        >
+                                                                            <i className="fas fa-times crm-error-txt-color"></i>
+                                                                        </span> */}
+                                                                    </div>
+                                                                ))
+                                                            }
+
+                                                        </div>
+
+                                                    </div>
+                                                </>
+
+                                            )}
+                                            {formValue.bidstatus === 'LOSS' && (
+
+                                                <>
+                                                    <div className="row mb-3">
+                                                        <div className="col">
+                                                            <label htmlFor="competitorname" className='crm-label mb-2'>Competitor name</label>
+                                                            <Input type="text"
+                                                                id="competitorname"
+                                                                name="competitorname"
+                                                                value={formValue.competitorname}
+                                                                // onChange={handleChange}
+                                                                disabled
+                                                                className="crm-input-styles"
+                                                                autoComplete="off"
+                                                                placeholder="Enter competitor name"
+                                                                style={{ padding: "9px 14px 10.94px 14px" }} />
+                                                        </div>
+                                                        <div className="col">
+                                                            <label htmlFor="competitorprice" className='crm-label mb-2'>Competitor price</label>
+                                                            <Input type="number"
+                                                                id="competitorprice"
+                                                                name="competitorprice"
+                                                                className="crm-input-styles"
+                                                                autoComplete="off"
+                                                                value={formValue.competitorprice}
+                                                                // onChange={handleChange}
+                                                                disabled
+                                                                placeholder="Enter competitor price"
+                                                                style={{ padding: "9px 14px 10.94px 14px" }}
+                                                            />
+                                                        </div>
+                                                    </div>
+                                                    <div className="row mb-3">
+                                                        <div className="col">
+                                                            <label htmlFor="pricedifference" className='crm-label mb-2'>Price difference</label>
+                                                            <Input type="number"
+                                                                id="pricedifference"
+                                                                name="pricedifference"
+                                                                disabled
+                                                                className="crm-input-styles"
+                                                                value={formValue.pricedifference}
+                                                                // onChange={handleChange}
+                                                                placeholder="Enter price difference"
+                                                                style={{ padding: "9px 14px 10.94px 14px" }} />
+                                                        </div>
+
+                                                        <div className="col">
+                                                            <label htmlFor="reasonforRFQloss" className='crm-label mb-2'>Reason for RFQ loss</label>
+                                                            <select
+                                                                className="form-select crm-input-select"
+                                                                id="reasonforRFQloss"
+                                                                name="reasonforRFQloss"
+                                                                // onChange={handleChange}
+                                                                style={{ padding: "9px 14px 10.94px 14px", color: formValues.reasonforRFQloss === "" ? '(var(--triveni-placeholder-color)' : 'var(--triveni-input-header-color)' }}
+                                                                value={formValue.reasonforRFQloss}
+                                                                disabled
+                                                            >
+                                                                <option value="">Select reason</option>
+                                                                {reasonForLossData.map((item: any, index: number) => (
+                                                                    <option key={index} value={item}>
+                                                                        {item}
+                                                                    </option>
+                                                                ))}
+                                                            </select>
+                                                            {/* <select
+                                                            className="form-select"
+                                                            id="reasonforRFQloss"
+                                                            name="reasonforRFQloss"
+                                                            value={formValues.reasonforRFQloss}
+                                                            onChange={handleChange}
+                                                            style={{ padding: "9px 14px 10.94px 14px", textTransform: 'capitalize' }}
+                                                        >
+                                                            <option value="">Select a RFQ loss</option>
+                                                            <option value="Price">Price</option>
+
+
+                                                        </select> */}
+                                                        </div>
+                                                    </div>
+                                                    <div className="row mb-3">
+                                                        <div className="col-12">
+                                                            <label htmlFor="remarksforloss" className='crm-label mb-2'>Remarks for loss</label>
+                                                            <textarea
+                                                                id="remarksforloss"
+                                                                name="remarksforloss"
+                                                                className="form-control text-dark"
+                                                                rows={3}
+                                                                value={formValue.remarksforloss}
+                                                                // onChange={handleChange}
+                                                                disabled
+                                                                placeholder="Enter remarks"
+                                                                style={{ padding: "9px 14px 10.94px 14px" }} ></textarea>
+                                                        </div>
+
+                                                    </div>
+                                                </>
+
+                                            )}
+                                            <div className="d-flex justify-content-end mt-4">
+                                                <button
+                                                    type="button"
+                                                    className="btn px-4 py-2 ms-3 btn-outline custom-focus"
+                                                    data-bs-dismiss="offcanvas"
+                                                    style={{
+                                                        borderColor: '#17479E',
+                                                        color: "#17479E"
+                                                    }}
+                                                    onClick={closeEdit}
+                                                >
+                                                    CANCEL
+                                                </button>
+                                            </div>
+                                        </div>
+                                    </form>
+                                </div>
+                            )}
+
+
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    )
+}
+
+export default ManageRFQs

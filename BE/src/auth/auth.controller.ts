@@ -69,18 +69,25 @@ export class AuthController {
 
     @Get('microsoft')
     microsoftAuth(@Res() res: Response) {
-        const url = this.authService.getMicrosoftAuthUrl();
+        const url = this.authService.getMicrosoftAuthUrl('microsoft');
+        res.redirect(url);
+    }
+
+    @Get('outlook')
+    outlookAuth(@Res() res: Response) {
+        const url = this.authService.getMicrosoftAuthUrl('outlook');
         res.redirect(url);
     }
 
     @Get('microsoft/callback')
-    async microsoftAuthCallback(@Query('code') code: string, @Res() res: Response) {
+    async microsoftAuthCallback(@Query('code') code: string, @Query('state') state: string, @Res() res: Response) {
         if (!code) {
             return res.status(400).send('No code provided');
         }
 
         try {
-            const credentialId = await this.authService.handleMicrosoftCallback(code);
+            const credentialId = await this.authService.handleMicrosoftCallback(code, state);
+            const provider = state === 'outlook' ? 'outlook' : 'microsoft';
 
             const html = `
                 <html>
@@ -92,7 +99,7 @@ export class AuthController {
                                 window.opener.postMessage({ 
                                     type: 'GOOGLE_AUTH_SUCCESS', // Using same message type for simplicity
                                     credentialId: '${credentialId}',
-                                    provider: 'microsoft'
+                                    provider: '${provider}'
                                 }, '*');
                                 window.close();
                             }

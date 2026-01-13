@@ -17,5 +17,6 @@ export enum SampleNodeType {
     SURYA_OCR = 'SURYA_OCR',
     TESSERACT_OCR = 'TESSERACT_OCR',
     CODE = 'CODE',
+    OUTLOOK = 'OUTLOOK',
 }
 // Force recompile

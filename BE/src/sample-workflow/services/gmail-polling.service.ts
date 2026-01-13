@@ -158,14 +158,14 @@ export class GmailPollingService implements OnModuleInit {
 
                 this.logger.log(`[${workflow.name}] Found ${allNewMessages.length} new emails. Triggering executions (Oldest First)...`);
 
-                // ALLOW PARALLEL EXECUTION for high throughput
-                // We launch executions concurrently to handle 10+ emails/sec
+                // CHANGED TO SEQUENTIAL EXECUTION to prevent rate limits
+                // We launch executions sequentially to avoid overwhelming the OCD/AI quotas
                 const waitForCompletion = false;
 
                 let maxInternalDate = lastPollTime;
 
-                // Launch all executions in parallel
-                const triggerPromises = allNewMessages.map(async (msg) => {
+                // Launch executions sequentially
+                for (const msg of allNewMessages) {
                     const triggerData = {
                         source: 'gmail',
                         event: 'email_received',
@@ -175,7 +175,8 @@ export class GmailPollingService implements OnModuleInit {
                     const msgTime = parseInt(msg.internalDate || '0');
 
                     try {
-                        this.logger.log(`Triggering workflow ${workflow._id} for message ${msg.id} (Mode: parallel)`);
+                        this.logger.log(`Triggering workflow ${workflow._id} for message ${msg.id} (Mode: sequential)`);
+
                         await this.workflowExecutorService.startExecution(
                             workflow,
                             { waitForCompletion },
@@ -185,12 +186,16 @@ export class GmailPollingService implements OnModuleInit {
                         if (msgTime > maxInternalDate) {
                             maxInternalDate = msgTime;
                         }
+
+                        // Add a small delay between triggers to verify pacing
+                        await new Promise(resolve => setTimeout(resolve, 500));
+
                     } catch (execErr) {
                         this.logger.error(`Failed to trigger workflow for message ${msg.id}`, execErr);
                     }
-                });
+                }
 
-                await Promise.all(triggerPromises);
+                // await Promise.all(triggerPromises); // Removed parallel execution
 
                 // Final Save: Update the checkpoint to the latest successfully triggered message
                 stateDoc.state = { lastPollTime: maxInternalDate };

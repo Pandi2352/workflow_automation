@@ -77,6 +77,53 @@ export class OCRService extends BaseOCRService {
         super(OCRService.name);
     }
 
+    // Concurrency Control
+    private requestQueue: (() => Promise<void>)[] = [];
+    private activeRequests = 0;
+    private readonly MAX_CONCURRENT_REQUESTS = 1; // Strict sequential processing for free tier
+    private readonly REQUEST_COOLDOWN = 4000; // 4 seconds between requests
+    private lastRequestTime = 0;
+
+    private async scheduleRequest<T>(task: () => Promise<T>): Promise<T> {
+        return new Promise<T>((resolve, reject) => {
+            const wrapper = async () => {
+                this.activeRequests++;
+                try {
+                    // Enforce cooldown from previous request
+                    const timeSinceLast = Date.now() - this.lastRequestTime;
+                    if (timeSinceLast < this.REQUEST_COOLDOWN) {
+                        const waitTime = this.REQUEST_COOLDOWN - timeSinceLast;
+                        await new Promise(r => setTimeout(r, waitTime));
+                    }
+
+                    const result = await task();
+
+                    // Update timestamp AFTER success to space out subsequent calls
+                    this.lastRequestTime = Date.now();
+                    resolve(result);
+                } catch (error) {
+                    reject(error);
+                } finally {
+                    this.activeRequests--;
+                    this.processQueue();
+                }
+            };
+
+            if (this.activeRequests < this.MAX_CONCURRENT_REQUESTS) {
+                wrapper();
+            } else {
+                this.requestQueue.push(wrapper);
+            }
+        });
+    }
+
+    private processQueue() {
+        if (this.activeRequests < this.MAX_CONCURRENT_REQUESTS && this.requestQueue.length > 0) {
+            const nextTask = this.requestQueue.shift();
+            nextTask?.();
+        }
+    }
+
     private initializeAI(apiKey: string, modelName: string = 'gemini-1.5-flash') {
         this.genAI = new GoogleGenerativeAI(apiKey);
         this.fileManager = new GoogleAIFileManager(apiKey);
@@ -86,19 +133,30 @@ export class OCRService extends BaseOCRService {
     private async executeWithRetry<T>(
         operation: () => Promise<T>,
         maxRetries: number = 5,
-        baseDelay: number = 1000
+        baseDelay: number = 4000 // Increased base delay
     ): Promise<T> {
         let lastError: any;
         for (let i = 0; i < maxRetries; i++) {
             try {
-                return await operation();
+                // Wrap the operation in our scheduler
+                return await this.scheduleRequest(async () => {
+                    return await operation();
+                });
             } catch (error: any) {
                 lastError = error;
                 const isRateLimit = error.message?.includes('429') || error.status === 429;
                 const isServiceUnavailable = error.message?.includes('503') || error.status === 503;
 
                 if (isRateLimit || isServiceUnavailable) {
-                    const delay = baseDelay * Math.pow(2, i);
+                    // Calculate delay with exponential backoff
+                    let delay = baseDelay * Math.pow(2, i);
+
+                    // Parse Retry-After if available
+                    const match = error.message?.match(/retry in (\d+(\.\d+)?)s/);
+                    if (match && match[1]) {
+                        delay = Math.ceil(parseFloat(match[1]) * 1000) + 1000;
+                    }
+
                     this.logger.warn(`Rate limit or service error hit. Retrying in ${delay}ms... (Attempt ${i + 1}/${maxRetries})`);
                     await new Promise(resolve => setTimeout(resolve, delay));
                     continue;

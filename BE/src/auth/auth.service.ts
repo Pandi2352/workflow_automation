@@ -127,12 +127,13 @@ export class AuthService {
         }
     }
 
-    getMicrosoftAuthUrl(): string {
+    getMicrosoftAuthUrl(state: string = 'microsoft'): string {
         const clientId = this.configService.get<string>('MICROSOFT_CLIENT_ID');
         const redirectUri = this.configService.get<string>('MICROSOFT_CALLBACK_URL') || 'http://localhost:4000/api/auth/microsoft/callback';
         const scopes = [
             'offline_access',
             'user.read',
+            'Mail.Read',
             'files.read.all'
         ];
 
@@ -142,13 +143,13 @@ export class AuthService {
             redirect_uri: redirectUri,
             response_mode: 'query',
             scope: scopes.join(' '),
-            state: '12345' // Ideally random
+            state: state
         });
 
         return `https://login.microsoftonline.com/common/oauth2/v2.0/authorize?${params.toString()}`;
     }
 
-    async handleMicrosoftCallback(code: string): Promise<string> {
+    async handleMicrosoftCallback(code: string, state?: string): Promise<string> {
         const clientId = this.configService.get<string>('MICROSOFT_CLIENT_ID');
         const clientSecret = this.configService.get<string>('MICROSOFT_CLIENT_SECRET');
         const redirectUri = this.configService.get<string>('MICROSOFT_CALLBACK_URL') || 'http://localhost:4000/api/auth/microsoft/callback';
@@ -158,7 +159,7 @@ export class AuthService {
             const tokenUrl = 'https://login.microsoftonline.com/common/oauth2/v2.0/token';
             const params = new URLSearchParams();
             params.append('client_id', clientId || '');
-            params.append('scope', 'offline_access user.read files.read.all');
+            params.append('scope', 'offline_access user.read Mail.Read files.read.all');
             params.append('code', code);
             params.append('redirect_uri', redirectUri);
             params.append('grant_type', 'authorization_code');
@@ -176,12 +177,14 @@ export class AuthService {
             });
 
             const profile = profileResponse.data;
-            const name = profile.displayName || profile.mail || profile.userPrincipalName || 'OneDrive Account';
+            const name = profile.displayName || profile.mail || profile.userPrincipalName || 'Microsoft Account';
+
+            const provider = state === 'outlook' ? 'outlook' : 'microsoft';
 
             // Create Credential
             const credential = await this.credentialsService.create({
-                name: name,
-                provider: 'microsoft',
+                name: state === 'outlook' ? `${name} (Outlook)` : name,
+                provider: provider,
                 accessToken: access_token,
                 refreshToken: refresh_token,
                 expiryDate: Date.now() + (expires_in * 1000), // expires_in is seconds

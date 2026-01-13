@@ -26,6 +26,9 @@ import { TriggerState, TriggerStateSchema } from './schemas/trigger-state.schema
 import { ParsingService } from 'src/node-services/parsing.service';
 import { MongoDBService } from 'src/node-services/mongodb.service';
 import { CodeNodeStrategy } from './nodes/code.node';
+import { OutlookService } from './node-services/outlook.service';
+import { OutlookPollingService } from './services/outlook-polling.service';
+import { GoogleDrivePollingService } from './services/google-drive-polling.service';
 
 @Module({
     imports: [
@@ -57,6 +60,9 @@ import { CodeNodeStrategy } from './nodes/code.node';
         GmailPollingService,
         ProcessedItemService,
         CodeNodeStrategy,
+        OutlookService,
+        OutlookPollingService,
+        GoogleDrivePollingService,
     ],
     exports: [SampleWorkflowService, NodeRegistryService, ExpressionEvaluatorService],
 })

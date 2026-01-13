@@ -18,6 +18,8 @@ import { SuryaOCRNodeStrategy } from '../nodes/surya-ocr.node';
 import { TesseractOCRNodeStrategy } from '../nodes/tesseract-ocr.node';
 import { SuryaOCRService } from '../node-services/surya-ocr.service';
 import { TesseractOCRService } from '../node-services/tesseract-ocr.service';
+import { OutlookNode } from '../nodes/outlook.node';
+import { OutlookService } from '../node-services/outlook.service';
 
 import { SmartExtractionNodeStrategy } from '../nodes/smart-extraction.node';
 import { FileUploadNodeStrategy } from '../nodes/file-upload.node';
@@ -55,7 +57,8 @@ export class NodeRegistryService {
         private readonly parsingService: ParsingService,
         private readonly mongoService: MongoDBService,
         private readonly processedItemService: ProcessedItemService,
-        private readonly codeNodeStrategy: CodeNodeStrategy
+        private readonly codeNodeStrategy: CodeNodeStrategy,
+        private readonly outlookService: OutlookService,
     ) {
         this.registerDefaultNodes();
         this.registerParsingNodes();
@@ -66,6 +69,7 @@ export class NodeRegistryService {
         this.nodeInstances.set(SampleNodeType.GOOGLE_DRIVE, new GoogleDriveNode(this.googleDriveService));
         this.nodeInstances.set(SampleNodeType.ONEDRIVE, new OneDriveNode(this.oneDriveService));
         this.nodeInstances.set(SampleNodeType.GMAIL, new GmailNode(this.gmailService));
+        this.nodeInstances.set(SampleNodeType.OUTLOOK, new OutlookNode(this.outlookService));
         this.nodeInstances.set(SampleNodeType.SCHEDULE, new ScheduleNode());
         this.nodeInstances.set(SampleNodeType.OCR, new OCRNodeStrategy(this.ocrService, this.processedItemService));
         this.nodeInstances.set(SampleNodeType.IF_ELSE, new IfElseNodeStrategy());
@@ -209,6 +213,41 @@ export class NodeRegistryService {
                     type: 'credential',
                     provider: 'gmail',
                     description: 'Gmail Credentials'
+                }
+            }
+        });
+
+        this.nodeDefinitions.set(SampleNodeType.OUTLOOK, {
+            type: SampleNodeType.OUTLOOK,
+            name: 'Outlook (Trigger)',
+            description: 'Fetch emails and attachments from Outlook',
+            category: 'Microsoft',
+            inputs: 0,
+            outputs: 1,
+            configSchema: {
+                query: {
+                    type: 'string',
+                    description: 'Search Query (Microsoft OData Filter syntax)',
+                    default: ''
+                },
+                eventType: {
+                    type: 'string',
+                    description: 'Trigger event type',
+                    default: 'new_email',
+                    options: [
+                        { label: 'New Email Received', value: 'new_email' },
+                        { label: 'Email with Attachment', value: 'email_with_attachment' }
+                    ]
+                },
+                maxResults: {
+                    type: 'number',
+                    description: 'Max emails to fetch',
+                    default: 5
+                },
+                credentials: {
+                    type: 'credential',
+                    provider: 'microsoft',
+                    description: 'Outlook Credentials'
                 }
             }
         });

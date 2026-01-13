@@ -20,6 +20,7 @@ import { NodeConfigPanel as ScraperNodeConfigPanel } from '../nodes/scraper/Node
 import { NodeConfigPanel as SuryaOCRNodeConfigPanel } from '../nodes/surya-ocr/NodeConfigPanel';
 import { NodeConfigPanel as TesseractOCRNodeConfigPanel } from '../nodes/tesseract-ocr/NodeConfigPanel';
 import { NodeConfigPanel as CodeNodeConfigPanel } from '../nodes/code/NodeConfigPanel';
+import { NodeConfigPanel as OutlookNodeConfigPanel } from '../nodes/outlook/NodeConfigPanel';
 
 import { DesignerHeader } from '../components/designer/DesignerHeader';
 import { CreateWorkflowSelector } from '../components/designer/CreateWorkflowSelector';
@@ -443,6 +444,12 @@ export const WorkflowDesigner: React.FC = () => {
                             />
                         ) : selectedNode && selectedNode.type === 'CODE' ? (
                             <CodeNodeConfigPanel
+                                nodeExecutionData={currentExecution?.nodeExecutions?.find(
+                                    (ex: any) => ex.nodeId === selectedNode?.id
+                                )} 
+                            />
+                        ) : selectedNode && selectedNode.type === 'OUTLOOK' ? (
+                            <OutlookNodeConfigPanel
                                 nodeExecutionData={currentExecution?.nodeExecutions?.find(
                                     (ex: any) => ex.nodeId === selectedNode?.id
                                 )} 
