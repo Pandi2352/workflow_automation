@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { memo } from 'react';
 import { Handle, Position, type NodeProps } from '@xyflow/react';
 import { Earth, Layout, Play, Trash2, ArrowRight } from 'lucide-react';
 import { useWorkflowStore } from '../../store/workflowStore';
@@ -13,7 +13,7 @@ interface ScraperNodeData extends Record<string, unknown> {
     };
 }
 
-export const ScraperNode: React.FC<NodeProps> = ({ id, data, selected, isConnectable }) => {
+export const ScraperNode = memo(({ id, data, selected, isConnectable }: NodeProps) => {
     const nodeData = data as ScraperNodeData;
     const { deleteNode, currentExecution } = useWorkflowStore();
     
@@ -115,4 +115,4 @@ export const ScraperNode: React.FC<NodeProps> = ({ id, data, selected, isConnect
             />
         </div>
     );
-};
+});

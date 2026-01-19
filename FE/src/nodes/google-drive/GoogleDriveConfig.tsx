@@ -171,7 +171,7 @@ export const GoogleDriveConfig = ({ selectedNode }: { selectedNode: any }) => {
                         <FolderSelectorField 
                             credentialId={config.credentialId}
                             value={config.targetFolderId}
-                            onFolderSelect={(id: string, name: string) => {
+                            onFolderSelect={(id: string, _name: string) => {
                                 handleUpdate('targetFolderId', id);
                             }}
                         />

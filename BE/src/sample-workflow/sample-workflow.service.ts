@@ -410,12 +410,27 @@ export class SampleWorkflowService {
         return latest;
     }
 
-    async getExecutionLogs(executionId: string) {
+    async getExecutionLogs(executionId: string, page = 1, limit = 200) {
         const history = await this.getHistory(executionId);
+        const logs = history.logs || [];
+        const total = logs.length;
+        const totalPages = Math.max(1, Math.ceil(total / limit));
+        const safePage = Math.min(Math.max(page, 1), totalPages);
+        const start = (safePage - 1) * limit;
+        const end = start + limit;
+
         return {
             executionId,
             status: history.status,
-            logs: history.logs,
+            logs: logs.slice(start, end),
+            pagination: {
+                page: safePage,
+                limit,
+                total,
+                totalPages,
+                hasNextPage: safePage < totalPages,
+                hasPrevPage: safePage > 1,
+            },
             nodeExecutions: history.nodeExecutions.map(node => ({
                 nodeId: node.nodeId,
                 nodeName: node.nodeName,
@@ -423,6 +438,23 @@ export class SampleWorkflowService {
                 logs: node.logs,
             })),
         };
+    }
+
+    async getExecutionStatus(executionId: string) {
+        if (!Types.ObjectId.isValid(executionId)) {
+            throw new BadRequestException('Invalid execution ID');
+        }
+
+        const history = await this.historyModel
+            .findById(executionId)
+            .select('_id status updatedAt startTime endTime workflowId')
+            .exec();
+
+        if (!history) {
+            throw new NotFoundException(`Execution with ID ${executionId} not found`);
+        }
+
+        return history;
     }
 
     async getExecutionStats(workflowId?: string): Promise<{

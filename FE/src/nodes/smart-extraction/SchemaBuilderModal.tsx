@@ -29,15 +29,6 @@ interface SchemaBuilderModalProps {
 
 // --- Helper Components ---
 
-const Tooltip: React.FC<{ content: string; children: React.ReactNode }> = ({ content, children }) => (
-    <div className="group relative flex items-center">
-        {children}
-        <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 hidden group-hover:block px-2 py-1 bg-slate-800 text-white text-[10px] rounded shadow-sm whitespace-nowrap z-50">
-            {content}
-        </div>
-    </div>
-);
-
 // --- Property Row Component ---
 const PropertyRow = memo(({
   property,

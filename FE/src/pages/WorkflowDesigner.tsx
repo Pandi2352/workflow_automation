@@ -79,15 +79,17 @@ export const WorkflowDesigner: React.FC = () => {
         }
     }, [executionTrigger]);
 
-    // Polling for latest execution (Background)
+    // Polling for latest execution (Background) with idle backoff
     useEffect(() => {
         if (!id || id === 'new') return;
+        let isCancelled = false;
+        let delay = 2000;
+        const maxDelay = 10000;
 
         const pollLatestExecution = async () => {
-             try {
-                // 1. Lightweight check
+            try {
                 const latestMeta = await workflowService.getLatestExecution(id);
-                
+
                 if (latestMeta) {
                     const shouldFetch = 
                         !currentExecution || 
@@ -96,20 +98,42 @@ export const WorkflowDesigner: React.FC = () => {
                         (latestMeta.updatedAt !== currentExecution.updatedAt);
 
                     if (shouldFetch) {
-                         // 2. Heavy fetch only if needed
                         const fullExecution = await workflowService.getExecution(latestMeta._id);
                         setCurrentExecution(fullExecution);
+                        delay = 2000; // reset on change
+                    } else {
+                        if (currentExecution?._id) {
+                            const statusMeta = await workflowService.getExecutionStatus(currentExecution._id);
+                            if (statusMeta && statusMeta.status !== currentExecution.status) {
+                                const fullExecution = await workflowService.getExecution(currentExecution._id);
+                                setCurrentExecution(fullExecution);
+                                delay = 2000;
+                            } else {
+                                delay = Math.min(maxDelay, Math.round(delay * 1.5));
+                            }
+                        } else {
+                            delay = Math.min(maxDelay, Math.round(delay * 1.5));
+                        }
                     }
+                } else {
+                    delay = Math.min(maxDelay, Math.round(delay * 1.5));
                 }
-             } catch (error) {
-                 console.error('Background polling failed', error);
-             }
+            } catch (error) {
+                console.error('Background polling failed', error);
+                delay = Math.min(maxDelay, Math.round(delay * 1.5));
+            } finally {
+                if (!isCancelled) {
+                    setTimeout(pollLatestExecution, delay);
+                }
+            }
         };
 
-        // Poll more frequently if active logic implies we expect triggers, or if currently viewing a running one
-        const intervalId = setInterval(pollLatestExecution, 3000); 
+        const timerId = setTimeout(pollLatestExecution, delay);
 
-        return () => clearInterval(intervalId);
+        return () => {
+            isCancelled = true;
+            clearTimeout(timerId);
+        };
     }, [id, currentExecution?.status, currentExecution?._id]);
 
     useEffect(() => {

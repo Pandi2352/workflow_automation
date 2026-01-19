@@ -6,97 +6,7 @@ import { axiosInstance } from '../../api/axiosConfig';
 import { Button } from '../../common/Button';
 import { cn } from '../../lib/utils';
 import { NodeHelpButton } from '../../common/NodeHelpButton';
-
-// --- Generic Configuration Component ---
-const GenericNodeConfig = ({ selectedNode }: { selectedNode: any }) => {
-    const { updateNodeData, nodeDefinitions, credentials } = useWorkflowStore();
-    
-    // Config change handler
-    const handleConfigChange = (key: string, value: any) => {
-        const currentConfig = selectedNode.data?.config || {};
-        updateNodeData(selectedNode.id, {
-            config: { ...currentConfig, [key]: value }
-        });
-    };
-
-    const definition = nodeDefinitions.find(def => def.type === selectedNode.type);
-    const configSchema = definition?.configSchema || {};
-    const nodeConfig = (selectedNode.data?.config || {}) as Record<string, any>;
-
-    const renderField = (key: string, field: any) => {
-        // Condition check
-        if (field.condition) {
-            const [condKey, condValue] = Object.entries(field.condition)[0];
-            if (nodeConfig[condKey] !== condValue) return null;
-        }
-
-        if (field.type === 'credential') {
-            return (
-                <div key={key} className="mb-5">
-                    <label className="block text-sm font-semibold text-slate-700 mb-1.5">{field.description}</label>
-                    <div className="relative flex gap-2">
-                        <div className="relative flex-1">
-                            <select
-                                value={nodeConfig['credentialId'] || ''}
-                                onChange={(e) => {
-                                    const val = e.target.value;
-                                    handleConfigChange('credentialId', val);
-                                }}
-                                className="w-full bg-slate-50 border border-slate-300 rounded-lg p-2.5 text-sm text-slate-900 focus:outline-none focus:ring-2 focus:ring-red-500 appearance-none"
-                            >
-                                <option value="">-- Select Credential --</option>
-                                {credentials?.filter((c: any) => c.provider === field.provider).map((cred: any) => (
-                                    <option key={cred._id} value={cred._id}>
-                                        {cred.name || cred.metadata?.email || 'Unnamed Credential'}
-                                    </option>
-                                ))}
-                            </select>
-                        </div>
-                    </div>
-                </div>
-            );
-        }
-
-        if (field.type === 'select') {
-            return (
-                <div key={key} className="mb-5">
-                    <label className="block text-sm font-semibold text-slate-700 mb-1.5">{field.description}</label>
-                    <select
-                        value={nodeConfig[key] || field.default || ''}
-                        onChange={(e) => handleConfigChange(key, e.target.value)}
-                        className="w-full bg-slate-50 border border-slate-300 rounded-lg p-2.5 text-sm text-slate-900 focus:outline-none focus:ring-2 focus:ring-red-500 transition-all"
-                    >
-                        {field.options.map((opt: string) => (
-                            <option key={opt} value={opt}>{opt.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase())}</option>
-                        ))}
-                    </select>
-                </div>
-            );
-        }
-
-        if (field.type === 'string') {
-            return (
-                <div key={key} className="mb-5">
-                    <label className="block text-sm font-semibold text-slate-700 mb-1.5">{field.description}</label>
-                    <input
-                        type="text"
-                        value={nodeConfig[key] || ''}
-                        onChange={(e) => handleConfigChange(key, e.target.value)}
-                        className="w-full bg-slate-50 border border-slate-300 rounded-lg p-2.5 text-sm text-slate-900 focus:outline-none focus:ring-2 focus:ring-red-500 transition-all"
-                    />
-                </div>
-            );
-        }
-
-        return null;
-    };
-
-    return (
-        <>
-            {Object.entries(configSchema).map(([key, field]) => renderField(key, field))}
-        </>
-    );
-};
+import { SchemaDrivenConfig } from '../../components/designer/SchemaDrivenConfig';
 
 // --- Config Switcher Map ---
 const NODE_CONFIGS: Record<string, React.FC<any>> = {
@@ -205,7 +115,7 @@ export const NodeConfigPanel: React.FC<{ nodeExecutionData?: any }> = ({ nodeExe
     };
 
     const definition = nodeDefinitions.find(def => def.type === selectedNode.type);
-    const ConfigComponent = NODE_CONFIGS[selectedNode.type || ''] || GenericNodeConfig;
+    const ConfigComponent = NODE_CONFIGS[selectedNode.type || ''] || SchemaDrivenConfig;
 
     return (
         <div className="fixed inset-0 z-50 flex justify-end">
@@ -287,7 +197,7 @@ export const NodeConfigPanel: React.FC<{ nodeExecutionData?: any }> = ({ nodeExe
 
                             {/* Dynamic Config Component */}
                             <div className="bg-white p-4 rounded-xl border border-slate-200 shadow-sm">
-                                <ConfigComponent selectedNode={selectedNode} />
+                                <ConfigComponent selectedNode={selectedNode} focusColor="focus:ring-2 focus:ring-red-500" />
                             </div>
 
                             {/* Test Inputs (Mock Data) */}

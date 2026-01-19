@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { NODE_DOCS, getDocForNode } from '../../data/nodeDocumentation';
-import { ChevronDown, ChevronRight, Info, Lightbulb, BadgeCheck, Sparkles, BookOpen } from 'lucide-react';
+import { ChevronDown, ChevronRight, Lightbulb, BadgeCheck, Sparkles } from 'lucide-react';
 import { cn } from '../../lib/utils';
 
 interface NodeHelpAccordionProps {

@@ -1,6 +1,6 @@
 import { memo } from 'react';
 import { Handle, Position, type NodeProps } from '@xyflow/react';
-import { Play, Trash2, Globe, Activity } from 'lucide-react';
+import { Play, Trash2, Globe } from 'lucide-react';
 import { useWorkflowStore } from '../../store/workflowStore';
 import { axiosInstance } from '../../api/axiosConfig';
 

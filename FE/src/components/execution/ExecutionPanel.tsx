@@ -58,13 +58,24 @@ export const ExecutionPanel: React.FC<ExecutionPanelProps> = ({
 }) => {
     const [executions, setExecutions] = useState<any[]>([]);
     const [isLoading, setIsLoading] = useState(false);
+    const [isLoadingMore, setIsLoadingMore] = useState(false);
+    const [page, setPage] = useState(1);
+    const [hasNextPage, setHasNextPage] = useState(false);
     const [selectedId, setSelectedId] = useState<string | null>(activeExecutionId || null);
+    const [scrollTop, setScrollTop] = useState(0);
+    const [listHeight, setListHeight] = useState(0);
+    const listRef = React.useRef<HTMLDivElement>(null);
+    const ITEM_HEIGHT = 72;
+    const OVERSCAN = 6;
 
     const fetchExecutions = async () => {
         setIsLoading(true);
         try {
-            const data = await workflowService.getExecutions(workflowId, 1, 50);
-            setExecutions(data.data || []);
+            const data = await workflowService.getExecutions(workflowId, 1, 20);
+            const list = data.data || [];
+            setExecutions(list);
+            setPage(1);
+            setHasNextPage(Boolean(data.pagination?.hasNextPage));
             
             // Auto-select first if none selected
             if (!selectedId && data.data && data.data.length > 0) {
@@ -77,12 +88,80 @@ export const ExecutionPanel: React.FC<ExecutionPanelProps> = ({
         }
     };
 
+    const loadMore = async () => {
+        if (isLoadingMore || !hasNextPage) return;
+        setIsLoadingMore(true);
+        try {
+            const nextPage = page + 1;
+            const data = await workflowService.getExecutions(workflowId, nextPage, 20);
+            const list = data.data || [];
+            setExecutions(prev => {
+                const byId = new Map<string, any>();
+                [...prev, ...list].forEach((exec) => byId.set(exec._id, exec));
+                return Array.from(byId.values()).sort((a, b) => {
+                    const aTime = new Date(a.createdAt).getTime();
+                    const bTime = new Date(b.createdAt).getTime();
+                    return bTime - aTime;
+                });
+            });
+            setPage(nextPage);
+            setHasNextPage(Boolean(data.pagination?.hasNextPage));
+        } catch (error) {
+            console.error('Failed to load more executions', error);
+        } finally {
+            setIsLoadingMore(false);
+        }
+    };
+
     useEffect(() => {
         if (isOpen) {
             fetchExecutions();
-            // Poll for updates
-            const interval = setInterval(fetchExecutions, 3000);
-            return () => clearInterval(interval);
+            let isCancelled = false;
+            let delay = 2000;
+            const maxDelay = 10000;
+
+            const poll = async () => {
+                try {
+                    const latestMeta = await workflowService.getLatestExecution(workflowId);
+                    if (latestMeta && executions.length > 0) {
+                        const currentLatestId = executions[0]._id;
+                        if (latestMeta._id !== currentLatestId) {
+                            await fetchExecutions();
+                            delay = 2000;
+                        } else {
+                            if (selectedId) {
+                                const statusMeta = await workflowService.getExecutionStatus(selectedId);
+                                const current = executions.find(e => e._id === selectedId);
+                                if (statusMeta && current && statusMeta.status !== current.status) {
+                                    await fetchExecutions();
+                                    delay = 2000;
+                                } else {
+                                    delay = Math.min(maxDelay, Math.round(delay * 1.5));
+                                }
+                            } else {
+                                delay = Math.min(maxDelay, Math.round(delay * 1.5));
+                            }
+                        }
+                    } else if (latestMeta && executions.length === 0) {
+                        await fetchExecutions();
+                        delay = 2000;
+                    } else {
+                        delay = Math.min(maxDelay, Math.round(delay * 1.5));
+                    }
+                } catch (error) {
+                    delay = Math.min(maxDelay, Math.round(delay * 1.5));
+                } finally {
+                    if (!isCancelled) {
+                        setTimeout(poll, delay);
+                    }
+                }
+            };
+
+            const timerId = setTimeout(poll, delay);
+            return () => {
+                isCancelled = true;
+                clearTimeout(timerId);
+            };
         }
     }, [isOpen, workflowId]);
     
@@ -93,6 +172,18 @@ export const ExecutionPanel: React.FC<ExecutionPanelProps> = ({
             if (found) onExecutionSelect(found);
         }
     }, [activeExecutionId, executions]);
+
+    useEffect(() => {
+        if (!selectedId && executions.length > 0) {
+            setSelectedId(executions[0]._id);
+        }
+    }, [selectedId, executions]);
+
+    useEffect(() => {
+        if (listRef.current) {
+            setListHeight(listRef.current.clientHeight);
+        }
+    }, [isOpen]);
 
     const handleSelect = (execution: any) => {
         setSelectedId(execution._id);
@@ -113,17 +204,37 @@ export const ExecutionPanel: React.FC<ExecutionPanelProps> = ({
                         <RefreshCw size={14} className={isLoading ? 'animate-spin text-gray-400' : 'text-gray-500'} />
                     </button>
                 </div>
-                <div className="flex-1 overflow-y-auto">
-                    {executions.map((exec) => (
-                        <div 
-                            key={exec._id}
-                            onClick={() => handleSelect(exec)}
-                            className={`p-3 border-b border-gray-100 cursor-pointer hover:bg-white transition-colors
-                                ${selectedId === exec._id ? 'bg-white border-l-4 border-l-blue-500 shadow-sm' : 'border-l-4 border-l-transparent'}
-                            `}
-                        >
-                            <div className="flex justify-between items-start mb-1">
-                                <span className={`text-xs font-bold px-2 py-0.5 rounded-full bg-opacity-10 
+            <div
+                className="flex-1 overflow-y-auto"
+                ref={listRef}
+                onScroll={(e) => {
+                    const target = e.currentTarget;
+                    setScrollTop(target.scrollTop);
+                    if (target.scrollHeight - target.scrollTop - target.clientHeight < 80) {
+                        loadMore();
+                    }
+                }}
+            >
+                {(() => {
+                    const visibleCount = listHeight ? Math.ceil(listHeight / ITEM_HEIGHT) + OVERSCAN : executions.length;
+                    const startIndex = Math.max(0, Math.floor(scrollTop / ITEM_HEIGHT) - OVERSCAN);
+                    const endIndex = Math.min(executions.length, startIndex + visibleCount);
+                    const visible = executions.slice(startIndex, endIndex);
+                    const paddingTop = startIndex * ITEM_HEIGHT;
+                    const paddingBottom = Math.max(0, (executions.length - endIndex) * ITEM_HEIGHT);
+                    return (
+                        <div style={{ paddingTop, paddingBottom }}>
+                            {visible.map((exec) => (
+                    <div 
+                        key={exec._id}
+                        onClick={() => handleSelect(exec)}
+                        className={`p-3 border-b border-gray-100 cursor-pointer hover:bg-white transition-colors
+                            ${selectedId === exec._id ? 'bg-white border-l-4 border-l-blue-500 shadow-sm' : 'border-l-4 border-l-transparent'}
+                        `}
+                        style={{ height: ITEM_HEIGHT }}
+                    >
+                        <div className="flex justify-between items-start mb-1">
+                            <span className={`text-xs font-bold px-2 py-0.5 rounded-full bg-opacity-10 
                                     ${getStatusBadgeClass(exec.status)}`}>
                                     {exec.status}
                                 </span>
@@ -137,8 +248,23 @@ export const ExecutionPanel: React.FC<ExecutionPanelProps> = ({
                             </div>
                         </div>
                     ))}
+                        </div>
+                    );
+                })()}
                     {executions.length === 0 && (
                         <div className="p-4 text-center text-gray-400 text-sm">No executions yet</div>
+                    )}
+
+                    {hasNextPage && (
+                        <div className="p-3 text-center">
+                            <button
+                                onClick={loadMore}
+                                disabled={isLoadingMore}
+                                className="text-xs text-slate-500 hover:text-slate-700 px-2 py-1 rounded border border-slate-200 bg-white disabled:opacity-60"
+                            >
+                                {isLoadingMore ? 'Loading...' : 'Load more'}
+                            </button>
+                        </div>
                     )}
                 </div>
             </div>

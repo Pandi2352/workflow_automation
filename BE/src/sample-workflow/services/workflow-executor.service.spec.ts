@@ -1,6 +1,15 @@
-import { WorkflowExecutorService } from './workflow-executor.service';
 import { ExecutionStatus } from '../enums/execution-status.enum';
 import { SampleNodeType } from '../enums/node-type.enum';
+
+jest.mock('../schemas/workflow-history.schema', () => ({
+    WorkflowHistory: class WorkflowHistory {},
+}));
+
+jest.mock('../schemas/sample-workflow.schema', () => ({
+    SampleWorkflow: class SampleWorkflow {},
+}));
+
+const { WorkflowExecutorService } = require('./workflow-executor.service');
 
 describe('WorkflowExecutorService', () => {
     const createService = (historyOverrides: Partial<Record<string, any>> = {}) => {

@@ -26,6 +26,7 @@ export const WORKFLOW_TEMPLATES: WorkflowTemplate[] = [
                 id: 'node_1',
                 type: 'GMAIL',
                 position: { x: 100, y: 100 },
+                nodeName: 'Watch Invoices',
                 data: {
                     label: 'Watch Invoices',
                     config: { query: 'label:invoices' }
@@ -35,6 +36,7 @@ export const WORKFLOW_TEMPLATES: WorkflowTemplate[] = [
                 id: 'node_2',
                 type: 'OCR',
                 position: { x: 100, y: 250 },
+                nodeName: 'Extract Text (OCR)',
                 data: {
                     label: 'Extract Text (OCR)',
                     config: { model: 'gemini-1.5-flash-001' }
@@ -44,6 +46,7 @@ export const WORKFLOW_TEMPLATES: WorkflowTemplate[] = [
                 id: 'node_3',
                 type: 'SMART_EXTRACTION',
                 position: { x: 100, y: 400 },
+                nodeName: 'Parse Invoice Data',
                 data: {
                     label: 'Parse Invoice Data',
                     config: {
@@ -56,6 +59,7 @@ export const WORKFLOW_TEMPLATES: WorkflowTemplate[] = [
                 id: 'node_4',
                 type: 'IF_ELSE',
                 position: { x: 100, y: 550 },
+                nodeName: 'Check High Value',
                 data: {
                     label: 'Check High Value',
                     config: {
@@ -67,6 +71,7 @@ export const WORKFLOW_TEMPLATES: WorkflowTemplate[] = [
                 id: 'node_5',
                 type: 'GMAIL',
                 position: { x: -100, y: 700 },
+                nodeName: 'Email Manager',
                 data: {
                     label: 'Email Manager',
                     config: {
@@ -79,6 +84,7 @@ export const WORKFLOW_TEMPLATES: WorkflowTemplate[] = [
                 id: 'node_6',
                 type: 'MONGODB',
                 position: { x: 300, y: 700 },
+                nodeName: 'Save into Database',
                 data: {
                     label: 'Save into Database',
                     config: {
@@ -108,6 +114,7 @@ export const WORKFLOW_TEMPLATES: WorkflowTemplate[] = [
                 id: 'node_1',
                 type: 'SCHEDULE',
                 position: { x: 100, y: 100 },
+                nodeName: 'Every Morning',
                 data: {
                     label: 'Every Morning',
                     config: { cron: '0 9 * * *' }
@@ -117,6 +124,7 @@ export const WORKFLOW_TEMPLATES: WorkflowTemplate[] = [
                 id: 'node_2',
                 type: 'GMAIL',
                 position: { x: 100, y: 250 },
+                nodeName: 'Fetch Inbox',
                 data: {
                     label: 'Fetch Inbox',
                     config: { query: 'newer_than:1d' }
@@ -126,6 +134,7 @@ export const WORKFLOW_TEMPLATES: WorkflowTemplate[] = [
                 id: 'node_3',
                 type: 'SUMMARIZE',
                 position: { x: 100, y: 400 },
+                nodeName: 'Summarize',
                 data: {
                     label: 'Summarize',
                     config: { length: 'short', tone: 'executive' }
@@ -135,6 +144,7 @@ export const WORKFLOW_TEMPLATES: WorkflowTemplate[] = [
                 id: 'node_4',
                 type: 'GMAIL',
                 position: { x: 100, y: 560 },
+                nodeName: 'Send Digest',
                 data: {
                     label: 'Send Digest',
                     config: { to: 'me@example.com', subject: 'Daily Digest' }
@@ -160,6 +170,7 @@ export const WORKFLOW_TEMPLATES: WorkflowTemplate[] = [
                 id: 'node_1',
                 type: 'GOOGLE_DRIVE',
                 position: { x: 100, y: 100 },
+                nodeName: 'New Drive Files',
                 data: {
                     label: 'New Drive Files',
                     config: { folderId: 'root' }
@@ -169,6 +180,7 @@ export const WORKFLOW_TEMPLATES: WorkflowTemplate[] = [
                 id: 'node_2',
                 type: 'OCR',
                 position: { x: 100, y: 260 },
+                nodeName: 'OCR Documents',
                 data: {
                     label: 'OCR Documents',
                     config: { model: 'gemini-1.5-flash-001' }
@@ -178,6 +190,7 @@ export const WORKFLOW_TEMPLATES: WorkflowTemplate[] = [
                 id: 'node_3',
                 type: 'SMART_EXTRACTION',
                 position: { x: 100, y: 420 },
+                nodeName: 'Extract Fields',
                 data: {
                     label: 'Extract Fields',
                     config: { fields: ['title', 'date', 'summary'] }
@@ -187,6 +200,7 @@ export const WORKFLOW_TEMPLATES: WorkflowTemplate[] = [
                 id: 'node_4',
                 type: 'MONGODB',
                 position: { x: 100, y: 580 },
+                nodeName: 'Archive Results',
                 data: {
                     label: 'Archive Results',
                     config: { collection: 'documents' }

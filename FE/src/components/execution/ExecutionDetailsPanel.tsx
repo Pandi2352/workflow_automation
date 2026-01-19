@@ -5,6 +5,7 @@ import {
 } from 'lucide-react';
 import { ExecutionTimeline } from './ExecutionTimeline';
 import { ExecutionDataTree } from './ExecutionDataTree';
+import { workflowService } from '../../services/api/workflows';
 
 const formatTime = (dateString: string, includeMs = false) => {
     try {
@@ -61,6 +62,11 @@ export const ExecutionDetailsPanel: React.FC<ExecutionDetailsPanelProps> = ({ ex
     const [height, setHeight] = useState(350);
     const [isCollapsed, setIsCollapsed] = useState(false); // Default open
     const [isDragging, setIsDragging] = useState(false);
+    const [logs, setLogs] = useState<any[]>([]);
+    const [logsPage, setLogsPage] = useState(1);
+    const [logsHasNextPage, setLogsHasNextPage] = useState(false);
+    const [isLogsLoading, setIsLogsLoading] = useState(false);
+    const [isLogsLoadingMore, setIsLogsLoadingMore] = useState(false);
     
     // Performance Optimization: Use ref for direct DOM manipulation during drag
     const panelRef = useRef<HTMLDivElement>(null);
@@ -113,6 +119,43 @@ export const ExecutionDetailsPanel: React.FC<ExecutionDetailsPanelProps> = ({ ex
         e.preventDefault(); 
         setIsDragging(true);
     };
+
+    const fetchLogs = async () => {
+        if (!execution?._id) return;
+        setIsLogsLoading(true);
+        try {
+            const res = await workflowService.getExecutionLogs(execution._id, 1, 200);
+            setLogs(res.logs || []);
+            setLogsPage(1);
+            setLogsHasNextPage(Boolean(res.pagination?.hasNextPage));
+        } catch (error) {
+            console.error('Failed to fetch execution logs', error);
+        } finally {
+            setIsLogsLoading(false);
+        }
+    };
+
+    const loadMoreLogs = async () => {
+        if (!execution?._id || isLogsLoadingMore || !logsHasNextPage) return;
+        setIsLogsLoadingMore(true);
+        try {
+            const nextPage = logsPage + 1;
+            const res = await workflowService.getExecutionLogs(execution._id, nextPage, 200);
+            const list = res.logs || [];
+            setLogs(prev => [...prev, ...list]);
+            setLogsPage(nextPage);
+            setLogsHasNextPage(Boolean(res.pagination?.hasNextPage));
+        } catch (error) {
+            console.error('Failed to load more execution logs', error);
+        } finally {
+            setIsLogsLoadingMore(false);
+        }
+    };
+
+    useEffect(() => {
+        if (activeTab !== 'logs' || !execution?._id) return;
+        fetchLogs();
+    }, [activeTab, execution?._id]);
 
     if (!execution) {
         return (
@@ -251,7 +294,14 @@ export const ExecutionDetailsPanel: React.FC<ExecutionDetailsPanelProps> = ({ ex
                                 </tr>
                             </thead>
                             <tbody className="divide-y divide-gray-50">
-                                {(execution.logs || []).map((log: any, i: number) => (
+                                {isLogsLoading && logs.length === 0 && (
+                                    <tr>
+                                        <td colSpan={3} className="py-8 text-center text-gray-400 italic">
+                                            Loading logs...
+                                        </td>
+                                    </tr>
+                                )}
+                                {(logs || []).map((log: any, i: number) => (
                                     <tr key={i} className="hover:bg-blue-50/30 transition-colors">
                                         <td className="py-2 px-3 text-gray-400 whitespace-nowrap">
                                             {formatTime(log.timestamp, true)}
@@ -276,7 +326,7 @@ export const ExecutionDetailsPanel: React.FC<ExecutionDetailsPanelProps> = ({ ex
                                         </td>
                                     </tr>
                                 ))}
-                                {(!execution.logs || execution.logs.length === 0) && (
+                                {(!isLogsLoading && (!logs || logs.length === 0)) && (
                                      <tr>
                                          <td colSpan={3} className="py-8 text-center text-gray-400 italic">
                                              No logs available
@@ -285,6 +335,17 @@ export const ExecutionDetailsPanel: React.FC<ExecutionDetailsPanelProps> = ({ ex
                                 )}
                             </tbody>
                         </table>
+                        {logsHasNextPage && (
+                            <div className="py-3 text-center">
+                                <button
+                                    onClick={loadMoreLogs}
+                                    disabled={isLogsLoadingMore}
+                                    className="text-xs text-slate-500 hover:text-slate-700 px-2 py-1 rounded border border-slate-200 bg-white disabled:opacity-60"
+                                >
+                                    {isLogsLoadingMore ? 'Loading...' : 'Load more'}
+                                </button>
+                            </div>
+                        )}
                     </div>
                 );
 

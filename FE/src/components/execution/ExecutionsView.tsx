@@ -1,8 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { useParams } from 'react-router-dom';
 import { Filter, RotateCcw, CheckCircle2, XCircle, ChevronRight, LayoutList } from 'lucide-react';
-import { Badge } from '../common/Badge';
-import { Button } from '../common/Button';
+import { Badge } from '../../common/Badge';
+import { Button } from '../../common/Button';
 import { ExecutionLogsPanel } from './ExecutionLogsPanel';
 import { workflowService } from '../../services/api/workflows';
 
@@ -12,13 +12,23 @@ export const ExecutionsView: React.FC = () => {
     const [selectedExecutionId, setSelectedExecutionId] = useState<string | null>(null);
     const [logsHeight, setLogsHeight] = useState(300);
     const [isResizing, setIsResizing] = useState(false);
+    const [isLoadingMore, setIsLoadingMore] = useState(false);
+    const [page, setPage] = useState(1);
+    const [hasNextPage, setHasNextPage] = useState(false);
+    const [scrollTop, setScrollTop] = useState(0);
+    const [listHeight, setListHeight] = useState(0);
+    const listRef = React.useRef<HTMLDivElement>(null);
+    const ITEM_HEIGHT = 72;
+    const OVERSCAN = 6;
 
     const fetchExecutions = async () => {
         if (!workflowId) return;
         try {
-            const res = await workflowService.getExecutions(workflowId);
+            const res = await workflowService.getExecutions(workflowId, 1, 20);
             const list = res.data || [];
             setExecutions(list);
+            setPage(1);
+            setHasNextPage(Boolean(res.pagination?.hasNextPage));
             if (!selectedExecutionId && list.length > 0) {
                 setSelectedExecutionId(list[0]._id);
             }
@@ -27,11 +37,42 @@ export const ExecutionsView: React.FC = () => {
         }
     };
 
+    const loadMore = async () => {
+        if (!workflowId || isLoadingMore || !hasNextPage) return;
+        setIsLoadingMore(true);
+        try {
+            const nextPage = page + 1;
+            const res = await workflowService.getExecutions(workflowId, nextPage, 20);
+            const list = res.data || [];
+            setExecutions(prev => {
+                const byId = new Map<string, any>();
+                [...prev, ...list].forEach((exec) => byId.set(exec._id, exec));
+                return Array.from(byId.values()).sort((a, b) => {
+                    const aTime = new Date(a.createdAt).getTime();
+                    const bTime = new Date(b.createdAt).getTime();
+                    return bTime - aTime;
+                });
+            });
+            setPage(nextPage);
+            setHasNextPage(Boolean(res.pagination?.hasNextPage));
+        } catch (err) {
+            console.error('Failed to load more executions', err);
+        } finally {
+            setIsLoadingMore(false);
+        }
+    };
+
     useEffect(() => {
         fetchExecutions();
         const interval = setInterval(fetchExecutions, 2000); // Poll every 2s for live updates
         return () => clearInterval(interval);
     }, [workflowId]);
+
+    useEffect(() => {
+        if (listRef.current) {
+            setListHeight(listRef.current.clientHeight);
+        }
+    }, []);
 
     const selectedExecution = executions.find(e => e._id === selectedExecutionId);
 
@@ -103,8 +144,27 @@ export const ExecutionsView: React.FC = () => {
                     </div>
                 </div>
 
-                <div className="flex-1 overflow-y-auto">
-                    {executions.map(exec => (
+                <div
+                    className="flex-1 overflow-y-auto"
+                    ref={listRef}
+                    onScroll={(e) => {
+                        const target = e.currentTarget;
+                        setScrollTop(target.scrollTop);
+                        if (target.scrollHeight - target.scrollTop - target.clientHeight < 80) {
+                            loadMore();
+                        }
+                    }}
+                >
+                    {(() => {
+                        const visibleCount = listHeight ? Math.ceil(listHeight / ITEM_HEIGHT) + OVERSCAN : executions.length;
+                        const startIndex = Math.max(0, Math.floor(scrollTop / ITEM_HEIGHT) - OVERSCAN);
+                        const endIndex = Math.min(executions.length, startIndex + visibleCount);
+                        const visible = executions.slice(startIndex, endIndex);
+                        const paddingTop = startIndex * ITEM_HEIGHT;
+                        const paddingBottom = Math.max(0, (executions.length - endIndex) * ITEM_HEIGHT);
+                        return (
+                            <div style={{ paddingTop, paddingBottom }}>
+                            {visible.map(exec => (
                         <div 
                             key={exec._id}
                             onClick={() => setSelectedExecutionId(exec._id)}
@@ -114,6 +174,7 @@ export const ExecutionsView: React.FC = () => {
                                     ? 'bg-green-50/50 border-l-[#10b981]' 
                                     : 'bg-white border-l-transparent hover:bg-slate-50'}
                             `}
+                            style={{ height: ITEM_HEIGHT }}
                         >
                             <div className="flex-1 min-w-0">
                                 <div className="flex items-center gap-2 mb-1">
@@ -139,6 +200,25 @@ export const ExecutionsView: React.FC = () => {
                             </div>
                         </div>
                     ))}
+                            </div>
+                        );
+                    })()}
+
+                    {executions.length === 0 && (
+                        <div className="p-6 text-center text-slate-400 text-sm">No executions yet</div>
+                    )}
+
+                    {hasNextPage && (
+                        <div className="p-3 text-center">
+                            <button
+                                onClick={loadMore}
+                                disabled={isLoadingMore}
+                                className="text-xs text-slate-500 hover:text-slate-700 px-2 py-1 rounded border border-slate-200 bg-white disabled:opacity-60"
+                            >
+                                {isLoadingMore ? 'Loading...' : 'Load more'}
+                            </button>
+                        </div>
+                    )}
                 </div>
             </div>
 
@@ -195,7 +275,13 @@ export const ExecutionsView: React.FC = () => {
                         />
 
                         {/* Bottom Output Pane */}
-                        <ExecutionLogsPanel height={logsHeight} className="shrink-0" />
+                        <ExecutionLogsPanel 
+                            height={logsHeight} 
+                            className="shrink-0" 
+                            executionId={selectedExecution?._id}
+                            status={selectedExecution?.status}
+                            duration={selectedExecution?.duration ?? null}
+                        />
                     </>
                 ) : (
                     <div className="flex-1 flex items-center justify-center text-slate-400 text-sm">

@@ -51,6 +51,18 @@ export const workflowService = {
         return response.data;
     },
 
+    getExecutionLogs: async (executionId: string, page = 1, limit = 200): Promise<any> => {
+        const response = await axiosInstance.get(API_ENDPOINTS.EXECUTIONS.GET(executionId) + '/logs', {
+            params: { page, limit }
+        });
+        return response.data;
+    },
+
+    getExecutionStatus: async (executionId: string): Promise<any> => {
+        const response = await axiosInstance.get(API_ENDPOINTS.EXECUTIONS.GET(executionId) + '/status');
+        return response.data;
+    },
+
     initiate: async (id: string, payload: any = {}): Promise<any> => {
         const response = await axiosInstance.post(API_ENDPOINTS.WORKFLOWS.GET(id) + '/executions', payload);
         return response.data;

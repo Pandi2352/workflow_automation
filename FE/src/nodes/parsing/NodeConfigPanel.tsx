@@ -21,6 +21,7 @@ export const NodeConfigPanel: React.FC<NodeConfigPanelProps> = ({ nodeExecutionD
         modelName: 'gemini-1.5-flash'
     });
     const [jsonError, setJsonError] = useState<string | null>(null);
+    const executionStatus = nodeExecutionData?.status;
 
     // Compute Input Data from Previous Nodes
     const inputData = React.useMemo(() => {
@@ -71,7 +72,7 @@ export const NodeConfigPanel: React.FC<NodeConfigPanelProps> = ({ nodeExecutionD
                 updateNodeData(selectedNode.id, {
                     config: { ...newConfig, schema: parsed }
                 });
-            } catch (e) {
+            } catch {
                 setJsonError('Invalid JSON format');
             }
         } else {
@@ -96,6 +97,11 @@ export const NodeConfigPanel: React.FC<NodeConfigPanelProps> = ({ nodeExecutionD
                             <p className="text-xs text-slate-500">AI Parsing Configuration</p>
                         </div>
                     </div>
+                    {executionStatus && (
+                        <span className="text-[10px] font-bold px-2 py-1 rounded-full bg-slate-100 text-slate-600 uppercase">
+                            {executionStatus}
+                        </span>
+                    )}
                     <button 
                         onClick={() => setSelectedNode(null)}
                         className="p-1.5 hover:bg-slate-100 rounded-full text-slate-400"
@@ -114,7 +120,7 @@ export const NodeConfigPanel: React.FC<NodeConfigPanelProps> = ({ nodeExecutionD
                                 data: d.outputs,
                                 status: d.status
                             }))}
-                            onDragStart={(e, path) => console.log('Drag:', path)}
+                            onDragStart={(_, path) => console.log('Drag:', path)}
                         />
                     </div>
 

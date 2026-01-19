@@ -7,6 +7,7 @@ import * as mammoth from 'mammoth';
 import * as mime from 'mime-types';
 import * as fs from 'fs';
 import * as path from 'path';
+import * as crypto from 'crypto';
 
 // Prompts
 const PDF_EXTRACTION_PROMPT = `**Objective:** Perform a comprehensive extraction and analysis of the provided document.
@@ -72,6 +73,9 @@ export class OCRService extends BaseOCRService {
     private genAI: GoogleGenerativeAI;
     private fileManager: GoogleAIFileManager;
     private model: any;
+    private readonly dedupCache = new Map<string, { timestamp: number; result: any }>();
+    private readonly DEDUP_TTL_MS = 6 * 60 * 60 * 1000; // 6 hours
+    private readonly DEDUP_MAX_ENTRIES = 200;
 
     constructor(private configService: ConfigService) {
         super(OCRService.name);
@@ -130,6 +134,34 @@ export class OCRService extends BaseOCRService {
         this.model = this.genAI.getGenerativeModel({ model: modelName });
     }
 
+    private async hashFile(filePath: string): Promise<string> {
+        return new Promise((resolve, reject) => {
+            const hash = crypto.createHash('sha256');
+            const stream = fs.createReadStream(filePath);
+            stream.on('data', (data) => hash.update(data));
+            stream.on('end', () => resolve(hash.digest('hex')));
+            stream.on('error', reject);
+        });
+    }
+
+    private getCachedResult(key: string): any | null {
+        const entry = this.dedupCache.get(key);
+        if (!entry) return null;
+        if (Date.now() - entry.timestamp > this.DEDUP_TTL_MS) {
+            this.dedupCache.delete(key);
+            return null;
+        }
+        return entry.result;
+    }
+
+    private setCachedResult(key: string, result: any) {
+        this.dedupCache.set(key, { timestamp: Date.now(), result });
+        if (this.dedupCache.size > this.DEDUP_MAX_ENTRIES) {
+            const oldestKey = this.dedupCache.keys().next().value;
+            if (oldestKey) this.dedupCache.delete(oldestKey);
+        }
+    }
+
     private async executeWithRetry<T>(
         operation: () => Promise<T>,
         maxRetries: number = 5,
@@ -183,6 +215,15 @@ export class OCRService extends BaseOCRService {
 
             const mimeType = mime.lookup(filePath) || 'application/octet-stream';
             this.logger.log(`Processing file: ${filePath} (${mimeType})`);
+
+            const promptHash = crypto.createHash('sha256').update(config.prompt || '').digest('hex');
+            const fileHash = await this.hashFile(filePath);
+            const dedupKey = `${fileHash}:${promptHash}:${modelName}`;
+            const cached = this.getCachedResult(dedupKey);
+            if (cached) {
+                this.logger.log(`OCR cache hit for ${path.basename(filePath)} (${modelName})`);
+                return { ...cached, cached: true };
+            }
 
             let analysisResult = '';
             let jsonResult = {};
@@ -254,11 +295,13 @@ export class OCRService extends BaseOCRService {
             // but we are NOT parsing metadata anymore.
             analysisResult = analysisResult.replace(/```json\n[\s\S]*?\n```/, '').trim();
 
-            return {
+            const result = {
                 analysis: analysisResult,
                 // metadata: {}, // Explicitly removed
                 source: path.basename(filePath)
             };
+            this.setCachedResult(dedupKey, result);
+            return result;
 
         } catch (error) {
             this.logger.error(`OCR Processing failed: ${error.message}`, error.stack);

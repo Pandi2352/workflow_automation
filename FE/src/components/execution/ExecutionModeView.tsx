@@ -35,42 +35,52 @@ export const ExecutionModeView: React.FC = () => {
         }
     };
 
-    // Poll selected execution if it is running
+    // Poll selected execution if it is running (idle backoff)
     React.useEffect(() => {
         if (!selectedExecution || (selectedExecution.status !== 'RUNNING' && selectedExecution.status !== 'PENDING' && selectedExecution.status !== 'QUEUED')) return;
+        let isCancelled = false;
+        let delay = 2000;
+        const maxDelay = 10000;
 
-        const intervalId = setInterval(async () => {
-             try {
-                // 1. Lightweight check
-                const latestMeta = await workflowService.getLatestExecution(id!); // Use workflow ID to get latest? No, we need specific execution status.
-                // Wait, getLatestExecution gets the LATEST execution for the workflow.
-                // If we are viewing an older execution, this logic is flawed.
-                // We should check the status of the *specific* execution we are viewing.
-                // But we don't have a lightweight "getExecutionStatus(execId)" endpoint yet.
-                // For now, let's just use getExecution (full) because users usually view the running one (which is the latest).
-                // OR we can rely on `getLatestExecution` IF the selected execution IS the latest one.
-                
+        const poll = async () => {
+            try {
+                const latestMeta = await workflowService.getLatestExecution(id!);
                 const isLatest = !selectedExecution.executionNumber || (latestMeta && latestMeta._id === selectedExecution._id);
 
                 if (isLatest) {
-                     const meta = await workflowService.getLatestExecution(id!);
-                     if (meta && meta.status !== selectedExecution.status) {
-                         const updated = await workflowService.getExecution(selectedExecution._id);
-                         setSelectedExecution(updated);
-                     }
+                    const meta = await workflowService.getLatestExecution(id!);
+                    if (meta && meta.status !== selectedExecution.status) {
+                        const updated = await workflowService.getExecution(selectedExecution._id);
+                        setSelectedExecution(updated);
+                        delay = 2000;
+                    } else {
+                        delay = Math.min(maxDelay, Math.round(delay * 1.5));
+                    }
                 } else {
-                    // Fallback for non-latest executions (rarely running, but possible)
-                    const updated = await workflowService.getExecution(selectedExecution._id);
-                    if (updated.status !== selectedExecution.status) {
-                         setSelectedExecution(updated);
+                    const statusMeta = await workflowService.getExecutionStatus(selectedExecution._id);
+                    if (statusMeta && statusMeta.status !== selectedExecution.status) {
+                        const updated = await workflowService.getExecution(selectedExecution._id);
+                        setSelectedExecution(updated);
+                        delay = 2000;
+                    } else {
+                        delay = Math.min(maxDelay, Math.round(delay * 1.5));
                     }
                 }
             } catch (error) {
                 console.error('Failed to poll execution details', error);
+                delay = Math.min(maxDelay, Math.round(delay * 1.5));
+            } finally {
+                if (!isCancelled) {
+                    setTimeout(poll, delay);
+                }
             }
-        }, 3000);
+        };
 
-        return () => clearInterval(intervalId);
+        const timerId = setTimeout(poll, delay);
+        return () => {
+            isCancelled = true;
+            clearTimeout(timerId);
+        };
     }, [selectedExecution?._id, selectedExecution?.status, id]);
 
     const selectedNodeData = selectedExecution?.nodeExecutions?.find((ex: any) => ex.nodeId === selectedNode?.id);

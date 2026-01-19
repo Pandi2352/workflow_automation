@@ -14,6 +14,7 @@ export const NodeConfigPanel: React.FC<{ nodeExecutionData?: any }> = ({ nodeExe
     const { selectedNode, updateNodeData, setSelectedNode, nodes, edges, currentExecution } = useWorkflowStore();
     const [testResult, setTestResult] = useState<any>(null);
     const [isTesting, setIsTesting] = useState(false);
+    const executionStatus = nodeExecutionData?.status;
 
     // Guard against null selectedNode
     if (!selectedNode) return null;
@@ -119,6 +120,11 @@ export const NodeConfigPanel: React.FC<{ nodeExecutionData?: any }> = ({ nodeExe
                             <p className="text-xs text-slate-500">Transform Data</p>
                         </div>
                     </div>
+                    {executionStatus && (
+                        <span className="text-[10px] font-bold px-2 py-1 rounded-full bg-slate-100 text-slate-600 uppercase">
+                            {executionStatus}
+                        </span>
+                    )}
                     <button onClick={() => setSelectedNode(null)} className="p-2 hover:bg-slate-100 rounded-full text-slate-400 hover:text-slate-600 transition-colors">
                         <X size={20} />
                     </button>

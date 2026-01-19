@@ -222,8 +222,25 @@ export class SampleWorkflowController {
     @Get('executions/:executionId/logs')
     @ApiOperation({ summary: 'Get execution logs' })
     @ApiParam({ name: 'executionId', description: 'Execution ID' })
-    getExecutionLogs(@Param('executionId') executionId: string) {
-        return this.sampleWorkflowService.getExecutionLogs(executionId);
+    @ApiQuery({ name: 'page', required: false, type: Number })
+    @ApiQuery({ name: 'limit', required: false, type: Number })
+    getExecutionLogs(
+        @Param('executionId') executionId: string,
+        @Query('page') page?: number,
+        @Query('limit') limit?: number,
+    ) {
+        return this.sampleWorkflowService.getExecutionLogs(
+            executionId,
+            page ? Number(page) : 1,
+            limit ? Number(limit) : 200,
+        );
+    }
+
+    @Get('executions/:executionId/status')
+    @ApiOperation({ summary: 'Get lightweight execution status' })
+    @ApiParam({ name: 'executionId', description: 'Execution ID' })
+    getExecutionStatus(@Param('executionId') executionId: string) {
+        return this.sampleWorkflowService.getExecutionStatus(executionId);
     }
 
     @Post('executions/:executionId/cancel')
