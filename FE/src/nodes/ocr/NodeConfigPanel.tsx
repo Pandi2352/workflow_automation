@@ -6,6 +6,7 @@ import { GeminiCredentialModal } from '../../components/credentials/GeminiCreden
 import { cn } from '../../lib/utils';
 import { DataTreeViewer } from '../../common/DataTreeViewer';
 import { NodeDataSidebar } from '../../components/designer/NodeDataSidebar';
+import { NodeHelpButton } from '../../common/NodeHelpButton';
 
 export const NodeConfigPanel: React.FC<{ nodeExecutionData?: any }> = ({ nodeExecutionData }) => {
     const { selectedNode, updateNodeData, setSelectedNode, fetchCredentials, credentials, nodes, edges, currentExecution, deleteNode } = useWorkflowStore();
@@ -174,6 +175,9 @@ export const NodeConfigPanel: React.FC<{ nodeExecutionData?: any }> = ({ nodeExe
                             >
                                 <Trash2 size={20} />
                             </button>
+                            <NodeHelpButton 
+                                nodeType="OCR"
+                            />
                             <button 
                                 onClick={() => setSelectedNode(null)}
                                 className="p-2 hover:bg-slate-100 rounded-full text-slate-400 hover:text-slate-600 transition-colors"

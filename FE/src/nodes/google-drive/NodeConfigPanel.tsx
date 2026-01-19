@@ -3,6 +3,7 @@ import { useWorkflowStore } from '../../store/workflowStore';
 import { X, RefreshCw, Zap } from 'lucide-react';
 import { GoogleDriveConfig } from './GoogleDriveConfig';
 import { axiosInstance } from '../../api/axiosConfig';
+import { NodeHelpButton } from '../../common/NodeHelpButton';
 
 // --- Generic Configuration Component ---
 const GenericNodeConfig = ({ selectedNode }: { selectedNode: any }) => {
@@ -215,12 +216,15 @@ export const NodeConfigPanel: React.FC<{ nodeExecutionData?: any }> = ({ nodeExe
                             <p className="text-sm text-slate-500">Configure parameters</p>
                          </div>
                     </div>
-                    <button 
-                        onClick={() => setSelectedNode(null)}
-                        className="p-2 hover:bg-slate-100 rounded-full text-slate-400 hover:text-slate-600 transition-colors"
-                    >
-                        <X size={24} />
-                    </button>
+                    <div className="flex items-center gap-2">
+                        <NodeHelpButton nodeType="GOOGLE_DRIVE" />
+                        <button 
+                            onClick={() => setSelectedNode(null)}
+                            className="p-2 hover:bg-slate-100 rounded-full text-slate-400 hover:text-slate-600 transition-colors"
+                        >
+                            <X size={24} />
+                        </button>
+                    </div>
                 </div>
                 
                 {/* Body */}

@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { 
     Plus, Search, LayoutGrid, List, MoreHorizontal, 
-    Zap, Command, Trash2, Play
+    Zap, Command, Trash2, Play, FileText
 } from 'lucide-react';
 import { workflowService } from '../services/api/workflows';
 import type { SampleWorkflow } from '../types/workflow.types';
@@ -12,6 +12,7 @@ import { Modal } from '../common/Modal';
 
 import { CredentialsList } from '../components/credentials/CredentialsList';
 import { AnimatedWorkflowBackground } from '../components/landing/AnimatedWorkflowBackground';
+import { WORKFLOW_TEMPLATES, type WorkflowTemplate } from '../data/workflowTemplates';
 
 export const Dashboard: React.FC = () => {
   const navigate = useNavigate();
@@ -20,6 +21,9 @@ export const Dashboard: React.FC = () => {
   const [searchQuery, setSearchQuery] = useState('');
   const [viewMode, setViewMode] = useState<'table' | 'grid'>('grid');
   const [menuOpenId, setMenuOpenId] = useState<string | null>(null);
+  const [isTemplatesOpen, setIsTemplatesOpen] = useState(false);
+  const [creatingTemplateId, setCreatingTemplateId] = useState<string | null>(null);
+  const [templateError, setTemplateError] = useState<string | null>(null);
   
   // View State (Workflows | Credentials)
   const [currentView, setCurrentView] = useState<'workflows' | 'credentials'>('workflows');
@@ -51,6 +55,33 @@ export const Dashboard: React.FC = () => {
 
   const handleCreateWorkflow = () => {
     navigate('/workflow/new');
+  };
+
+  const handleCreateFromTemplate = async (template: WorkflowTemplate) => {
+      setCreatingTemplateId(template.id);
+      setTemplateError(null);
+      try {
+          const payload = {
+              name: template.metadata?.name || template.name,
+              description: template.metadata?.description || template.description,
+              isActive: true,
+              nodes: template.nodes.map((node) => ({
+                  ...node,
+                  nodeName: node.data?.label || node.id,
+                  position: [node.position.x, node.position.y]
+              })) as any,
+              edges: template.edges as any
+          };
+
+          const created = await workflowService.create(payload);
+          setIsTemplatesOpen(false);
+          navigate(`/workflow/${created._id}`);
+      } catch (error) {
+          console.error('Failed to create workflow from template', error);
+          setTemplateError('Failed to create workflow from template. Please try again.');
+      } finally {
+          setCreatingTemplateId(null);
+      }
   };
 
   const handleClickDelete = (e: React.MouseEvent, id: string) => {
@@ -151,6 +182,12 @@ export const Dashboard: React.FC = () => {
              >
                 Credentials
              </button>
+             <button 
+                onClick={() => navigate('/documentation')}
+                className="hover:text-slate-900 cursor-pointer transition-colors"
+             >
+                Documentation
+             </button>
         </div>
         <div className="ml-auto flex items-center gap-3">
              <div className="w-8 h-8 rounded-full bg-slate-100 border border-slate-200 flex items-center justify-center text-slate-500 text-xs font-bold">
@@ -180,6 +217,13 @@ export const Dashboard: React.FC = () => {
                         onChange={(e) => setSearchQuery(e.target.value)}
                     />
                     <div className="flex items-center gap-3 pr-2">
+                        <button 
+                            onClick={() => setIsTemplatesOpen(true)}
+                            className="bg-white border border-slate-200 text-slate-700 hover:text-slate-900 hover:border-slate-300 px-4 h-12 rounded-full text-sm font-semibold flex items-center gap-2 transition-all active:scale-95 whitespace-nowrap"
+                        >
+                            <FileText size={16} />
+                            Templates
+                        </button>
                         <button 
                             onClick={handleCreateWorkflow} 
                             className="bg-slate-900 hover:bg-slate-800 text-white cursor-pointer shadow-slate-900/20 px-6 h-12 rounded-full text-sm font-semibold flex items-center gap-2 transition-all active:scale-95 whitespace-nowrap"
@@ -407,6 +451,48 @@ export const Dashboard: React.FC = () => {
             <p className="text-slate-600 text-sm leading-relaxed">
                 Are you sure you want to delete this workflow? This action is permanent and cannot be undone. All execution history will also be removed.
             </p>
+        </div>
+      </Modal>
+      
+      {/* Templates Modal */}
+      <Modal
+        isOpen={isTemplatesOpen}
+        onClose={() => {
+            setIsTemplatesOpen(false);
+            setTemplateError(null);
+        }}
+        title="Workflow Templates"
+        size="xl"
+      >
+        <div className="space-y-4">
+            <p className="text-sm text-slate-500">
+                Start with a prebuilt workflow and customize it in the designer.
+            </p>
+            {templateError && (
+                <div className="text-xs text-red-600 bg-red-50 border border-red-200 px-3 py-2 rounded-md">
+                    {templateError}
+                </div>
+            )}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {WORKFLOW_TEMPLATES.map((template) => (
+                    <button
+                        key={template.id}
+                        onClick={() => handleCreateFromTemplate(template)}
+                        className="text-left p-4 border border-slate-200 rounded-xl bg-white hover:border-emerald-300 hover:bg-emerald-50/30 transition-all"
+                        disabled={creatingTemplateId === template.id}
+                    >
+                        <div className="flex items-start justify-between gap-4">
+                            <div>
+                                <h3 className="text-sm font-semibold text-slate-900">{template.name}</h3>
+                                <p className="text-xs text-slate-500 mt-1">{template.description}</p>
+                            </div>
+                            <div className="text-[10px] font-semibold text-emerald-700 bg-emerald-50 border border-emerald-200 px-2 py-0.5 rounded-full whitespace-nowrap">
+                                {creatingTemplateId === template.id ? 'Creating...' : 'Use Template'}
+                            </div>
+                        </div>
+                    </button>
+                ))}
+            </div>
         </div>
       </Modal>
       </div>

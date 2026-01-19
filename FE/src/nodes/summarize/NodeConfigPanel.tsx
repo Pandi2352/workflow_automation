@@ -5,6 +5,7 @@ import { X, AlignLeft, Zap, Key, Box, Type, Database, Plus, RefreshCw } from 'lu
 import { axiosInstance } from '../../api/axiosConfig';
 import { NodeDataSidebar } from '../../components/designer/NodeDataSidebar';
 import JsonViewer from '../../common/JsonViewer';
+import { NodeHelpButton } from '../../common/NodeHelpButton';
 import { GeminiCredentialModal } from '../../components/credentials/GeminiCredentialModal';
 
 export const NodeConfigPanel: React.FC<{ nodeExecutionData?: any }> = ({ nodeExecutionData }) => {
@@ -131,8 +132,7 @@ export const NodeConfigPanel: React.FC<{ nodeExecutionData?: any }> = ({ nodeExe
     };
 
 
-    const activeTabState = useState<'output' | 'logs'>('output');
-    const [activeTab, setActiveTab] = activeTabState;
+    const [activeTab, setActiveTab] = useState<'config' | 'output' | 'logs'>('config');
 
     return (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm animate-in fade-in duration-200">
@@ -152,16 +152,21 @@ export const NodeConfigPanel: React.FC<{ nodeExecutionData?: any }> = ({ nodeExe
                             <p className="text-xs text-slate-500">Generate AI summaries with Gemini</p>
                          </div>
                     </div>
-                    <button 
-                        onClick={() => setSelectedNode(null)}
-                        className="p-2 hover:bg-slate-100 rounded-full text-slate-400 hover:text-slate-600 transition-colors"
-                    >
-                        <X size={20} />
-                    </button>
+                     <div className="flex items-center gap-1">
+                        <NodeHelpButton 
+                            nodeType="SUMMARIZE"
+                        />
+                        <button 
+                            onClick={() => setSelectedNode(null)}
+                            className="p-2 hover:bg-slate-100 rounded-full text-slate-400 hover:text-slate-600 transition-colors"
+                        >
+                            <X size={20} />
+                        </button>
+                    </div>
                 </div>
                 
                 {/* Body - 3 Column Split View */}
-                <div className="flex flex-1 overflow-hidden">
+                <div className="flex flex-1 overflow-hidden relative">
                     
                     {/* COLUMN 1 - Input Data Sidebar (Left) */}
                     <div className="w-[300px] border-r border-slate-200 flex flex-col overflow-hidden bg-slate-50 shrink-0">

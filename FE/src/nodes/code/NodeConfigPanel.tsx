@@ -7,6 +7,7 @@ import { GeminiCredentialModal } from '../../components/credentials/GeminiCreden
 import { DataTreeViewer } from '../../common/DataTreeViewer';
 import { NodeDataSidebar } from '../../components/designer/NodeDataSidebar';
 import { cn } from '../../lib/utils';
+import { NodeHelpButton } from '../../common/NodeHelpButton';
 // @ts-ignore
 import Editor from 'react-simple-code-editor';
 // @ts-ignore
@@ -394,6 +395,9 @@ export const NodeConfigPanel: React.FC<{ nodeExecutionData?: any }> = ({ nodeExe
                             >
                                 <Trash2 size={20} />
                             </button>
+                            <NodeHelpButton 
+                                nodeType="CODE"
+                            />
                             <button 
                                 onClick={() => setSelectedNode(null)}
                                 className="p-2 hover:bg-slate-100 rounded-full text-slate-400 hover:text-slate-600 transition-colors"
@@ -430,7 +434,7 @@ export const NodeConfigPanel: React.FC<{ nodeExecutionData?: any }> = ({ nodeExe
                     </div>
 
                     {/* Content Area */}
-                    <div className="flex-1 overflow-hidden bg-slate-50/30 flex flex-col">
+                    <div className="flex-1 overflow-hidden bg-slate-50/30 flex flex-col relative">
                         {activeTab === 'config' && (
                             <div className="p-6 space-y-6 overflow-y-auto custom-scrollbar h-full">
                                 {/* Node Label */}

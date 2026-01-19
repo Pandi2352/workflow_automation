@@ -4,6 +4,7 @@ import { X, Globe, Key, Database, Play, CheckCircle2, AlertCircle, Plus, Trash2,
 import { NodeDataSidebar } from '../../components/designer/NodeDataSidebar';
 import { axiosInstance } from '../../api/axiosConfig';
 import { DataTreeViewer } from '../../common/DataTreeViewer';
+import { NodeHelpButton } from '../../common/NodeHelpButton';
 
 export const NodeConfigPanel: React.FC<{ nodeExecutionData?: any }> = () => {
     const { selectedNode, updateNodeData, setSelectedNode, nodes, edges, currentExecution } = useWorkflowStore();
@@ -121,9 +122,12 @@ export const NodeConfigPanel: React.FC<{ nodeExecutionData?: any }> = () => {
                             <p className="text-xs text-slate-500">Configure HTTP Request</p>
                         </div>
                     </div>
-                    <button onClick={() => setSelectedNode(null)} className="p-2 hover:bg-slate-100 rounded-full text-slate-400 hover:text-slate-600 transition-colors">
-                        <X size={20} />
-                    </button>
+                    <div className="flex items-center gap-2">
+                        <NodeHelpButton nodeType="HTTP_REQUEST" />
+                        <button onClick={() => setSelectedNode(null)} className="p-2 hover:bg-slate-100 rounded-full text-slate-400 hover:text-slate-600 transition-colors">
+                            <X size={20} />
+                        </button>
+                    </div>
                 </div>
 
                 <div className="flex flex-1 overflow-hidden">

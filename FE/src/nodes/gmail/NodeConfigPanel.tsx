@@ -5,6 +5,7 @@ import { GmailConfig } from './GmailConfig';
 import { axiosInstance } from '../../api/axiosConfig';
 import { Button } from '../../common/Button';
 import { cn } from '../../lib/utils';
+import { NodeHelpButton } from '../../common/NodeHelpButton';
 
 // --- Generic Configuration Component ---
 const GenericNodeConfig = ({ selectedNode }: { selectedNode: any }) => {
@@ -229,12 +230,15 @@ export const NodeConfigPanel: React.FC<{ nodeExecutionData?: any }> = ({ nodeExe
                             <p className="text-xs text-slate-500">Configure Node ID: {selectedNode.id}</p>
                          </div>
                     </div>
-                    <button 
-                        onClick={() => setSelectedNode(null)}
-                        className="p-2 hover:bg-slate-100 rounded-full text-slate-400 hover:text-slate-600 transition-colors"
-                    >
-                        <X size={20} />
-                    </button>
+                    <div className="flex items-center gap-2">
+                        <NodeHelpButton nodeType="GMAIL_TRIGGER" />
+                        <button 
+                            onClick={() => setSelectedNode(null)}
+                            className="p-2 hover:bg-slate-100 rounded-full text-slate-400 hover:text-slate-600 transition-colors"
+                        >
+                            <X size={20} />
+                        </button>
+                    </div>
                 </div>
 
                 {/* Tabs */}

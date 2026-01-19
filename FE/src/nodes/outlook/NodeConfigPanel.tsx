@@ -14,6 +14,7 @@ import {
     Activity
 } from 'lucide-react';
 import { axiosInstance } from '../../api/axiosConfig';
+import { NodeHelpButton } from '../../common/NodeHelpButton';
 
 export const NodeConfigPanel = ({ nodeExecutionData }: { nodeExecutionData?: any }) => {
     const { selectedNode, setSelectedNode, showToast } = useWorkflowStore();
@@ -48,12 +49,15 @@ export const NodeConfigPanel = ({ nodeExecutionData }: { nodeExecutionData?: any
                         <p className="text-[10px] font-bold text-indigo-500 uppercase tracking-wider mt-0.5">Microsoft 365 Email</p>
                     </div>
                 </div>
-                <button 
-                    onClick={() => setSelectedNode(null)}
-                    className="p-2 text-slate-400 hover:text-slate-600 hover:bg-slate-50 rounded-lg transition-all"
-                >
-                    <X size={20} />
-                </button>
+                <div className="flex items-center gap-2">
+                    <NodeHelpButton nodeType="OUTLOOK" />
+                    <button 
+                        onClick={() => setSelectedNode(null)}
+                        className="p-2 text-slate-400 hover:text-slate-600 hover:bg-slate-50 rounded-lg transition-all"
+                    >
+                        <X size={20} />
+                    </button>
+                </div>
             </div>
 
             {/* Tabs */}

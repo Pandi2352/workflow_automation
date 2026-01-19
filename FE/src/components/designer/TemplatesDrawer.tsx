@@ -1,101 +1,7 @@
 import React from 'react';
 import { X, FileText, ArrowRight, CheckCircle2 } from 'lucide-react';
 import { useWorkflowStore } from '../../store/workflowStore';
-
-interface Template {
-    id: string;
-    name: string;
-    description: string;
-    nodes: any[];
-    edges: any[];
-    metadata?: {
-        name: string;
-        description: string;
-    }
-}
-
-const INVOICE_TEMPLATE: Template = {
-    id: 'invoice-processing',
-    name: 'Intelligent Invoice Processing',
-    description: 'Automate AP by extracting data from invoice emails and saving to DB.',
-    metadata: {
-        name: "Invoice Operations",
-        description: "Automated invoice processing pipeline with OCR and Smart Extraction."
-    },
-    nodes: [
-        {
-            id: 'node_1',
-            type: 'GMAIL',
-            position: { x: 100, y: 100 },
-            data: { 
-                label: 'Watch Invoices', 
-                config: { query: 'label:invoices' } 
-            }
-        },
-        {
-            id: 'node_2',
-            type: 'OCR',
-            position: { x: 100, y: 250 },
-            data: { 
-                label: 'Extract Text (OCR)', 
-                config: { model: 'gemini-1.5-flash-001' } 
-            }
-        },
-        {
-            id: 'node_3',
-            type: 'SMART_EXTRACTION',
-            position: { x: 100, y: 400 },
-            data: { 
-                label: 'Parse Invoice Data', 
-                config: { 
-                    fields: ['invoice_number', 'vendor_name', 'date', 'total_amount', 'line_items'],
-                    model: 'gemini-1.5-flash-001'
-                } 
-            }
-        },
-        {
-            id: 'node_4',
-            type: 'IF_ELSE',
-            position: { x: 100, y: 550 },
-            data: { 
-                label: 'Check High Value', 
-                config: { 
-                    condition: 'total_amount > 1000' 
-                } 
-            }
-        },
-        {
-            id: 'node_5',
-            type: 'GMAIL',
-            position: { x: -100, y: 700 },
-            data: { 
-                label: 'Email Manager', 
-                config: { 
-                    to: 'manager@example.com',
-                    subject: 'High Value Invoice Approval Needed'
-                } 
-            }
-        },
-        {
-            id: 'node_6',
-            type: 'MONGODB',
-            position: { x: 300, y: 700 },
-            data: { 
-                label: 'Save into Database', 
-                config: { 
-                    collection: 'invoices'
-                } 
-            }
-        }
-    ],
-    edges: [
-        { id: 'edge_1', source: 'node_1', target: 'node_2' },
-        { id: 'edge_2', source: 'node_2', target: 'node_3' },
-        { id: 'edge_3', source: 'node_3', target: 'node_4' },
-        { id: 'edge_4', source: 'node_4', target: 'node_5', sourceHandle: 'true' }, // Assuming IF_ELSE has 'true' handle
-        { id: 'edge_5', source: 'node_4', target: 'node_6', sourceHandle: 'false' }, // Assuming IF_ELSE has 'false' handle
-    ]
-};
+import { WORKFLOW_TEMPLATES, type WorkflowTemplate } from '../../data/workflowTemplates';
 
 interface TemplatesDrawerProps {
     isOpen: boolean;
@@ -105,7 +11,7 @@ interface TemplatesDrawerProps {
 export const TemplatesDrawer: React.FC<TemplatesDrawerProps> = ({ isOpen, onClose }) => {
     const { setNodes, setEdges, setWorkflowMetadata, setIsDirty } = useWorkflowStore();
 
-    const loadTemplate = (template: Template) => {
+    const loadTemplate = (template: WorkflowTemplate) => {
         if (confirm('Loading a template will replace your current workflow. Continue?')) {
             setNodes(template.nodes);
             setEdges(template.edges);
@@ -140,9 +46,11 @@ export const TemplatesDrawer: React.FC<TemplatesDrawerProps> = ({ isOpen, onClos
 
             {/* List */}
             <div className="flex-1 overflow-y-auto p-4 space-y-3">
+                {WORKFLOW_TEMPLATES.map((template) => (
                 <div 
+                    key={template.id}
                     className="p-4 bg-white border border-gray-200 rounded-xl hover:border-indigo-500 hover:shadow-md cursor-pointer transition-all group"
-                    onClick={() => loadTemplate(INVOICE_TEMPLATE)}
+                    onClick={() => loadTemplate(template)}
                 >
                     <div className="flex items-start justify-between mb-2">
                         <div className="p-2 bg-indigo-50 text-indigo-600 rounded-lg group-hover:bg-indigo-600 group-hover:text-white transition-colors">
@@ -153,15 +61,16 @@ export const TemplatesDrawer: React.FC<TemplatesDrawerProps> = ({ isOpen, onClos
                         </span>
                     </div>
                     <h3 className="font-bold text-slate-800 mb-1 group-hover:text-indigo-600 transition-colors">
-                        {INVOICE_TEMPLATE.name}
+                        {template.name}
                     </h3>
                     <p className="text-xs text-slate-500 leading-relaxed mb-3">
-                        {INVOICE_TEMPLATE.description}
+                        {template.description}
                     </p>
                     <div className="flex items-center text-[10px] font-medium text-slate-400 group-hover:text-indigo-500 transition-colors">
                         Click to load <ArrowRight size={12} className="ml-1" />
                     </div>
                 </div>
+                ))}
 
                 {/* Placeholder for future templates */}
                 <div className="p-4 border border-dashed border-gray-200 rounded-xl flex flex-col items-center justify-center text-center opacity-60">

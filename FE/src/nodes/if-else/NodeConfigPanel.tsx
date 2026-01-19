@@ -2,6 +2,7 @@ import React, { useEffect, useState, useMemo } from 'react';
 import { useWorkflowStore } from '../../store/workflowStore';
 import { GitFork, ArrowLeft, Play, X, Zap, RefreshCw } from 'lucide-react';
 import { axiosInstance } from '../../api/axiosConfig';
+import { NodeHelpButton } from '../../common/NodeHelpButton';
 
 export const NodeConfigPanel: React.FC<{ nodeExecutionData?: any }> = ({ nodeExecutionData }) => {
     const { selectedNode, updateNodeData, setSelectedNode, nodes, edges, currentExecution, triggerWorkflowExecution } = useWorkflowStore();
@@ -106,12 +107,15 @@ export const NodeConfigPanel: React.FC<{ nodeExecutionData?: any }> = ({ nodeExe
                             <p className="text-xs text-slate-500">Define branching logic (True/False)</p>
                          </div>
                     </div>
-                    <button 
-                        onClick={() => setSelectedNode(null)}
-                        className="p-2 hover:bg-slate-100 rounded-full text-slate-400 hover:text-slate-600 transition-colors"
-                    >
-                        <X size={20} />
-                    </button>
+                    <div className="flex items-center gap-2">
+                        <NodeHelpButton nodeType="IF_ELSE" />
+                        <button 
+                            onClick={() => setSelectedNode(null)}
+                            className="p-2 hover:bg-slate-100 rounded-full text-slate-400 hover:text-slate-600 transition-colors"
+                        >
+                            <X size={20} />
+                        </button>
+                    </div>
                 </div>
                 
                 {/* Body - Split View */}

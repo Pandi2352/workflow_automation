@@ -4,6 +4,7 @@ import { Upload, File as FileIcon, X, CheckCircle, Trash2, FileText } from 'luci
 import axios from 'axios';
 import { useWorkflowStore } from '../../store/workflowStore';
 import JsonViewer from '../../common/JsonViewer';
+import { NodeHelpButton } from '../../common/NodeHelpButton';
 
 interface FileUploadConfigPanelProps {
     data?: any;
@@ -88,12 +89,15 @@ const FileUploadConfigPanel: React.FC<FileUploadConfigPanelProps> = ({ data, onC
                             <p className="text-xs text-slate-500">Manual file input</p>
                          </div>
                     </div>
-                    <button 
-                        onClick={() => setSelectedNode(null)}
-                        className="p-2 hover:bg-slate-100 rounded-full text-slate-400 hover:text-slate-600 transition-colors"
-                    >
-                        <X size={20} />
-                    </button>
+                    <div className="flex items-center gap-2">
+                        <NodeHelpButton nodeType="FILE_UPLOAD" />
+                        <button 
+                            onClick={() => setSelectedNode(null)}
+                            className="p-2 hover:bg-slate-100 rounded-full text-slate-400 hover:text-slate-600 transition-colors"
+                        >
+                            <X size={20} />
+                        </button>
+                    </div>
                 </div>
 
                 {/* Body */}

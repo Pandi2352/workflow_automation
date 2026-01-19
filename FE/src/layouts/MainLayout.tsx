@@ -1,6 +1,6 @@
 import React from 'react';
 import { Outlet, useLocation, useNavigate } from 'react-router-dom';
-import { Home, Zap, Settings, User, Layers, Database, Lock } from 'lucide-react';
+import { Home, Zap, Settings, User, Layers, Database, Lock, Book } from 'lucide-react';
 
 export const MainLayout: React.FC = () => {
   const navigate = useNavigate();
@@ -38,10 +38,11 @@ export const MainLayout: React.FC = () => {
             </div>
             
             <nav className="space-y-2 flex flex-col items-center">
-                <NavItem icon={Home} path="/" label="Overview" />
+                <NavItem icon={Home} path="/dashboard" label="Overview" />
                 <NavItem icon={Layers} path="/workflows" label="Workflows" />
-                <NavItem icon={Lock} path="/credentials" label="Credentials" />
                 <NavItem icon={Database} path="/databases" label="Data Tables" />
+                <NavItem icon={Book} path="/documentation" label="Documentation" />
+                <NavItem icon={Lock} path="/credentials" label="Credentials" />
             </nav>
         </div>
 

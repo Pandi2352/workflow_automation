@@ -1,14 +1,14 @@
 
 import React, { useState, useEffect, useMemo } from 'react';
 import { useWorkflowStore } from '../../store/workflowStore';
-import { X, BrainCircuit, Zap, Key, Database, Plus, RefreshCw, TableProperties, Trash2 } from 'lucide-react';
+import { X, BrainCircuit, Zap, Key, Database, Plus, RefreshCw, TableProperties } from 'lucide-react';
 import { axiosInstance } from '../../api/axiosConfig';
 import { NodeDataSidebar } from '../../components/designer/NodeDataSidebar';
-import JsonViewer from '../../common/JsonViewer';
 import { GeminiCredentialModal } from '../../components/credentials/GeminiCredentialModal';
 
 import { SchemaBuilderModal } from './SchemaBuilderModal';
 import { DataTreeViewer } from '../../common/DataTreeViewer';
+import { NodeHelpButton } from '../../common/NodeHelpButton';
 
 export const NodeConfigPanel: React.FC<{ nodeExecutionData?: any }> = ({ nodeExecutionData }) => {
     const { selectedNode, updateNodeData, setSelectedNode, nodes, edges, currentExecution, fetchCredentials, credentials } = useWorkflowStore();
@@ -117,8 +117,7 @@ export const NodeConfigPanel: React.FC<{ nodeExecutionData?: any }> = ({ nodeExe
         }
     };
 
-    const activeTabState = useState<'output' | 'logs'>('output');
-    const [activeTab, setActiveTab] = activeTabState;
+    const [activeTab, setActiveTab] = useState<'config' | 'output' | 'logs'>('config');
 
     return (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm animate-in fade-in duration-200">
@@ -137,16 +136,21 @@ export const NodeConfigPanel: React.FC<{ nodeExecutionData?: any }> = ({ nodeExe
                             <p className="text-xs text-slate-500">Context-aware data extraction</p>
                          </div>
                     </div>
-                    <button 
-                        onClick={() => setSelectedNode(null)}
-                        className="p-2 hover:bg-slate-100 rounded-full text-slate-400 hover:text-slate-600 transition-colors"
-                    >
-                        <X size={20} />
-                    </button>
+                        <div className="flex items-center gap-1">
+                            <NodeHelpButton 
+                                nodeType="SMART_EXTRACTION"
+                            />
+                            <button 
+                                onClick={() => setSelectedNode(null)}
+                                className="p-2 hover:bg-slate-100 rounded-full text-slate-400 hover:text-slate-600 transition-colors"
+                            >
+                                <X size={20} />
+                            </button>
+                        </div>
                 </div>
                 
                 {/* Body - 3 Column Split View */}
-                <div className="flex flex-1 overflow-hidden">
+                <div className="flex flex-1 overflow-hidden relative">
                     
                      {/* COLUMN 1 - Left Sidebar */}
                      <div className="w-[300px] border-r border-slate-200 flex flex-col overflow-hidden bg-slate-50 shrink-0">

@@ -3,6 +3,7 @@ import { useWorkflowStore } from '../../store/workflowStore';
 import { X, RefreshCw, Zap, Clock } from 'lucide-react';
 import { ScheduleConfig } from './ScheduleConfig';
 import { axiosInstance } from '../../api/axiosConfig';
+import { NodeHelpButton } from '../../common/NodeHelpButton';
 
 export const NodeConfigPanel: React.FC<{ nodeExecutionData?: any }> = ({ nodeExecutionData }) => {
     const { selectedNode, updateNodeData, setSelectedNode, fetchNodeDefinitions } = useWorkflowStore();
@@ -78,12 +79,15 @@ export const NodeConfigPanel: React.FC<{ nodeExecutionData?: any }> = ({ nodeExe
                             <p className="text-sm text-slate-500">Configure trigger intervals</p>
                          </div>
                     </div>
-                    <button 
-                        onClick={() => setSelectedNode(null)}
-                        className="p-2 hover:bg-slate-100 rounded-full text-slate-400 hover:text-slate-600 transition-colors"
-                    >
-                        <X size={24} />
-                    </button>
+                    <div className="flex items-center gap-2">
+                        <NodeHelpButton nodeType="SCHEDULE" />
+                        <button 
+                            onClick={() => setSelectedNode(null)}
+                            className="p-2 hover:bg-slate-100 rounded-full text-slate-400 hover:text-slate-600 transition-colors"
+                        >
+                            <X size={24} />
+                        </button>
+                    </div>
                 </div>
                 
                 {/* Body */}
