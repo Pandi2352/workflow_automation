@@ -71,9 +71,9 @@ export class AiService {
         2. "SCHEDULE" (Trigger)
            - config: { cronExpression: "0 9 * * *" }
         3. "OCR" (Action)
-           - config: { model: "gemini-1.5-flash-001" }
+           - config: { model: "gemini-2.5-flash" }
         4. "SMART_EXTRACTION" (Action)
-           - config: { fields: ["invoice_number", "date", "total"], model: "gemini-1.5-flash-001" }
+           - config: { fields: ["invoice_number", "date", "total"], model: "gemini-2.5-flash" }
         5. "GOOGLE_DRIVE" (Action)
            - config: { folderId: "root" }
         6. "ONEDRIVE" (Action)

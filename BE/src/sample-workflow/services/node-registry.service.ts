@@ -21,6 +21,9 @@ import { TesseractOCRService } from '../node-services/tesseract-ocr.service';
 import { OutlookNode } from '../nodes/outlook.node';
 import { OutlookService } from '../node-services/outlook.service';
 import { RSSNode } from '../nodes/rss.node';
+import { AIAgentNode } from '../nodes/ai-agent.node';
+import { GeminiModelNode } from '../nodes/gemini-model.node';
+import { GoogleSearchToolNode } from '../nodes/google-search-tool.node';
 
 import { SmartExtractionNodeStrategy } from '../nodes/smart-extraction.node';
 import { FileUploadNodeStrategy } from '../nodes/file-upload.node';
@@ -89,6 +92,9 @@ export class NodeRegistryService {
         this.nodeInstances.set(SampleNodeType.BROWSER_SCRAPER, new ScraperNodeStrategy(this.ocrService));
         this.nodeInstances.set(SampleNodeType.CODE, this.codeNodeStrategy);
         this.nodeInstances.set(SampleNodeType.RSS, new RSSNode());
+        this.nodeInstances.set(SampleNodeType.AI_AGENT, new AIAgentNode(this.ocrService));
+        this.nodeInstances.set(SampleNodeType.GEMINI_MODEL, new GeminiModelNode());
+        this.nodeInstances.set(SampleNodeType.GOOGLE_SEARCH_TOOL, new GoogleSearchToolNode());
 
         // Register node definitions
         this.nodeDefinitions.set(SampleNodeType.BROWSER_SCRAPER, {
@@ -131,6 +137,65 @@ export class NodeRegistryService {
                     type: 'string',
                     description: 'RSS Feed URL',
                     default: ''
+                }
+            }
+        });
+
+        this.nodeDefinitions.set(SampleNodeType.AI_AGENT, {
+            type: SampleNodeType.AI_AGENT,
+            name: 'AI Agent',
+            description: 'Intelligent agent that can use tools and models to complete tasks',
+            category: 'AI / Machine Learning',
+            inputs: 1,
+            outputs: 1,
+            configSchema: {
+                promptSource: {
+                    type: 'select',
+                    options: ['define', 'input'],
+                    default: 'define'
+                },
+                userPrompt: {
+                    type: 'string',
+                    description: 'Instructions for the agent',
+                    default: ''
+                }
+            }
+        });
+
+        this.nodeDefinitions.set(SampleNodeType.GEMINI_MODEL, {
+            type: SampleNodeType.GEMINI_MODEL,
+            name: 'Gemini Chat Model',
+            description: 'Connect to Google Gemini models',
+            category: 'AI / Machine Learning',
+            inputs: 0,
+            outputs: 1,
+            configSchema: {
+                modelName: {
+                    type: 'string',
+                    default: 'gemini-2.5-flash'
+                },
+                temperature: {
+                    type: 'number',
+                    default: 0.7
+                }
+            }
+        });
+
+        this.nodeDefinitions.set(SampleNodeType.GOOGLE_SEARCH_TOOL, {
+            type: SampleNodeType.GOOGLE_SEARCH_TOOL,
+            name: 'Google Search Tool',
+            description: 'Provide web search capability to an AI Agent',
+            category: 'AI / Machine Learning',
+            inputs: 0,
+            outputs: 1,
+            configSchema: {
+                toolName: {
+                    type: 'string',
+                    default: 'google_search'
+                },
+                numResults: {
+                    type: 'number',
+                    default: 5
                 }
             }
         });

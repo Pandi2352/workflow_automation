@@ -18,6 +18,9 @@ import { NodeConfigPanel as CodeConfigPanel } from './code/NodeConfigPanel';
 import { NodeConfigPanel as OutlookConfigPanel } from './outlook/NodeConfigPanel';
 
 import { NodeConfigPanel as RSSConfigPanel } from './rss/NodeConfigPanel';
+import { NodeConfigPanel as AIAgentConfigPanel } from './ai-agent/NodeConfigPanel';
+import { NodeConfigPanel as GeminiModelConfigPanel } from './ai-models/NodeConfigPanel';
+import { NodeConfigPanel as GoogleSearchToolConfigPanel } from './ai-models/GoogleSearchToolConfigPanel';
 
 export const NODE_CONFIG_PANELS: Record<string, React.FC<any>> = {
     ONEDRIVE: OneDriveConfigPanel,
@@ -39,4 +42,10 @@ export const NODE_CONFIG_PANELS: Record<string, React.FC<any>> = {
     CODE: CodeConfigPanel,
     OUTLOOK: OutlookConfigPanel,
     RSS: RSSConfigPanel,
+    AI_AGENT: AIAgentConfigPanel,
+    ai_agent: AIAgentConfigPanel,
+    GEMINI_MODEL: GeminiModelConfigPanel,
+    gemini_model: GeminiModelConfigPanel,
+    GOOGLE_SEARCH_TOOL: GoogleSearchToolConfigPanel,
+    google_search_tool: GoogleSearchToolConfigPanel,
 };

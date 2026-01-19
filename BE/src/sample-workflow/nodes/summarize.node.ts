@@ -21,7 +21,7 @@ export class SummarizeNodeStrategy extends BaseWorkflowNode {
         const config = data?.config || {};
         const inputText = this.extractInputText(inputs);
         const prompt = config.prompt || 'Summarize the following text concisely.';
-        const modelName = config.modelName || 'gemini-1.5-flash';
+        const modelName = config.modelName || 'gemini-2.5-flash';
         const apiKey = config.apiKey || process.env.GEMINI_API_KEY;
 
         if (!inputText) {

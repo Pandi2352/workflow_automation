@@ -18,6 +18,9 @@ import { TesseractOCRNode } from './tesseract-ocr/TesseractOCRNode';
 import { CodeNode } from './code/CodeNode';
 import { OutlookNode } from './outlook/OutlookNode';
 import { RSSNode } from './rss/RSSNode';
+import { AIAgentNode } from './ai-agent/AIAgentNode';
+import { GeminiModelNode } from './ai-models/GeminiModelNode';
+import { GoogleSearchToolNode } from './ai-models/GoogleSearchToolNode';
 
 export const NODE_TYPES = {
     GOOGLE_DRIVE: GoogleDriveNode,
@@ -42,6 +45,12 @@ export const NODE_TYPES = {
     CODE: CodeNode,
     OUTLOOK: OutlookNode,
     RSS: RSSNode,
+    AI_AGENT: AIAgentNode,
+    ai_agent: AIAgentNode,
+    GEMINI_MODEL: GeminiModelNode,
+    gemini_model: GeminiModelNode,
+    GOOGLE_SEARCH_TOOL: GoogleSearchToolNode,
+    google_search_tool: GoogleSearchToolNode,
     default: GenericNode,
     input: GenericNode,
     webhook: GenericNode,

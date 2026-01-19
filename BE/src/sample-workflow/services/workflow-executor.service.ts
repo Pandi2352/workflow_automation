@@ -500,12 +500,13 @@ export class WorkflowExecutorService {
                 nodeName: sourceNode?.nodeName || edge.source,
                 value: value,
                 type: this.getValueType(value),
+                targetHandleId: edge.targetHandle,
             };
         });
         const rawValues = inputSources.map(s => s.value);
 
         // Update current node's input data in the nodeDataMap for expression context
-        const currentNodeData = nodeDataMap.get(node.id) || {};
+        const currentNodeData = nodeDataMap.get(node.id) || {} as any;
         currentNodeData.input = {
             sources: inputSources,
             rawValues,
@@ -584,7 +585,14 @@ export class WorkflowExecutorService {
                     const credential = await this.credentialsService.findById(evaluatedData.config.credentialId);
                     if (credential) {
                         // Standardize injection based on node type
-                        if ((node.type === SampleNodeType.OCR || node.type === SampleNodeType.SMART_EXTRACTION || node.type === SampleNodeType.SUMMARIZE) && credential.provider === 'GEMINI') {
+                        const geminiNodes = [
+                            SampleNodeType.OCR,
+                            SampleNodeType.SMART_EXTRACTION,
+                            SampleNodeType.SUMMARIZE,
+                            SampleNodeType.AI_AGENT,
+                            SampleNodeType.GEMINI_MODEL
+                        ];
+                        if (geminiNodes.includes(node.type as SampleNodeType) && credential.provider === 'GEMINI') {
                             evaluatedData.config.apiKey = credential.accessToken;
                         }
                         // Add other node type mappings here as needed

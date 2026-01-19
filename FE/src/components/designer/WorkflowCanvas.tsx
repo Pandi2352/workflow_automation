@@ -76,9 +76,9 @@ const WorkflowCanvasInner: React.FC<WorkflowCanvasProps> = ({ onToggleDrawer, ex
           if (!execution) return node;
 
           let statusClass = '';
-          if (execution.status === 'SUCCESS') statusClass = '!border-gray-500 !rounded-sm';
-          else if (execution.status === 'FAILED') statusClass = '!border-gray-500';
-          else if (execution.status === 'RUNNING') statusClass = '!border-gray-500';
+          if (execution.status === 'SUCCESS') statusClass = '!border-green-500 !shadow-green-100';
+          else if (execution.status === 'FAILED') statusClass = '!border-red-500 !shadow-red-100';
+          else if (execution.status === 'RUNNING') statusClass = '!border-blue-500 !shadow-blue-100';
 
           return {
               ...node,

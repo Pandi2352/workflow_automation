@@ -19,5 +19,8 @@ export enum SampleNodeType {
     CODE = 'CODE',
     OUTLOOK = 'OUTLOOK',
     RSS = 'RSS',
+    AI_AGENT = 'AI_AGENT',
+    GEMINI_MODEL = 'GEMINI_MODEL',
+    GOOGLE_SEARCH_TOOL = 'GOOGLE_SEARCH_TOOL',
 }
 // Force recompile

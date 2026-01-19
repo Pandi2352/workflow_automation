@@ -3,9 +3,10 @@ export interface NodeInput {
     nodeName: string;
     value: any;
     type?: string;
-    edgeId?: string; // Optional now as per usage
-    sourceNodeId?: string; // Optional for compatibility
-    sourceNodeName?: string; // Optional for compatibility
+    edgeId?: string;
+    targetHandleId?: string;
+    sourceNodeId?: string;
+    sourceNodeName?: string;
 }
 
 export interface NodeExecutionContext {

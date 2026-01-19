@@ -132,7 +132,7 @@ export class OCRService extends BaseOCRService {
         }
     }
 
-    private initializeAI(apiKey: string, modelName: string = 'gemini-1.5-flash') {
+    private initializeAI(apiKey: string, modelName: string = 'gemini-2.5-flash') {
         this.genAI = new GoogleGenerativeAI(apiKey);
         this.fileManager = new GoogleAIFileManager(apiKey);
         this.model = this.genAI.getGenerativeModel({ model: modelName });
@@ -337,7 +337,7 @@ export class OCRService extends BaseOCRService {
                 const modelName = config.modelName || 'gemini-1.5-flash';
                 const dedupKey = `${fileHash}:${promptHash}:${modelName}`;
                 await this.processedItemService.markFailed(dedupKey, 'OCR_HASH', error.message);
-            } catch {}
+            } catch { }
             throw error;
         }
     }

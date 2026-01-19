@@ -4,7 +4,7 @@ import { Injectable, Logger } from '@nestjs/common';
 export class ParsingService {
     private readonly logger = new Logger(ParsingService.name);
 
-    async parseText(text: string, schema: Record<string, string>, model: string = 'gemini-1.5-flash'): Promise<{ data: any; confidenceScore: number }> {
+    async parseText(text: string, schema: Record<string, string>, model: string = 'gemini-2.5-flash'): Promise<{ data: any; confidenceScore: number }> {
         this.logger.log(`Simulating AI parsing of text based on schema using model: ${model}`);
 
         // Mock parsing logic

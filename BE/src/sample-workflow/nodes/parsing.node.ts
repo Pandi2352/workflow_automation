@@ -40,7 +40,7 @@ export class ParsingNodeStrategy extends BaseWorkflowNode {
             return { success: false, error: 'No input text' };
         }
 
-        const modelName = config.modelName || 'gemini-1.5-flash';
+        const modelName = config.modelName || 'gemini-2.5-flash';
 
         try {
             const result = await this.parsingService.parseText(inputText, schema, modelName);
