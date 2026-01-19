@@ -10,7 +10,7 @@ import { QueryHistoryDto } from './dto/query-history.dto';
 import { WorkflowExecutorService } from './services/workflow-executor.service';
 import { WorkflowValidatorService } from './services/workflow-validator.service';
 import { NodeRegistryService } from './services/node-registry.service';
-import { ExecutionStatus } from './enums/execution-status.enum';
+import { ExecutionStatus, NodeExecutionStatus } from './enums/execution-status.enum';
 import { WorkflowHistory, WorkflowHistoryDocument } from './schemas/workflow-history.schema';
 import { CredentialsService } from '../credentials/credentials.service';
 import { SampleNodeType } from './enums/node-type.enum';
@@ -306,6 +306,101 @@ export class SampleWorkflowService {
         return { started: true };
     }
 
+    async replayExecution(executionId: string, nodeId?: string): Promise<{
+        message: string;
+        executionId: string;
+        workflowId: string;
+        workflowName: string;
+    }> {
+        const history = await this.getHistory(executionId);
+        const workflow = await this.findOne(history.workflowId.toString());
+
+        const cachedOutputs = (history.nodeOutputs || []).map(output => ({
+            nodeId: output.nodeId,
+            nodeName: output.nodeName,
+            value: output.value,
+        }));
+
+        const options = {
+            ...(history.options || {}),
+            replay: {
+                fromNodeId: nodeId,
+                cachedOutputs,
+                sourceExecutionId: history._id.toString(),
+            }
+        };
+
+        const newExecutionId = await this.executorService.createExecutionEntry(
+            workflow,
+            options,
+            history.triggerData,
+            history.clientInfo,
+        );
+
+        this.executorService.runExecution(newExecutionId, workflow, options);
+
+        return {
+            message: nodeId ? 'Execution replay started from node' : 'Execution replay started',
+            executionId: newExecutionId,
+            workflowId: workflow._id.toString(),
+            workflowName: workflow.name,
+        };
+    }
+
+    async retryFailedNodes(executionId: string): Promise<{
+        message: string;
+        executionId: string;
+        workflowId: string;
+        workflowName: string;
+    }> {
+        const history = await this.getHistory(executionId);
+        const workflow = await this.findOne(history.workflowId.toString());
+
+        const failedNodeIds = (history.nodeExecutions || [])
+            .filter(node => node.status === NodeExecutionStatus.FAILED || node.status === 'FAILED')
+            .map(node => node.nodeId);
+
+        if (failedNodeIds.length === 0) {
+            return {
+                message: 'No failed nodes to retry',
+                executionId,
+                workflowId: workflow._id.toString(),
+                workflowName: workflow.name,
+            };
+        }
+
+        const cachedOutputs = (history.nodeOutputs || []).map(output => ({
+            nodeId: output.nodeId,
+            nodeName: output.nodeName,
+            value: output.value,
+        }));
+
+        const options = {
+            ...(history.options || {}),
+            replay: {
+                runOnlyNodeIds: failedNodeIds,
+                cachedOutputs,
+                sourceExecutionId: history._id.toString(),
+            }
+        };
+
+        const newExecutionId = await this.executorService.createExecutionEntry(
+            workflow,
+            options,
+            history.triggerData,
+            history.clientInfo,
+        );
+
+        this.executorService.runExecution(newExecutionId, workflow, options);
+
+        return {
+            message: 'Retry failed nodes started',
+            executionId: newExecutionId,
+            workflowId: workflow._id.toString(),
+            workflowName: workflow.name,
+        };
+    }
+
     async cancelExecution(executionId: string, reason?: string): Promise<{ cancelled: boolean }> {
         if (!Types.ObjectId.isValid(executionId)) {
             throw new BadRequestException('Invalid execution ID');
@@ -455,6 +550,44 @@ export class SampleWorkflowService {
         }
 
         return history;
+    }
+
+    async getNodeExecutionLogs(executionId: string, nodeId: string, page = 1, limit = 200) {
+        if (!Types.ObjectId.isValid(executionId)) {
+            throw new BadRequestException('Invalid execution ID');
+        }
+
+        const history = await this.historyModel.findById(executionId).exec();
+        if (!history) {
+            throw new NotFoundException(`Execution with ID ${executionId} not found`);
+        }
+
+        const nodeExecution = history.nodeExecutions.find((node) => node.nodeId === nodeId);
+        if (!nodeExecution) {
+            throw new NotFoundException(`Node ${nodeId} not found in execution ${executionId}`);
+        }
+
+        const logs = nodeExecution.logs || [];
+        const total = logs.length;
+        const totalPages = Math.max(1, Math.ceil(total / limit));
+        const safePage = Math.min(Math.max(page, 1), totalPages);
+        const start = (safePage - 1) * limit;
+        const end = start + limit;
+
+        return {
+            executionId,
+            nodeId,
+            status: nodeExecution.status,
+            logs: logs.slice(start, end),
+            pagination: {
+                page: safePage,
+                limit,
+                total,
+                totalPages,
+                hasNextPage: safePage < totalPages,
+                hasPrevPage: safePage > 1,
+            },
+        };
     }
 
     async getExecutionStats(workflowId?: string): Promise<{

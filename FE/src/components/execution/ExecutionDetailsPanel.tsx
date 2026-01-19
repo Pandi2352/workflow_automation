@@ -6,6 +6,7 @@ import {
 import { ExecutionTimeline } from './ExecutionTimeline';
 import { ExecutionDataTree } from './ExecutionDataTree';
 import { workflowService } from '../../services/api/workflows';
+import { Modal } from '../../common/Modal';
 
 const formatTime = (dateString: string, includeMs = false) => {
     try {
@@ -53,11 +54,12 @@ interface ExecutionDetailsPanelProps {
     execution: any;
     selectedNodeId?: string | null;
     onNodeSelect?: (nodeId: string) => void;
+    onExecutionTriggered?: (executionId: string) => void;
 }
 
 type TabType = 'overview' | 'timeline' | 'client_info' | 'outputs' | 'logs' | 'json';
 
-export const ExecutionDetailsPanel: React.FC<ExecutionDetailsPanelProps> = ({ execution, selectedNodeId, onNodeSelect }) => {
+export const ExecutionDetailsPanel: React.FC<ExecutionDetailsPanelProps> = ({ execution, selectedNodeId, onNodeSelect, onExecutionTriggered }) => {
     const [activeTab, setActiveTab] = useState<TabType>('timeline');
     const [height, setHeight] = useState(350);
     const [isCollapsed, setIsCollapsed] = useState(false); // Default open
@@ -67,6 +69,14 @@ export const ExecutionDetailsPanel: React.FC<ExecutionDetailsPanelProps> = ({ ex
     const [logsHasNextPage, setLogsHasNextPage] = useState(false);
     const [isLogsLoading, setIsLogsLoading] = useState(false);
     const [isLogsLoadingMore, setIsLogsLoadingMore] = useState(false);
+    const [nodeLogs, setNodeLogs] = useState<any[]>([]);
+    const [nodeLogsPage, setNodeLogsPage] = useState(1);
+    const [nodeLogsHasNextPage, setNodeLogsHasNextPage] = useState(false);
+    const [isNodeLogsLoading, setIsNodeLogsLoading] = useState(false);
+    const [isNodeLogsLoadingMore, setIsNodeLogsLoadingMore] = useState(false);
+    const [isReplaying, setIsReplaying] = useState(false);
+    const [isRetryingFailed, setIsRetryingFailed] = useState(false);
+    const [confirmAction, setConfirmAction] = useState<'replay' | 'retry' | null>(null);
     
     // Performance Optimization: Use ref for direct DOM manipulation during drag
     const panelRef = useRef<HTMLDivElement>(null);
@@ -152,10 +162,81 @@ export const ExecutionDetailsPanel: React.FC<ExecutionDetailsPanelProps> = ({ ex
         }
     };
 
+    const fetchNodeLogs = async () => {
+        if (!execution?._id || !selectedNodeId) return;
+        setIsNodeLogsLoading(true);
+        try {
+            const res = await workflowService.getNodeExecutionLogs(execution._id, selectedNodeId, 1, 200);
+            setNodeLogs(res.logs || []);
+            setNodeLogsPage(1);
+            setNodeLogsHasNextPage(Boolean(res.pagination?.hasNextPage));
+        } catch (error) {
+            console.error('Failed to fetch node logs', error);
+        } finally {
+            setIsNodeLogsLoading(false);
+        }
+    };
+
+    const loadMoreNodeLogs = async () => {
+        if (!execution?._id || !selectedNodeId || isNodeLogsLoadingMore || !nodeLogsHasNextPage) return;
+        setIsNodeLogsLoadingMore(true);
+        try {
+            const nextPage = nodeLogsPage + 1;
+            const res = await workflowService.getNodeExecutionLogs(execution._id, selectedNodeId, nextPage, 200);
+            setNodeLogs(prev => [...prev, ...(res.logs || [])]);
+            setNodeLogsPage(nextPage);
+            setNodeLogsHasNextPage(Boolean(res.pagination?.hasNextPage));
+        } catch (error) {
+            console.error('Failed to load more node logs', error);
+        } finally {
+            setIsNodeLogsLoadingMore(false);
+        }
+    };
+
     useEffect(() => {
         if (activeTab !== 'logs' || !execution?._id) return;
         fetchLogs();
     }, [activeTab, execution?._id]);
+
+    useEffect(() => {
+        if (activeTab !== 'logs' || !execution?._id || !selectedNodeId) {
+            setNodeLogs([]);
+            setNodeLogsPage(1);
+            setNodeLogsHasNextPage(false);
+            return;
+        }
+        fetchNodeLogs();
+    }, [activeTab, execution?._id, selectedNodeId]);
+
+    const handleReplayFromNode = async () => {
+        if (!execution?._id || !selectedNodeId) return;
+        setIsReplaying(true);
+        try {
+            const res = await workflowService.replayExecution(execution._id, selectedNodeId);
+            if (res?.executionId) {
+                onExecutionTriggered?.(res.executionId);
+            }
+        } catch (error) {
+            console.error('Failed to replay from node', error);
+        } finally {
+            setIsReplaying(false);
+        }
+    };
+
+    const handleRetryFailed = async () => {
+        if (!execution?._id) return;
+        setIsRetryingFailed(true);
+        try {
+            const res = await workflowService.retryFailedExecution(execution._id);
+            if (res?.executionId && res.executionId !== execution._id) {
+                onExecutionTriggered?.(res.executionId);
+            }
+        } catch (error) {
+            console.error('Failed to retry failed nodes', error);
+        } finally {
+            setIsRetryingFailed(false);
+        }
+    };
 
     if (!execution) {
         return (
@@ -284,7 +365,79 @@ export const ExecutionDetailsPanel: React.FC<ExecutionDetailsPanelProps> = ({ ex
 
             case 'logs':
                 return (
-                    <div className="font-mono text-xs">
+                    <div className="font-mono text-xs space-y-6">
+                        {selectedNodeId && (
+                            <div>
+                                <div className="flex items-center justify-between mb-2">
+                                    <h4 className="text-xs font-bold text-gray-500 uppercase">Selected Node Logs</h4>
+                                    <span className="text-[10px] text-gray-400">Node ID: {selectedNodeId}</span>
+                                </div>
+                                <div className="border border-gray-100 rounded-md overflow-hidden">
+                                    <table className="w-full text-left">
+                                        <thead className="bg-gray-50 text-gray-500 font-medium border-b border-gray-100">
+                                            <tr>
+                                                <th className="py-2 px-3 w-24">Time</th>
+                                                <th className="py-2 px-3 w-20">Level</th>
+                                                <th className="py-2 px-3">Message</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody className="divide-y divide-gray-50">
+                                            {isNodeLogsLoading && nodeLogs.length === 0 && (
+                                                <tr>
+                                                    <td colSpan={3} className="py-6 text-center text-gray-400 italic">
+                                                        Loading node logs...
+                                                    </td>
+                                                </tr>
+                                            )}
+                                            {(nodeLogs || []).map((log: any, i: number) => (
+                                                <tr key={i} className="hover:bg-blue-50/30 transition-colors">
+                                                    <td className="py-2 px-3 text-gray-400 whitespace-nowrap">
+                                                        {formatTime(log.timestamp, true)}
+                                                    </td>
+                                                    <td className="py-2 px-3">
+                                                        <span className={`
+                                                            inline-block px-1.5 py-0.5 rounded text-[10px] font-bold border
+                                                            ${log.level === 'ERROR' ? 'bg-red-50 text-red-600 border-red-100' : 
+                                                              log.level === 'WARN' ? 'bg-amber-50 text-amber-600 border-amber-100' :
+                                                              'bg-blue-50 text-blue-600 border-blue-100'}
+                                                        `}>
+                                                            {log.level}
+                                                        </span>
+                                                    </td>
+                                                    <td className="py-2 px-3 text-gray-800 break-words">
+                                                        {log.message}
+                                                        {log.data && (
+                                                            <div className="mt-1 opacity-75">
+                                                                <ExecutionDataTree data={log.data} level={1} initiallyExpanded={false} />
+                                                            </div>
+                                                        )}
+                                                    </td>
+                                                </tr>
+                                            ))}
+                                            {(!isNodeLogsLoading && (!nodeLogs || nodeLogs.length === 0)) && (
+                                                <tr>
+                                                    <td colSpan={3} className="py-6 text-center text-gray-400 italic">
+                                                        No node logs available
+                                                    </td>
+                                                </tr>
+                                            )}
+                                        </tbody>
+                                    </table>
+                                    {nodeLogsHasNextPage && (
+                                        <div className="py-3 text-center border-t border-gray-100">
+                                            <button
+                                                onClick={loadMoreNodeLogs}
+                                                disabled={isNodeLogsLoadingMore}
+                                                className="text-xs text-slate-500 hover:text-slate-700 px-2 py-1 rounded border border-slate-200 bg-white disabled:opacity-60"
+                                            >
+                                                {isNodeLogsLoadingMore ? 'Loading...' : 'Load more node logs'}
+                                            </button>
+                                        </div>
+                                    )}
+                                </div>
+                            </div>
+                        )}
+
                         <table className="w-full text-left">
                             <thead className="bg-gray-50 text-gray-500 font-medium border-b border-gray-100">
                                 <tr>
@@ -415,12 +568,70 @@ export const ExecutionDetailsPanel: React.FC<ExecutionDetailsPanelProps> = ({ ex
                     </div>
                 </div>
 
-                {!isCollapsed && (
-                    <div className="text-gray-400">
-                        <GripHorizontal size={14} />
+        {!isCollapsed && (
+                    <div className="flex items-center gap-2">
+                        <button
+                            onClick={(e) => {
+                                e.stopPropagation();
+                                setConfirmAction('retry');
+                            }}
+                            disabled={isRetryingFailed || !(execution?.nodeExecutions || []).some((n: any) => n.status === 'FAILED')}
+                            className="text-[10px] font-bold uppercase px-2 py-1 border border-slate-200 bg-white text-slate-600 hover:text-slate-900 hover:border-slate-300 disabled:opacity-50"
+                        >
+                            {isRetryingFailed ? 'Retrying...' : 'Retry Failed'}
+                        </button>
+                        <button
+                            onClick={(e) => {
+                                e.stopPropagation();
+                                setConfirmAction('replay');
+                            }}
+                            disabled={isReplaying || !selectedNodeId}
+                            className="text-[10px] font-bold uppercase px-2 py-1 border border-slate-200 bg-white text-slate-600 hover:text-slate-900 hover:border-slate-300 disabled:opacity-50"
+                        >
+                            {isReplaying ? 'Replaying...' : 'Replay From Node'}
+                        </button>
+                        <div className="text-gray-400">
+                            <GripHorizontal size={14} />
+                        </div>
                     </div>
                 )}
             </div>
+
+            <Modal
+                isOpen={confirmAction !== null}
+                onClose={() => setConfirmAction(null)}
+                title={confirmAction === 'retry' ? 'Retry Failed Nodes' : 'Replay From Node'}
+                size="sm"
+                footer={
+                    <>
+                        <button
+                            onClick={() => setConfirmAction(null)}
+                            className="px-4 py-2 border border-slate-200 bg-white text-slate-600 text-xs font-semibold"
+                        >
+                            Cancel
+                        </button>
+                        <button
+                            onClick={async () => {
+                                if (confirmAction === 'retry') {
+                                    await handleRetryFailed();
+                                } else if (confirmAction === 'replay') {
+                                    await handleReplayFromNode();
+                                }
+                                setConfirmAction(null);
+                            }}
+                            className="px-4 py-2 bg-slate-900 text-white text-xs font-semibold"
+                        >
+                            Confirm
+                        </button>
+                    </>
+                }
+            >
+                <div className="py-2 text-xs text-slate-600 leading-relaxed">
+                    {confirmAction === 'retry'
+                        ? 'This will start a new execution and retry only the failed nodes.'
+                        : 'This will start a new execution from the selected node using cached outputs.'}
+                </div>
+            </Modal>
             
             {/* Expanded Content */}
             {!isCollapsed && (

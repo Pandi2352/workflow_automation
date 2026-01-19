@@ -8,6 +8,7 @@ import * as mime from 'mime-types';
 import * as fs from 'fs';
 import * as path from 'path';
 import * as crypto from 'crypto';
+import { ProcessedItemService } from '../services/processed-item.service';
 
 // Prompts
 const PDF_EXTRACTION_PROMPT = `**Objective:** Perform a comprehensive extraction and analysis of the provided document.
@@ -77,7 +78,10 @@ export class OCRService extends BaseOCRService {
     private readonly DEDUP_TTL_MS = 6 * 60 * 60 * 1000; // 6 hours
     private readonly DEDUP_MAX_ENTRIES = 200;
 
-    constructor(private configService: ConfigService) {
+    constructor(
+        private configService: ConfigService,
+        private processedItemService: ProcessedItemService,
+    ) {
         super(OCRService.name);
     }
 
@@ -221,9 +225,23 @@ export class OCRService extends BaseOCRService {
             const dedupKey = `${fileHash}:${promptHash}:${modelName}`;
             const cached = this.getCachedResult(dedupKey);
             if (cached) {
-                this.logger.log(`OCR cache hit for ${path.basename(filePath)} (${modelName})`);
+                this.logger.log(`OCR cache hit (memory) for ${path.basename(filePath)} (${modelName})`);
                 return { ...cached, cached: true };
             }
+
+            const persisted = await this.processedItemService.getCompletedMetadata(dedupKey, 'OCR_HASH');
+            if (persisted?.result) {
+                this.logger.log(`OCR cache hit (db) for ${path.basename(filePath)} (${modelName})`);
+                this.setCachedResult(dedupKey, persisted.result);
+                return { ...persisted.result, cached: true };
+            }
+
+            await this.processedItemService.markPending(dedupKey, 'OCR_HASH', {
+                modelName,
+                fileHash,
+                promptHash,
+                timestamp: new Date(),
+            });
 
             let analysisResult = '';
             let jsonResult = {};
@@ -301,10 +319,25 @@ export class OCRService extends BaseOCRService {
                 source: path.basename(filePath)
             };
             this.setCachedResult(dedupKey, result);
+            await this.processedItemService.markCompleted(dedupKey, 'OCR_HASH', {
+                modelName,
+                fileHash,
+                promptHash,
+                timestamp: new Date(),
+                result,
+            });
             return result;
 
         } catch (error) {
             this.logger.error(`OCR Processing failed: ${error.message}`, error.stack);
+            try {
+                const promptHash = crypto.createHash('sha256').update(config.prompt || '').digest('hex');
+                const filePath = await this.resolveFilePath(fileIdentifier);
+                const fileHash = await this.hashFile(filePath);
+                const modelName = config.modelName || 'gemini-1.5-flash';
+                const dedupKey = `${fileHash}:${promptHash}:${modelName}`;
+                await this.processedItemService.markFailed(dedupKey, 'OCR_HASH', error.message);
+            } catch {}
             throw error;
         }
     }

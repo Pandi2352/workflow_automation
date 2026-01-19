@@ -120,7 +120,8 @@ export class WorkflowExecutorService {
                 timeout: options.timeout || 300000,
                 maxRetries: options.maxRetries || 3,
                 continueOnError: options.continueOnError || false,
-            },
+                replay: options.replay,
+            } as any,
             clientInfo,
         });
 
@@ -293,6 +294,49 @@ export class WorkflowExecutorService {
         let iteration = 0;
         const maxIterations = workflow.nodes.length * 2;
 
+        // Replay/Retry support: seed outputs + mark nodes as processed
+        const replay = options.replay;
+        if (replay) {
+            let pendingSet: Set<string> | null = null;
+
+            if (replay.runOnlyNodeIds && replay.runOnlyNodeIds.length > 0) {
+                pendingSet = new Set(replay.runOnlyNodeIds);
+                pendingNodes = workflow.nodes.filter(n => pendingSet!.has(n.id));
+            } else if (replay.fromNodeId) {
+                const downstream = this.buildDownstreamSet(replay.fromNodeId, workflow.edges);
+                pendingSet = downstream;
+                pendingNodes = workflow.nodes.filter(n => downstream.has(n.id));
+            }
+
+            const now = new Date();
+            const cachedOutputs = replay.cachedOutputs || [];
+            for (const cached of cachedOutputs) {
+                if (!cached?.nodeId) continue;
+                if (pendingSet && pendingSet.has(cached.nodeId)) continue;
+
+                nodeOutputs[cached.nodeId] = cached.value;
+                processedNodes.add(cached.nodeId);
+
+                const node = nodeMap.get(cached.nodeId);
+                if (node) {
+                    await this.updateNodeStatus(executionId, node.id, NodeExecutionStatus.SUCCESS, {
+                        startTime: now,
+                        endTime: now,
+                        duration: 0,
+                        outputs: cached.value,
+                    });
+                    await this.addNodeOutput(executionId, node.id, node.nodeName, cached.value);
+                    await this.addLog(
+                        executionId,
+                        LogLevel.INFO,
+                        `Using cached output for node: ${node.nodeName}`,
+                        node.id,
+                        node.nodeName,
+                    );
+                }
+            }
+        }
+
         while (pendingNodes.length > 0 && iteration < maxIterations) {
             iteration++;
 
@@ -313,6 +357,17 @@ export class WorkflowExecutorService {
             });
 
             if (readyNodes.length === 0) {
+                if (options.replay) {
+                    const error: ErrorDetail = {
+                        code: 'REPLAY_MISSING_OUTPUTS',
+                        message: 'Replay failed: missing cached outputs for required upstream nodes.',
+                        timestamp: new Date(),
+                    };
+                    await this.addWorkflowError(executionId, error);
+                    await this.addLog(executionId, LogLevel.ERROR, error.message);
+                    await this.finalizeExecution(executionId, ExecutionStatus.FAILED, startTime);
+                    return;
+                }
                 const error: ErrorDetail = {
                     code: 'CIRCULAR_DEPENDENCY',
                     message: 'Workflow stuck: circular dependency or missing inputs detected',
@@ -801,6 +856,34 @@ export class WorkflowExecutorService {
             map.set(edge.target, existing);
         }
         return map;
+    }
+
+    private buildOutgoingEdgesMap(edges: WorkflowEdge[]): Map<string, WorkflowEdge[]> {
+        const map = new Map<string, WorkflowEdge[]>();
+        for (const edge of edges) {
+            const existing = map.get(edge.source) || [];
+            existing.push(edge);
+            map.set(edge.source, existing);
+        }
+        return map;
+    }
+
+    private buildDownstreamSet(startNodeId: string, edges: WorkflowEdge[]): Set<string> {
+        const outgoing = this.buildOutgoingEdgesMap(edges);
+        const visited = new Set<string>();
+        const queue: string[] = [startNodeId];
+        while (queue.length > 0) {
+            const current = queue.shift()!;
+            if (visited.has(current)) continue;
+            visited.add(current);
+            const nextEdges = outgoing.get(current) || [];
+            for (const edge of nextEdges) {
+                if (!visited.has(edge.target)) {
+                    queue.push(edge.target);
+                }
+            }
+        }
+        return visited;
     }
 
     // ==================== ERROR MANAGEMENT ====================

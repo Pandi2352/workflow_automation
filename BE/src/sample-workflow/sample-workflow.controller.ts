@@ -14,6 +14,7 @@ import {
 import { ApiTags, ApiOperation, ApiResponse, ApiQuery, ApiParam } from '@nestjs/swagger';
 import type { Request } from 'express';
 import { SampleWorkflowService } from './sample-workflow.service';
+import { AuditLogService } from './services/audit-log.service';
 import { CreateSampleWorkflowDto } from './dto/create-sample-workflow.dto';
 import { UpdateSampleWorkflowDto } from './dto/update-sample-workflow.dto';
 import { ExecuteWorkflowDto } from './dto/execute-workflow.dto';
@@ -24,7 +25,10 @@ import { extractClientInfo } from '../common/utils/client-info.util';
 @ApiTags('Sample Workflows')
 @Controller('sample-workflows')
 export class SampleWorkflowController {
-    constructor(private readonly sampleWorkflowService: SampleWorkflowService) { }
+    constructor(
+        private readonly sampleWorkflowService: SampleWorkflowService,
+        private readonly auditLogService: AuditLogService,
+    ) { }
 
     // ==================== WORKFLOW CRUD ====================
 
@@ -32,8 +36,13 @@ export class SampleWorkflowController {
     @ApiOperation({ summary: 'Create a new workflow' })
     @ApiResponse({ status: 201, description: 'Workflow created successfully' })
     @ApiResponse({ status: 400, description: 'Validation failed' })
-    create(@Body() createDto: CreateSampleWorkflowDto) {
-        return this.sampleWorkflowService.create(createDto);
+    async create(@Body() createDto: CreateSampleWorkflowDto, @Req() req: Request) {
+        const workflow = await this.sampleWorkflowService.create(createDto);
+        const clientInfo = extractClientInfo(req);
+        await this.auditLogService.log('workflow_created', 'workflow', workflow._id.toString(), {
+            name: workflow.name,
+        }, clientInfo);
+        return workflow;
     }
 
     @Get()
@@ -68,6 +77,29 @@ export class SampleWorkflowController {
         return this.sampleWorkflowService.getNodesByCategory();
     }
 
+    @Get('audit-logs')
+    @ApiOperation({ summary: 'List audit logs' })
+    @ApiQuery({ name: 'page', required: false, type: Number })
+    @ApiQuery({ name: 'limit', required: false, type: Number })
+    @ApiQuery({ name: 'action', required: false, type: String })
+    @ApiQuery({ name: 'entityType', required: false, type: String })
+    @ApiQuery({ name: 'entityId', required: false, type: String })
+    listAuditLogs(
+        @Query('page') page?: number,
+        @Query('limit') limit?: number,
+        @Query('action') action?: string,
+        @Query('entityType') entityType?: string,
+        @Query('entityId') entityId?: string,
+    ) {
+        return this.auditLogService.list({
+            page: page ? Number(page) : 1,
+            limit: limit ? Number(limit) : 20,
+            action,
+            entityType,
+            entityId,
+        });
+    }
+
     @Get(':id')
     @ApiOperation({ summary: 'Get a workflow by ID' })
     @ApiParam({ name: 'id', description: 'Workflow ID' })
@@ -82,8 +114,13 @@ export class SampleWorkflowController {
     @ApiParam({ name: 'id', description: 'Workflow ID' })
     @ApiResponse({ status: 200, description: 'Workflow updated successfully' })
     @ApiResponse({ status: 404, description: 'Workflow not found' })
-    update(@Param('id') id: string, @Body() updateDto: UpdateSampleWorkflowDto) {
-        return this.sampleWorkflowService.update(id, updateDto);
+    async update(@Param('id') id: string, @Body() updateDto: UpdateSampleWorkflowDto, @Req() req: Request) {
+        const updated = await this.sampleWorkflowService.update(id, updateDto);
+        const clientInfo = extractClientInfo(req);
+        await this.auditLogService.log('workflow_updated', 'workflow', id, {
+            name: updated.name,
+        }, clientInfo);
+        return updated;
     }
 
     @Delete(':id')
@@ -91,8 +128,11 @@ export class SampleWorkflowController {
     @ApiParam({ name: 'id', description: 'Workflow ID' })
     @ApiResponse({ status: 200, description: 'Workflow deleted successfully' })
     @ApiResponse({ status: 404, description: 'Workflow not found' })
-    delete(@Param('id') id: string) {
-        return this.sampleWorkflowService.delete(id);
+    async delete(@Param('id') id: string, @Req() req: Request) {
+        const result = await this.sampleWorkflowService.delete(id);
+        const clientInfo = extractClientInfo(req);
+        await this.auditLogService.log('workflow_deleted', 'workflow', id, {}, clientInfo);
+        return result;
     }
 
     @Post('validate')
@@ -127,15 +167,57 @@ export class SampleWorkflowController {
         @Req() req: Request,
     ) {
         const clientInfo = extractClientInfo(req);
-        return this.sampleWorkflowService.initiateExecution(id, { ...executeDto, clientInfo });
+        return this.sampleWorkflowService.initiateExecution(id, { ...executeDto, clientInfo }).then(async (res) => {
+            await this.auditLogService.log('execution_initiated', 'execution', res.executionId, {
+                workflowId: id,
+                workflowName: res.workflowName,
+            }, clientInfo);
+            return res;
+        });
     }
 
     @Post('executions/:executionId/start')
     @ApiOperation({ summary: 'Start initialized execution' })
     @ApiParam({ name: 'executionId', description: 'Execution ID' })
     @ApiResponse({ status: 200, description: 'Execution started' })
-    startExecution(@Param('executionId') executionId: string) {
-        return this.sampleWorkflowService.startExecution(executionId);
+    async startExecution(@Param('executionId') executionId: string, @Req() req: Request) {
+        const result = await this.sampleWorkflowService.startExecution(executionId);
+        const clientInfo = extractClientInfo(req);
+        await this.auditLogService.log('execution_started', 'execution', executionId, {}, clientInfo);
+        return result;
+    }
+
+    @Post('executions/:executionId/replay')
+    @ApiOperation({ summary: 'Replay an execution from a node (or from start)' })
+    @ApiParam({ name: 'executionId', description: 'Execution ID' })
+    replayExecution(
+        @Param('executionId') executionId: string,
+        @Body() body?: { nodeId?: string },
+        @Req() req?: Request,
+    ) {
+        const clientInfo = req ? extractClientInfo(req) : undefined;
+        return this.sampleWorkflowService.replayExecution(executionId, body?.nodeId).then(async (res) => {
+            await this.auditLogService.log('execution_replayed', 'execution', res.executionId, {
+                sourceExecutionId: executionId,
+                fromNodeId: body?.nodeId,
+                workflowId: res.workflowId,
+            }, clientInfo);
+            return res;
+        });
+    }
+
+    @Post('executions/:executionId/retry-failed')
+    @ApiOperation({ summary: 'Retry failed nodes for an execution' })
+    @ApiParam({ name: 'executionId', description: 'Execution ID' })
+    retryFailedNodes(@Param('executionId') executionId: string, @Req() req?: Request) {
+        const clientInfo = req ? extractClientInfo(req) : undefined;
+        return this.sampleWorkflowService.retryFailedNodes(executionId).then(async (res) => {
+            await this.auditLogService.log('execution_retry_failed', 'execution', res.executionId, {
+                sourceExecutionId: executionId,
+                workflowId: res.workflowId,
+            }, clientInfo);
+            return res;
+        });
     }
 
     @Post(':id/execute')
@@ -155,6 +237,12 @@ export class SampleWorkflowController {
         return this.sampleWorkflowService.execute(id, {
             ...executeDto,
             clientInfo,
+        }).then(async (res) => {
+            await this.auditLogService.log('execution_started', 'execution', res.executionId, {
+                workflowId: id,
+                workflowName: res.workflowName,
+            }, clientInfo);
+            return res;
         });
     }
 
@@ -204,6 +292,7 @@ export class SampleWorkflowController {
         return this.sampleWorkflowService.listExecutions(query);
     }
 
+
     @Get('executions/stats')
     @ApiOperation({ summary: 'Get global execution statistics' })
     getGlobalStats() {
@@ -231,6 +320,26 @@ export class SampleWorkflowController {
     ) {
         return this.sampleWorkflowService.getExecutionLogs(
             executionId,
+            page ? Number(page) : 1,
+            limit ? Number(limit) : 200,
+        );
+    }
+
+    @Get('executions/:executionId/nodes/:nodeId/logs')
+    @ApiOperation({ summary: 'Get execution logs for a specific node' })
+    @ApiParam({ name: 'executionId', description: 'Execution ID' })
+    @ApiParam({ name: 'nodeId', description: 'Node ID' })
+    @ApiQuery({ name: 'page', required: false, type: Number })
+    @ApiQuery({ name: 'limit', required: false, type: Number })
+    getNodeExecutionLogs(
+        @Param('executionId') executionId: string,
+        @Param('nodeId') nodeId: string,
+        @Query('page') page?: number,
+        @Query('limit') limit?: number,
+    ) {
+        return this.sampleWorkflowService.getNodeExecutionLogs(
+            executionId,
+            nodeId,
             page ? Number(page) : 1,
             limit ? Number(limit) : 200,
         );

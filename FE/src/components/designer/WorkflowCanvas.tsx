@@ -112,8 +112,13 @@ const WorkflowCanvasInner: React.FC<WorkflowCanvasProps> = ({ onToggleDrawer, ex
   const nodesWithStatus = useMemo(() => {
       if (!executionData || !executionData.nodeExecutions) return nodes;
 
+      const execMap = new Map<string, any>();
+      for (const ex of executionData.nodeExecutions) {
+          execMap.set(ex.nodeId, ex);
+      }
+
       return nodes.map((node) => {
-          const execution = executionData.nodeExecutions.find((ex: any) => ex.nodeId === node.id);
+          const execution = execMap.get(node.id);
           if (!execution) return node;
 
           let statusClass = '';

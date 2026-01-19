@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useMemo, useDeferredValue } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { 
     Plus, Search, LayoutGrid, List, MoreHorizontal, 
@@ -19,6 +19,7 @@ export const Dashboard: React.FC = () => {
   const [workflows, setWorkflows] = useState<SampleWorkflow[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
+  const deferredSearch = useDeferredValue(searchQuery);
   const [viewMode, setViewMode] = useState<'table' | 'grid'>('grid');
   const [menuOpenId, setMenuOpenId] = useState<string | null>(null);
   const [isTemplatesOpen, setIsTemplatesOpen] = useState(false);
@@ -26,10 +27,20 @@ export const Dashboard: React.FC = () => {
   const [templateError, setTemplateError] = useState<string | null>(null);
   
   // View State (Workflows | Credentials)
-  const [currentView, setCurrentView] = useState<'workflows' | 'credentials'>('workflows');
+  const [currentView, setCurrentView] = useState<'workflows' | 'credentials' | 'audits'>('workflows');
   
   // Delete Modal State
   const [deleteId, setDeleteId] = useState<string | null>(null);
+  const [auditLogs, setAuditLogs] = useState<any[]>([]);
+  const [auditLoading, setAuditLoading] = useState(false);
+  const [auditPage, setAuditPage] = useState(1);
+  const [auditHasNext, setAuditHasNext] = useState(false);
+  const [auditLoadingMore, setAuditLoadingMore] = useState(false);
+  const [auditFilters, setAuditFilters] = useState<{ action: string; entityType: string; entityId: string }>({
+      action: '',
+      entityType: '',
+      entityId: ''
+  });
 
   // Close menu on click outside
   useEffect(() => {
@@ -41,6 +52,12 @@ export const Dashboard: React.FC = () => {
   useEffect(() => {
     loadWorkflows();
   }, []);
+
+  useEffect(() => {
+      if (currentView === 'audits') {
+          loadAuditLogs();
+      }
+  }, [currentView]);
 
   const loadWorkflows = async () => {
     try {
@@ -55,6 +72,45 @@ export const Dashboard: React.FC = () => {
 
   const handleCreateWorkflow = () => {
     navigate('/workflow/new');
+  };
+
+  const loadAuditLogs = async (filters = auditFilters) => {
+      setAuditLoading(true);
+      try {
+          const res = await workflowService.getAuditLogs(1, 20, {
+              action: filters.action || undefined,
+              entityType: filters.entityType || undefined,
+              entityId: filters.entityId || undefined,
+          });
+          setAuditLogs(res.data || []);
+          setAuditPage(1);
+          setAuditHasNext(Boolean(res.pagination?.hasNextPage));
+      } catch (error) {
+          console.error('Failed to load audit logs', error);
+      } finally {
+          setAuditLoading(false);
+      }
+  };
+
+  const loadMoreAuditLogs = async () => {
+      if (auditLoadingMore || !auditHasNext) return;
+      setAuditLoadingMore(true);
+      try {
+          const nextPage = auditPage + 1;
+          const res = await workflowService.getAuditLogs(nextPage, 20, {
+              action: auditFilters.action || undefined,
+              entityType: auditFilters.entityType || undefined,
+              entityId: auditFilters.entityId || undefined,
+          });
+          const list = res.data || [];
+          setAuditLogs(prev => [...prev, ...list]);
+          setAuditPage(nextPage);
+          setAuditHasNext(Boolean(res.pagination?.hasNextPage));
+      } catch (error) {
+          console.error('Failed to load more audit logs', error);
+      } finally {
+          setAuditLoadingMore(false);
+      }
   };
 
   const handleCreateFromTemplate = async (template: WorkflowTemplate) => {
@@ -126,9 +182,11 @@ export const Dashboard: React.FC = () => {
       navigate(`/workflow/${id}?tab=executions`);
   };
 
-  const filteredWorkflows = workflows.filter(w => 
-    w.name.toLowerCase().includes(searchQuery.toLowerCase())
-  );
+  const filteredWorkflows = useMemo(() => {
+    const query = deferredSearch.trim().toLowerCase();
+    if (!query) return workflows;
+    return workflows.filter(w => w.name.toLowerCase().includes(query));
+  }, [workflows, deferredSearch]);
 
   return (
     <div className="min-h-screen bg-slate-50/30 font-sans relative overflow-hidden">
@@ -181,6 +239,12 @@ export const Dashboard: React.FC = () => {
                 className={`${currentView === 'credentials' ? 'text-slate-900 font-semibold' : 'hover:text-slate-900'} transition-colors`}
              >
                 Credentials
+             </button>
+             <button 
+                onClick={() => setCurrentView('audits')}
+                className={`${currentView === 'audits' ? 'text-slate-900 font-semibold' : 'hover:text-slate-900'} transition-colors`}
+             >
+                Audit Logs
              </button>
              <button 
                 onClick={() => navigate('/documentation')}
@@ -241,6 +305,84 @@ export const Dashboard: React.FC = () => {
       <div className="p-6 md:p-10 max-w-7xl mx-auto -mt-10 relative z-10">
        {currentView === 'credentials' ? (
            <CredentialsList />
+       ) : currentView === 'audits' ? (
+            <div className="bg-white border border-slate-200 rounded-xl shadow-sm overflow-hidden">
+                <div className="px-6 py-4 border-b border-slate-100 flex items-center justify-between">
+                    <div>
+                        <h3 className="text-sm font-semibold text-slate-900">Audit Logs</h3>
+                        <p className="text-xs text-slate-500">Recent workflow and execution activity</p>
+                    </div>
+                    <button 
+                        onClick={() => loadAuditLogs()}
+                        className="text-xs px-3 py-1.5 border border-slate-200 rounded-md bg-white hover:bg-slate-50 text-slate-600"
+                    >
+                        Refresh
+                    </button>
+                </div>
+                <div className="px-6 py-3 border-b border-slate-100 bg-slate-50 flex flex-wrap gap-2">
+                    <input
+                        value={auditFilters.action}
+                        onChange={(e) => setAuditFilters(prev => ({ ...prev, action: e.target.value }))}
+                        placeholder="Action (e.g. execution_started)"
+                        className="text-xs px-2 py-1 border border-slate-200 bg-white"
+                    />
+                    <input
+                        value={auditFilters.entityType}
+                        onChange={(e) => setAuditFilters(prev => ({ ...prev, entityType: e.target.value }))}
+                        placeholder="Entity Type (workflow/execution)"
+                        className="text-xs px-2 py-1 border border-slate-200 bg-white"
+                    />
+                    <input
+                        value={auditFilters.entityId}
+                        onChange={(e) => setAuditFilters(prev => ({ ...prev, entityId: e.target.value }))}
+                        placeholder="Entity ID"
+                        className="text-xs px-2 py-1 border border-slate-200 bg-white"
+                    />
+                    <button
+                        onClick={() => loadAuditLogs()}
+                        className="text-xs px-3 py-1.5 border border-slate-200 bg-white hover:bg-slate-100"
+                    >
+                        Apply
+                    </button>
+                </div>
+                <div className="divide-y divide-slate-100">
+                    {auditLoading && (
+                        <div className="p-6 text-sm text-slate-400">Loading audit logs...</div>
+                    )}
+                    {!auditLoading && auditLogs.length === 0 && (
+                        <div className="p-6 text-sm text-slate-400">No audit logs yet.</div>
+                    )}
+                    {auditLogs.map((log) => (
+                        <div key={log._id} className="px-6 py-4 flex items-start justify-between gap-6">
+                            <div className="space-y-1">
+                                <div className="text-xs font-bold text-slate-800 uppercase tracking-wider">{log.action}</div>
+                                <div className="text-xs text-slate-500">
+                                    {log.entityType} {log.entityId ? `• ${log.entityId}` : ''}
+                                </div>
+                                {log.metadata?.workflowName && (
+                                    <div className="text-xs text-slate-600">Workflow: {log.metadata.workflowName}</div>
+                                )}
+                            </div>
+                            <div className="text-[10px] text-slate-400 font-mono text-right">
+                                <div>{new Date(log.createdAt).toLocaleDateString()}</div>
+                                <div>{new Date(log.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</div>
+                                {log.clientInfo?.ip && <div className="mt-1">IP: {log.clientInfo.ip}</div>}
+                            </div>
+                        </div>
+                    ))}
+                </div>
+                {auditHasNext && (
+                    <div className="p-4 text-center border-t border-slate-100">
+                        <button
+                            onClick={loadMoreAuditLogs}
+                            disabled={auditLoadingMore}
+                            className="text-xs text-slate-500 hover:text-slate-700 px-2 py-1 rounded border border-slate-200 bg-white disabled:opacity-60"
+                        >
+                            {auditLoadingMore ? 'Loading...' : 'Load more'}
+                        </button>
+                    </div>
+                )}
+            </div>
        ) : (
            <>
             {/* Workflow List Header */}

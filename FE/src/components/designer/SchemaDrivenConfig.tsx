@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { memo, useMemo } from 'react';
 import { useWorkflowStore } from '../../store/workflowStore';
 
 interface SchemaDrivenConfigProps {
@@ -8,7 +8,7 @@ interface SchemaDrivenConfigProps {
 
 const defaultFocus = 'focus:ring-2 focus:ring-indigo-500';
 
-export const SchemaDrivenConfig: React.FC<SchemaDrivenConfigProps> = ({ selectedNode, focusColor }) => {
+export const SchemaDrivenConfig: React.FC<SchemaDrivenConfigProps> = memo(({ selectedNode, focusColor }) => {
     const { updateNodeData, nodeDefinitions, credentials } = useWorkflowStore();
 
     const handleConfigChange = (key: string, value: any) => {
@@ -22,6 +22,7 @@ export const SchemaDrivenConfig: React.FC<SchemaDrivenConfigProps> = ({ selected
     const configSchema = definition?.configSchema || {};
     const nodeConfig = (selectedNode.data?.config || {}) as Record<string, any>;
     const focusRing = focusColor || defaultFocus;
+    const configEntries = useMemo(() => Object.entries(configSchema), [configSchema]);
 
     const renderField = (key: string, field: any) => {
         if (field.condition) {
@@ -152,7 +153,7 @@ export const SchemaDrivenConfig: React.FC<SchemaDrivenConfigProps> = ({ selected
 
     return (
         <>
-            {Object.entries(configSchema).map(([key, field]) => renderField(key, field))}
+            {configEntries.map(([key, field]) => renderField(key, field))}
 
             {!definition && selectedNode.type === 'input' && (
                 <div className="bg-amber-50 border border-amber-200 rounded-lg p-4">
@@ -171,4 +172,4 @@ export const SchemaDrivenConfig: React.FC<SchemaDrivenConfigProps> = ({ selected
             )}
         </>
     );
-};
+});

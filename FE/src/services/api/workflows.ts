@@ -63,6 +63,32 @@ export const workflowService = {
         return response.data;
     },
 
+    getNodeExecutionLogs: async (executionId: string, nodeId: string, page = 1, limit = 200): Promise<any> => {
+        const response = await axiosInstance.get(API_ENDPOINTS.EXECUTIONS.GET(executionId) + `/nodes/${nodeId}/logs`, {
+            params: { page, limit }
+        });
+        return response.data;
+    },
+
+    replayExecution: async (executionId: string, nodeId?: string): Promise<any> => {
+        const response = await axiosInstance.post(API_ENDPOINTS.EXECUTIONS.GET(executionId) + '/replay', {
+            nodeId
+        });
+        return response.data;
+    },
+
+    retryFailedExecution: async (executionId: string): Promise<any> => {
+        const response = await axiosInstance.post(API_ENDPOINTS.EXECUTIONS.GET(executionId) + '/retry-failed');
+        return response.data;
+    },
+
+    getAuditLogs: async (page = 1, limit = 20, params: any = {}): Promise<any> => {
+        const response = await axiosInstance.get('/sample-workflows/audit-logs', {
+            params: { page, limit, ...params }
+        });
+        return response.data;
+    },
+
     initiate: async (id: string, payload: any = {}): Promise<any> => {
         const response = await axiosInstance.post(API_ENDPOINTS.WORKFLOWS.GET(id) + '/executions', payload);
         return response.data;

@@ -44,6 +44,16 @@ export interface WorkflowExecutionOptions {
     continueOnError?: boolean;
     waitForCompletion?: boolean;
     maxConcurrency?: number;
+    replay?: {
+        fromNodeId?: string;
+        runOnlyNodeIds?: string[];
+        cachedOutputs?: Array<{
+            nodeId: string;
+            nodeName: string;
+            value: any;
+        }>;
+        sourceExecutionId?: string;
+    };
 }
 
 export interface INodeStrategy {

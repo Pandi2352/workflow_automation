@@ -21,7 +21,9 @@ import { TesseractOCRService } from './node-services/tesseract-ocr.service';
 import { SchedulerService } from './services/scheduler.service';
 import { GmailPollingService } from './services/gmail-polling.service';
 import { ProcessedItem, ProcessedItemSchema } from './schemas/processed-item.schema';
+import { AuditLog, AuditLogSchema } from './schemas/audit-log.schema';
 import { ProcessedItemService } from './services/processed-item.service';
+import { AuditLogService } from './services/audit-log.service';
 import { TriggerState, TriggerStateSchema } from './schemas/trigger-state.schema';
 import { ParsingService } from 'src/node-services/parsing.service';
 import { MongoDBService } from 'src/node-services/mongodb.service';
@@ -37,6 +39,7 @@ import { GoogleDrivePollingService } from './services/google-drive-polling.servi
             { name: WorkflowHistory.name, schema: WorkflowHistorySchema },
             { name: TriggerState.name, schema: TriggerStateSchema },
             { name: ProcessedItem.name, schema: ProcessedItemSchema },
+            { name: AuditLog.name, schema: AuditLogSchema },
         ]),
         CredentialsModule,
         ConfigModule,
@@ -59,6 +62,7 @@ import { GoogleDrivePollingService } from './services/google-drive-polling.servi
         SchedulerService,
         GmailPollingService,
         ProcessedItemService,
+        AuditLogService,
         CodeNodeStrategy,
         OutlookService,
         OutlookPollingService,

@@ -26,6 +26,7 @@ import { ScraperNode } from '../../nodes/scraper/ScraperNode';
 interface ExecutionCanvasProps {
     executionData?: any;
     onNodeClick?: (nodeId: string) => void;
+    onNodeContextMenu?: (nodeId: string, position: { x: number; y: number }) => void;
 }
 
 const nodeTypes = {
@@ -55,7 +56,7 @@ const nodeTypes = {
     schedule: ScheduleNode
 };
 
-const ExecutionCanvasInner: React.FC<ExecutionCanvasProps> = ({ executionData, onNodeClick }) => {
+const ExecutionCanvasInner: React.FC<ExecutionCanvasProps> = ({ executionData, onNodeClick, onNodeContextMenu }) => {
   const reactFlowWrapper = useRef<HTMLDivElement>(null);
   // We utilize the store for the layout, assuming the workflow structure hasn't drifted significantly.
   // In a production system, we would load the 'snapshot' of the workflow from the execution data.
@@ -134,6 +135,13 @@ const ExecutionCanvasInner: React.FC<ExecutionCanvasProps> = ({ executionData, o
       if (onNodeClick) onNodeClick(node.id);
   }, [setSelectedNode, onNodeClick]);
 
+  const handleNodeContextMenu = useCallback((event: React.MouseEvent, node: any) => {
+      event.preventDefault();
+      if (onNodeContextMenu) {
+          onNodeContextMenu(node.id, { x: event.clientX, y: event.clientY });
+      }
+  }, [onNodeContextMenu]);
+
   return (
     <div className="flex-1 h-full relative bg-slate-50/[0.5]" ref={reactFlowWrapper}>
       <Canvas
@@ -141,6 +149,7 @@ const ExecutionCanvasInner: React.FC<ExecutionCanvasProps> = ({ executionData, o
         nodeTypes={nodeTypes}
         edges={edges}
         onNodeClick={handleNodeClick}
+        onNodeContextMenu={handleNodeContextMenu}
         fitViewOptions={{ padding: 0.2, maxZoom: 1, duration: 200 }}
         nodesDraggable={false}
         nodesConnectable={false}

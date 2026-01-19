@@ -43,4 +43,12 @@ export class ProcessedItemService {
             { upsert: true }
         );
     }
+
+    async getCompletedMetadata(uniqueId: string, type: string): Promise<any | null> {
+        const existing = await this.processedItemModel
+            .findOne({ uniqueId, type, status: 'COMPLETED' })
+            .sort({ updatedAt: -1 })
+            .exec();
+        return existing?.metadata || null;
+    }
 }

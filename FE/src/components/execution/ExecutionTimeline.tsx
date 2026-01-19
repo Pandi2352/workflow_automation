@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { memo, useMemo } from 'react';
 import { CheckCircle, XCircle, Clock, CircleEllipsis, FastForward } from 'lucide-react';
 
 interface TimelineProps {
@@ -28,16 +28,18 @@ const getStatusIcon = (status: string) => {
     }
 };
 
-export const ExecutionTimeline: React.FC<TimelineProps> = ({ executions, onNodeSelect, selectedNodeId }) => {
+export const ExecutionTimeline: React.FC<TimelineProps> = memo(({ executions, onNodeSelect, selectedNodeId }) => {
     if (!executions || executions.length === 0) {
         return <div className="p-4 text-center text-gray-400 text-sm">No execution steps recorded.</div>;
     }
 
     // Sort by start time if available, otherwise keep original order
-    const sorted = [...executions].sort((a, b) => {
-        if (!a.startTime || !b.startTime) return 0;
-        return new Date(a.startTime).getTime() - new Date(b.startTime).getTime();
-    });
+    const sorted = useMemo(() => {
+        return [...executions].sort((a, b) => {
+            if (!a.startTime || !b.startTime) return 0;
+            return new Date(a.startTime).getTime() - new Date(b.startTime).getTime();
+        });
+    }, [executions]);
 
     return (
         <div className="w-full overflow-x-auto p-4 custom-scrollbar">
@@ -94,4 +96,4 @@ export const ExecutionTimeline: React.FC<TimelineProps> = ({ executions, onNodeS
             </div>
         </div>
     );
-};
+});

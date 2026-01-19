@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo, useDeferredValue } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { 
     ArrowLeft, 
@@ -47,6 +47,7 @@ export const DocumentationPage: React.FC = () => {
     const [searchParams] = useSearchParams();
     const [activeCategory, setActiveCategory] = useState<'all' | 'ai' | 'integration' | 'storage' | 'logic' | 'math' | 'data'>('all');
     const [searchQuery, setSearchQuery] = useState('');
+    const deferredSearch = useDeferredValue(searchQuery);
 
     const sections = [
         { id: 'mission', title: 'Mission & Vision', icon: Flame },
@@ -327,11 +328,14 @@ export const DocumentationPage: React.FC = () => {
         );
     }
 
-    const filteredNodes = nodes.filter(n => {
-        const matchCat = activeCategory === 'all' || n.category === activeCategory;
-        const matchSearch = n.name.toLowerCase().includes(searchQuery.toLowerCase()) || n.purpose.toLowerCase().includes(searchQuery.toLowerCase());
-        return matchCat && matchSearch;
-    });
+    const filteredNodes = useMemo(() => {
+        const query = deferredSearch.trim().toLowerCase();
+        return nodes.filter(n => {
+            const matchCat = activeCategory === 'all' || n.category === activeCategory;
+            const matchSearch = !query || n.name.toLowerCase().includes(query) || n.purpose.toLowerCase().includes(query);
+            return matchCat && matchSearch;
+        });
+    }, [nodes, activeCategory, deferredSearch]);
 
     return (
         <div className="min-h-screen bg-[#F8FAFC] text-slate-900 font-['Space_Grotesk'] selection:bg-indigo-500/30 overflow-x-hidden relative scroll-smooth">
