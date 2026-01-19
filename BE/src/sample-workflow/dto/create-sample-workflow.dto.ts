@@ -256,6 +256,12 @@ export class CreateSampleWorkflowDto {
     @IsOptional()
     description?: string;
 
+    @ApiPropertyOptional({ description: 'Workflow schema version', default: 1 })
+    @IsNumber()
+    @IsOptional()
+    @Min(1)
+    schemaVersion?: number;
+
     @ApiProperty({ type: [NodeDto], description: 'Workflow nodes' })
     @IsArray()
     @ValidateNested({ each: true })
@@ -284,4 +290,9 @@ export class CreateSampleWorkflowDto {
     @IsString({ each: true })
     @IsOptional()
     tags?: string[];
+
+    @ApiPropertyOptional({ description: 'Workflow-level variables' })
+    @IsObject()
+    @IsOptional()
+    variables?: Record<string, any>;
 }

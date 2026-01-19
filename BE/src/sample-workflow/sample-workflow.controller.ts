@@ -20,6 +20,7 @@ import { UpdateSampleWorkflowDto } from './dto/update-sample-workflow.dto';
 import { ExecuteWorkflowDto } from './dto/execute-workflow.dto';
 import { QueryHistoryDto } from './dto/query-history.dto';
 import { CancelExecutionDto } from './dto/cancel-execution.dto';
+import { ImportWorkflowDto } from './dto/import-workflow.dto';
 import { extractClientInfo } from '../common/utils/client-info.util';
 
 @ApiTags('Sample Workflows')
@@ -98,6 +99,28 @@ export class SampleWorkflowController {
             entityType,
             entityId,
         });
+    }
+
+    @Post('import')
+    @ApiOperation({ summary: 'Import a workflow from JSON' })
+    @ApiResponse({ status: 201, description: 'Workflow imported successfully' })
+    @ApiResponse({ status: 400, description: 'Invalid workflow payload or schema version' })
+    async importWorkflow(@Body() dto: ImportWorkflowDto, @Req() req: Request) {
+        const workflow = await this.sampleWorkflowService.importWorkflow(dto);
+        const clientInfo = extractClientInfo(req);
+        await this.auditLogService.log('workflow_imported', 'workflow', workflow._id.toString(), {
+            name: workflow.name,
+            schemaVersion: workflow.schemaVersion,
+        }, clientInfo);
+        return workflow;
+    }
+
+    @Get(':id/export')
+    @ApiOperation({ summary: 'Export a workflow as JSON' })
+    @ApiParam({ name: 'id', description: 'Workflow ID' })
+    @ApiResponse({ status: 200, description: 'Workflow export bundle' })
+    exportWorkflow(@Param('id') id: string) {
+        return this.sampleWorkflowService.exportWorkflow(id);
     }
 
     @Get(':id')

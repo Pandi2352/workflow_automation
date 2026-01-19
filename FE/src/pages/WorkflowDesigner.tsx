@@ -5,24 +5,7 @@ import { NodeDrawer } from '../components/designer/NodeDrawer';
 import { AIChatDrawer } from '../components/designer/AIChatDrawer';
 import { TemplatesDrawer } from '../components/designer/TemplatesDrawer';
 
-import { NodeConfigPanel } from '../nodes/google-drive/NodeConfigPanel';
-import { NodeConfigPanel as OneDriveNodeConfigPanel } from '../nodes/onedrive/NodeConfigPanel';
-import { NodeConfigPanel as GmailNodeConfigPanel } from '../nodes/gmail/NodeConfigPanel';
-import { NodeConfigPanel as ScheduleNodeConfigPanel } from '../nodes/schedule/NodeConfigPanel';
-import { NodeConfigPanel as OCRNodeConfigPanel } from '../nodes/ocr/NodeConfigPanel';
-import { NodeConfigPanel as IfElseNodeConfigPanel } from '../nodes/if-else/NodeConfigPanel';
-import { NodeConfigPanel as ParsingNodeConfigPanel } from '../nodes/parsing/NodeConfigPanel';
-import { NodeConfigPanel as MongoDBNodeConfigPanel } from '../nodes/mongodb/NodeConfigPanel';
-import { NodeConfigPanel as SummarizeNodeConfigPanel } from '../nodes/summarize/NodeConfigPanel';
-import { NodeConfigPanel as SmartExtractionNodeConfigPanel } from '../nodes/smart-extraction/NodeConfigPanel';
-import FileUploadConfigPanel from '../nodes/file-upload/NodeConfigPanel';
-import { NodeConfigPanel as HttpNodeConfigPanel } from '../nodes/http-request/NodeConfigPanel';
-import { NodeConfigPanel as DataMapperNodeConfigPanel } from '../nodes/data-mapper/NodeConfigPanel';
-import { NodeConfigPanel as ScraperNodeConfigPanel } from '../nodes/scraper/NodeConfigPanel';
-import { NodeConfigPanel as SuryaOCRNodeConfigPanel } from '../nodes/surya-ocr/NodeConfigPanel';
-import { NodeConfigPanel as TesseractOCRNodeConfigPanel } from '../nodes/tesseract-ocr/NodeConfigPanel';
-import { NodeConfigPanel as CodeNodeConfigPanel } from '../nodes/code/NodeConfigPanel';
-import { NodeConfigPanel as OutlookNodeConfigPanel } from '../nodes/outlook/NodeConfigPanel';
+import { NODE_CONFIG_PANELS } from '../nodes/nodeConfigPanels';
 
 import { DesignerHeader } from '../components/designer/DesignerHeader';
 import { CreateWorkflowSelector } from '../components/designer/CreateWorkflowSelector';
@@ -34,6 +17,9 @@ import { Button } from '../common/Button';
 import { Toast } from '../common/Toast';
 import { WorkflowCanvas } from '../components/designer/WorkflowCanvas';
 import { UnsavedChangesModal } from '../components/modals/UnsavedChangesModal';
+import { ImportExportModal } from '../components/designer/ImportExportModal';
+import { WORKFLOW_SCHEMA_VERSION, SUPPORTED_WORKFLOW_SCHEMA_VERSIONS } from '../constants/workflowSchema';
+import type { WorkflowExportBundle } from '../types/workflow.types';
 
 
 export const WorkflowDesigner: React.FC = () => {
@@ -43,6 +29,11 @@ export const WorkflowDesigner: React.FC = () => {
     const [isAiModalOpen, setIsAiModalOpen] = useState(false);
     const [isTemplatesDrawerOpen, setIsTemplatesDrawerOpen] = useState(false);
     const [showSelector, setShowSelector] = useState(false);
+    const [isImportExportOpen, setIsImportExportOpen] = useState(false);
+    const [exportJson, setExportJson] = useState('');
+    const [importJson, setImportJson] = useState('');
+    const [importName, setImportName] = useState('');
+    const [isImporting, setIsImporting] = useState(false);
 
     const navigate = useNavigate();
     const { 
@@ -212,6 +203,7 @@ export const WorkflowDesigner: React.FC = () => {
             const payload = {
                 name: overrideData?.name ?? (workflowName || 'Untitled Workflow'),
                 description: overrideData?.description ?? (workflowDescription || ''),
+                schemaVersion: WORKFLOW_SCHEMA_VERSION,
                 isActive: overrideData?.isActive ?? isWorkflowActive,
                 nodes: nodes.map(n => ({ 
                     ...n, 
@@ -254,6 +246,123 @@ export const WorkflowDesigner: React.FC = () => {
             return null;
         } finally {
             setIsSaving(false);
+        }
+    };
+
+    const buildLocalExportBundle = (): WorkflowExportBundle => {
+        const exportedNodes = nodes.map((node: any) => {
+            const position = Array.isArray(node.position)
+                ? node.position
+                : [node.position?.x ?? 0, node.position?.y ?? 0];
+
+            return {
+                ...node,
+                nodeName: node.nodeName || node.data?.label || node.id,
+                position,
+                measured: node.measured,
+                selected: node.selected,
+                dragging: node.dragging,
+            };
+        });
+
+        return {
+            schemaVersion: WORKFLOW_SCHEMA_VERSION,
+            exportedAt: new Date().toISOString(),
+            workflow: {
+                name: workflowName || 'Untitled Workflow',
+                description: workflowDescription || '',
+                schemaVersion: WORKFLOW_SCHEMA_VERSION,
+                isActive: isWorkflowActive,
+                nodes: exportedNodes as any,
+                edges: edges as any,
+                settings: { maxConcurrency },
+            },
+        };
+    };
+
+    const handleOpenImportExport = async () => {
+        let bundle: WorkflowExportBundle;
+        if (id && id !== 'new') {
+            try {
+                bundle = await workflowService.exportWorkflow(id);
+            } catch (error) {
+                console.warn('Export via API failed, falling back to local payload', error);
+                bundle = buildLocalExportBundle();
+            }
+        } else {
+            bundle = buildLocalExportBundle();
+        }
+
+        setExportJson(JSON.stringify(bundle, null, 2));
+        setIsImportExportOpen(true);
+    };
+
+    const handleCopyExport = async () => {
+        try {
+            await navigator.clipboard.writeText(exportJson);
+            showToast('Export JSON copied', 'success');
+        } catch (error) {
+            console.error('Copy failed', error);
+            showToast('Failed to copy JSON', 'error');
+        }
+    };
+
+    const handleDownloadExport = () => {
+        const blob = new Blob([exportJson], { type: 'application/json' });
+        const url = URL.createObjectURL(blob);
+        const link = document.createElement('a');
+        const safeName = (workflowName || 'workflow').replace(/[^\w.-]+/g, '-');
+        link.href = url;
+        link.download = `${safeName}-export.json`;
+        link.click();
+        URL.revokeObjectURL(url);
+    };
+
+    const handleImportWorkflow = async () => {
+        if (!importJson.trim()) {
+            showToast('Paste workflow JSON to import', 'info');
+            return;
+        }
+
+        setIsImporting(true);
+        try {
+            const parsed = JSON.parse(importJson);
+            let bundle: WorkflowExportBundle;
+
+            if (parsed?.workflow) {
+                bundle = parsed as WorkflowExportBundle;
+            } else if (parsed?.nodes && parsed?.edges) {
+                bundle = {
+                    schemaVersion: parsed.schemaVersion ?? WORKFLOW_SCHEMA_VERSION,
+                    exportedAt: new Date().toISOString(),
+                    workflow: parsed,
+                };
+            } else {
+                throw new Error('Invalid JSON format. Expecting export bundle or workflow payload.');
+            }
+
+            const schemaVersion = bundle.schemaVersion ?? WORKFLOW_SCHEMA_VERSION;
+            if (!SUPPORTED_WORKFLOW_SCHEMA_VERSIONS.includes(schemaVersion)) {
+                throw new Error(`Unsupported schema version: ${schemaVersion}`);
+            }
+
+            const payload = {
+                ...bundle,
+                schemaVersion,
+                name: importName.trim() || undefined,
+            };
+
+            const imported = await workflowService.importWorkflow(payload as any);
+            showToast('Workflow imported successfully', 'success');
+            setIsImportExportOpen(false);
+            setImportJson('');
+            setImportName('');
+            navigate(`/workflow/${imported._id}`, { replace: true });
+        } catch (error: any) {
+            console.error('Import failed', error);
+            showToast('Import failed', 'error', error?.message || 'Invalid JSON');
+        } finally {
+            setIsImporting(false);
         }
     };
 
@@ -333,6 +442,7 @@ export const WorkflowDesigner: React.FC = () => {
                     setWorkflowMetadata({ isWorkflowActive: active });
                     handleSave({ isActive: active }); // Key fix: Save immediately with new state
                 }}
+                onOpenImportExport={handleOpenImportExport}
             />
 
             <div className="flex flex-1 overflow-hidden relative">
@@ -385,118 +495,42 @@ export const WorkflowDesigner: React.FC = () => {
                         </div>
 
                         {/* Overlays */}
-                        {selectedNode && selectedNode.type === 'ONEDRIVE' ? (
-                            <OneDriveNodeConfigPanel
-                                nodeExecutionData={currentExecution?.nodeExecutions?.find(
-                                    (ex: any) => ex.nodeId === selectedNode?.id
-                                )} 
-                            />
-                        ) : selectedNode && selectedNode.type === 'GMAIL' ? (
-                            <GmailNodeConfigPanel
-                                nodeExecutionData={currentExecution?.nodeExecutions?.find(
-                                    (ex: any) => ex.nodeId === selectedNode?.id
-                                )} 
-                            />
-                        ) : selectedNode && selectedNode.type === 'SCHEDULE' ? (
-                            <ScheduleNodeConfigPanel 
-                                nodeExecutionData={currentExecution?.nodeExecutions?.find(
-                                    (ex: any) => ex.nodeId === selectedNode?.id
-                                )} 
-                            />
-                        ) : selectedNode && selectedNode.type === 'OCR' ? (
-                            <OCRNodeConfigPanel
-                                nodeExecutionData={currentExecution?.nodeExecutions?.find(
-                                    (ex: any) => ex.nodeId === selectedNode?.id
-                                )} 
-                            />
-                        ) : selectedNode && selectedNode.type === 'IF_ELSE' ? (
-                            <IfElseNodeConfigPanel
-                                nodeExecutionData={currentExecution?.nodeExecutions?.find(
-                                    (ex: any) => ex.nodeId === selectedNode?.id
-                                )} 
-                            />
-                        ) : selectedNode && selectedNode.type === 'PARSING' ? (
-                            <ParsingNodeConfigPanel
-                                nodeExecutionData={currentExecution?.nodeExecutions?.find(
-                                    (ex: any) => ex.nodeId === selectedNode?.id
-                                )} 
-                            />
-                        ) : selectedNode && selectedNode.type === 'MONGODB' ? (
-                            <MongoDBNodeConfigPanel
-                                nodeExecutionData={currentExecution?.nodeExecutions?.find(
-                                    (ex: any) => ex.nodeId === selectedNode?.id
-                                )} 
-                            />
-                        ) : selectedNode && selectedNode.type === 'SUMMARIZE' ? (
-                            <SummarizeNodeConfigPanel
-                                nodeExecutionData={currentExecution?.nodeExecutions?.find(
-                                    (ex: any) => ex.nodeId === selectedNode?.id
-                                )} 
-                            />
-                        ) : selectedNode && selectedNode.type === 'SMART_EXTRACTION' ? (
-                            <SmartExtractionNodeConfigPanel
-                                nodeExecutionData={currentExecution?.nodeExecutions?.find(
-                                    (ex: any) => ex.nodeId === selectedNode?.id
-                                )} 
-                            />
-                        ) : selectedNode && selectedNode.type === 'FILE_UPLOAD' ? (
-                            <FileUploadConfigPanel
-                                data={selectedNode.data}
-                                onChange={(newData) => {
-                                    const updatedNodes = nodes.map((n) => {
-                                        if (n.id === selectedNode.id) {
-                                            return { ...n, data: newData };
-                                        }
-                                        return n;
-                                    });
-                                    setNodes(updatedNodes);
-                                }}
-                            />
-                        ) : selectedNode && selectedNode.type === 'HTTP_REQUEST' ? (
-                            <HttpNodeConfigPanel
-                                nodeExecutionData={currentExecution?.nodeExecutions?.find(
-                                    (ex: any) => ex.nodeId === selectedNode?.id
-                                )} 
-                            />
-                        ) : selectedNode && selectedNode.type === 'DATA_MAPPER' ? (
-                            <DataMapperNodeConfigPanel
-                                nodeExecutionData={currentExecution?.nodeExecutions?.find(
-                                    (ex: any) => ex.nodeId === selectedNode?.id
-                                )} 
-                            />
-                        ) : selectedNode && selectedNode.type === 'BROWSER_SCRAPER' ? (
-                            <ScraperNodeConfigPanel />
-                        ) : selectedNode && selectedNode.type === 'SURYA_OCR' ? (
-                            <SuryaOCRNodeConfigPanel
-                                nodeExecutionData={currentExecution?.nodeExecutions?.find(
-                                    (ex: any) => ex.nodeId === selectedNode?.id
-                                )} 
-                            />
-                        ) : selectedNode && selectedNode.type === 'TESSERACT_OCR' ? (
-                            <TesseractOCRNodeConfigPanel
-                                nodeExecutionData={currentExecution?.nodeExecutions?.find(
-                                    (ex: any) => ex.nodeId === selectedNode?.id
-                                )} 
-                            />
-                        ) : selectedNode && selectedNode.type === 'CODE' ? (
-                            <CodeNodeConfigPanel
-                                nodeExecutionData={currentExecution?.nodeExecutions?.find(
-                                    (ex: any) => ex.nodeId === selectedNode?.id
-                                )} 
-                            />
-                        ) : selectedNode && selectedNode.type === 'OUTLOOK' ? (
-                            <OutlookNodeConfigPanel
-                                nodeExecutionData={currentExecution?.nodeExecutions?.find(
-                                    (ex: any) => ex.nodeId === selectedNode?.id
-                                )} 
-                            />
-                        ) : selectedNode && (
-                            <NodeConfigPanel 
-                                nodeExecutionData={currentExecution?.nodeExecutions?.find(
-                                    (ex: any) => ex.nodeId === selectedNode?.id
-                                )} 
-                            />
-                        )}
+                        {selectedNode && (() => {
+                            if (selectedNode.type === 'FILE_UPLOAD') {
+                                const FileUploadPanel = NODE_CONFIG_PANELS.FILE_UPLOAD as any;
+                                return (
+                                    <FileUploadPanel
+                                        data={selectedNode.data}
+                                        onChange={(newData: any) => {
+                                            const updatedNodes = nodes.map((n) => {
+                                                if (n.id === selectedNode.id) {
+                                                    return { ...n, data: newData };
+                                                }
+                                                return n;
+                                            });
+                                            setNodes(updatedNodes);
+                                        }}
+                                    />
+                                );
+                            }
+
+                            const Panel = NODE_CONFIG_PANELS[selectedNode.type];
+                            if (Panel) {
+                                return (
+                                    <Panel
+                                        nodeExecutionData={currentExecution?.nodeExecutions?.find(
+                                            (ex: any) => ex.nodeId === selectedNode?.id
+                                        )}
+                                    />
+                                );
+                            }
+
+                            return (
+                                <div className="p-4 bg-white shadow rounded">
+                                    Configuration not available for {selectedNode.type}
+                                </div>
+                            );
+                        })()}
 
                         <NodeDrawer 
                             isOpen={isDrawerOpen} 
@@ -552,6 +586,20 @@ export const WorkflowDesigner: React.FC = () => {
             <TemplatesDrawer 
                 isOpen={isTemplatesDrawerOpen}
                 onClose={() => setIsTemplatesDrawerOpen(false)}
+            />
+
+            <ImportExportModal
+                isOpen={isImportExportOpen}
+                onClose={() => setIsImportExportOpen(false)}
+                exportJson={exportJson}
+                onCopyExport={handleCopyExport}
+                onDownloadExport={handleDownloadExport}
+                importJson={importJson}
+                onImportJsonChange={setImportJson}
+                importName={importName}
+                onImportNameChange={setImportName}
+                onImport={handleImportWorkflow}
+                isImporting={isImporting}
             />
 
             {showSelector && (

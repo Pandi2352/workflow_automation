@@ -1,6 +1,6 @@
 import { axiosInstance } from '../../api/axiosConfig';
 import { API_ENDPOINTS } from '../../api/endpoints';
-import type { SampleWorkflow, CreateWorkflowPayload } from '../../types/workflow.types';
+import type { SampleWorkflow, CreateWorkflowPayload, WorkflowExportBundle } from '../../types/workflow.types';
 
 export const workflowService = {
     getAll: async (): Promise<SampleWorkflow[]> => {
@@ -27,6 +27,16 @@ export const workflowService = {
 
     delete: async (id: string): Promise<void> => {
         await axiosInstance.delete(API_ENDPOINTS.WORKFLOWS.DELETE(id));
+    },
+
+    exportWorkflow: async (id: string): Promise<WorkflowExportBundle> => {
+        const response = await axiosInstance.get(API_ENDPOINTS.WORKFLOWS.EXPORT(id));
+        return response.data;
+    },
+
+    importWorkflow: async (payload: WorkflowExportBundle & { name?: string }): Promise<SampleWorkflow> => {
+        const response = await axiosInstance.post(API_ENDPOINTS.WORKFLOWS.IMPORT, payload);
+        return response.data;
     },
 
     run: async (id: string): Promise<any> => {

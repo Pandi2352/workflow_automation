@@ -10,10 +10,11 @@ interface DesignerHeaderProps {
     onSave: () => void;
     isSaving: boolean;
     onActiveChange?: (active: boolean) => void;
+    onOpenImportExport?: () => void;
 }
 
 // @ts-ignore
-export const DesignerHeader: React.FC<DesignerHeaderProps> = ({ workflowId, onSave, isSaving, onActiveChange }) => {
+export const DesignerHeader: React.FC<DesignerHeaderProps> = ({ workflowId, onSave, isSaving, onActiveChange, onOpenImportExport }) => {
     const navigate = useNavigate();
     const { 
         workflowName, 
@@ -143,10 +144,11 @@ export const DesignerHeader: React.FC<DesignerHeaderProps> = ({ workflowId, onSa
                     <div className="h-4 w-px bg-slate-200"></div>
 
                     <Button 
-                         variant="ghost"
-                         className="px-3 py-1.5 text-xs font-medium text-slate-600 border border-slate-200 bg-white"
+                        variant="ghost"
+                        className="px-3 py-1.5 text-xs font-medium text-slate-600 border border-slate-200 bg-white"
+                        onClick={onOpenImportExport}
                     >
-                        Share
+                        Import / Export
                     </Button>
 
                     <Button 

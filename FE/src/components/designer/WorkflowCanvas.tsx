@@ -1,37 +1,17 @@
 import React, { useCallback, useRef, useMemo } from 'react';
 import { useParams } from 'react-router-dom';
 import {
-  MiniMap,
   useReactFlow,
   ReactFlowProvider,
  } from '@xyflow/react';
 import { useWorkflowStore } from '../../store/workflowStore';
 import { Plus, LayoutGrid, RotateCcw, RotateCw } from 'lucide-react';
 import { Controls } from './Controls'; // Import custom Controls
-import { Canvas } from './Canvas'; // Import custom Canvas
+import { FlowCanvas } from './FlowCanvas';
 import { Connection } from './Connection'; // Import custom Connection
 import { Button } from '../../common/Button';
 
-import { GenericNode } from '../../nodes/GenericNode';
-import { GoogleDriveNode } from '../../nodes/google-drive/GoogleDriveNode';
-import { OneDriveNode } from '../../nodes/onedrive/OneDriveNode';
-import { GmailNode } from '../../nodes/gmail/GmailNode';
-import { ScheduleNode } from '../../nodes/schedule/ScheduleNode';
-import { OCRNode } from '../../nodes/ocr/OCRNode';
-import { IfElseNode } from '../../nodes/if-else/IfElseNode';
-import { ParsingNode } from '../../nodes/parsing/ParsingNode';
-import { MongoDBNode } from '../../nodes/mongodb/MongoDBNode';
-import { SummarizeNode } from '../../nodes/summarize/SummarizeNode';
-import { OutlookNode } from '../../nodes/outlook/OutlookNode';
-
-import { SmartExtractionNode } from '../../nodes/smart-extraction/SmartExtractionNode';
-import FileUploadNode from '../../nodes/file-upload/FileUploadNode';
-import { HttpNode } from '../../nodes/http-request/HttpNode';
-import { DataMapperNode } from '../../nodes/data-mapper/DataMapperNode';
-import { ScraperNode } from '../../nodes/scraper/ScraperNode';
-import { SuryaOCRNode } from '../../nodes/surya-ocr/SuryaOCRNode';
-import { TesseractOCRNode } from '../../nodes/tesseract-ocr/TesseractOCRNode';
-import { CodeNode } from '../../nodes/code/CodeNode';
+import { NODE_TYPES } from '../../nodes/nodeTypes';
 
 import { Edge } from './Edge';
 import { CollaborativeCursors } from './CollaborativeCursors';
@@ -46,33 +26,7 @@ interface WorkflowCanvasProps {
     executionData?: any;
 }
 
-const nodeTypes = {
-    GOOGLE_DRIVE: GoogleDriveNode,
-    ONEDRIVE: OneDriveNode,
-    GMAIL: GmailNode,
-    SCHEDULE: ScheduleNode,
-    OCR: OCRNode,
-    IF_ELSE: IfElseNode,
-    PARSING: ParsingNode,
-    MONGODB: MongoDBNode,
-    SUMMARIZE: SummarizeNode,
-    OUTLOOK: OutlookNode,
-
-    SMART_EXTRACTION: SmartExtractionNode,
-    FILE_UPLOAD: FileUploadNode,
-    HTTP_REQUEST: HttpNode,
-    DATA_MAPPER: DataMapperNode,
-    BROWSER_SCRAPER: ScraperNode,
-    SURYA_OCR: SuryaOCRNode,
-    TESSERACT_OCR: TesseractOCRNode,
-    CODE: CodeNode,
-    default: GenericNode, // Fallback
-    input: GenericNode,
-    webhook: GenericNode,
-    api: GenericNode,
-    transform: GenericNode,
-    output: GenericNode,
-};
+const nodeTypes = NODE_TYPES;
 
 const edgeTypes = {
   deletable: Edge.Animated, // Use Animated as default for 'deletable' or replace deletable entirely? Let's map 'deletable' to Edge.Animated for now as it's the main edge.
@@ -192,7 +146,7 @@ const WorkflowCanvasInner: React.FC<WorkflowCanvasProps> = ({ onToggleDrawer, ex
 
   return (
     <div className="flex-1 h-full relative" ref={reactFlowWrapper}>
-      <Canvas
+      <FlowCanvas
         nodes={nodesWithStatus}
         nodeTypes={nodeTypes}
         edgeTypes={edgeTypes}
@@ -212,6 +166,7 @@ const WorkflowCanvasInner: React.FC<WorkflowCanvasProps> = ({ onToggleDrawer, ex
         maxZoom={2}
         className="bg-slate-50"
         proOptions={proOptions}
+        showControls={false}
       >
         <Controls>
              <Button 
@@ -244,18 +199,7 @@ const WorkflowCanvasInner: React.FC<WorkflowCanvasProps> = ({ onToggleDrawer, ex
                 <RotateCw className={`size-4 ${future.length === 0 ? "opacity-30" : ""}`} />
              </Button>
         </Controls>
-        {useWorkflowStore.getState().showMinimap && (
-            <MiniMap
-                className="bg-white rounded-lg border border-gray-200"
-                nodeColor="#e5e7eb"
-                maskColor="rgba(0,0,0,0.1)"
-                draggable
-                pannable
-                zoomable
-            />
-        )}
-        
-      </Canvas>
+      </FlowCanvas>
 
       <CollaborativeCursors workflowId={executionData?.workflowId || id || 'global-room'} />
 

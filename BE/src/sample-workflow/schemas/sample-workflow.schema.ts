@@ -347,6 +347,9 @@ export class SampleWorkflow {
     @Prop()
     description?: string;
 
+    @Prop({ default: 1 })
+    schemaVersion: number;
+
     @Prop({ default: true })
     isActive: boolean;
 

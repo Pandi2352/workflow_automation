@@ -7,6 +7,7 @@ import { CreateSampleWorkflowDto } from './dto/create-sample-workflow.dto';
 import { UpdateSampleWorkflowDto } from './dto/update-sample-workflow.dto';
 import { ExecuteWorkflowOptions } from './dto/execute-workflow.dto';
 import { QueryHistoryDto } from './dto/query-history.dto';
+import { ImportWorkflowDto } from './dto/import-workflow.dto';
 import { WorkflowExecutorService } from './services/workflow-executor.service';
 import { WorkflowValidatorService } from './services/workflow-validator.service';
 import { NodeRegistryService } from './services/node-registry.service';
@@ -15,6 +16,7 @@ import { WorkflowHistory, WorkflowHistoryDocument } from './schemas/workflow-his
 import { CredentialsService } from '../credentials/credentials.service';
 import { SampleNodeType } from './enums/node-type.enum';
 import { OCRService } from './node-services/ocr.service';
+import { SUPPORTED_WORKFLOW_SCHEMA_VERSIONS, WORKFLOW_SCHEMA_VERSION } from './constants/workflow-schema-version';
 
 export interface PaginatedResponse<T> {
     data: T[];
@@ -145,6 +147,83 @@ export class SampleWorkflowService {
 
     async validate(createDto: CreateSampleWorkflowDto) {
         return this.validatorService.validate(createDto);
+    }
+
+    async exportWorkflow(id: string) {
+        const workflow = await this.findOne(id);
+        return {
+            schemaVersion: WORKFLOW_SCHEMA_VERSION,
+            exportedAt: new Date().toISOString(),
+            workflow: {
+                name: workflow.name,
+                description: workflow.description,
+                schemaVersion: workflow.schemaVersion ?? WORKFLOW_SCHEMA_VERSION,
+                isActive: workflow.isActive,
+                nodes: workflow.nodes,
+                edges: workflow.edges,
+                settings: workflow.settings,
+                tags: workflow.tags,
+                variables: workflow.variables,
+            },
+            metadata: {
+                sourceWorkflowId: workflow._id.toString(),
+                sourceCreatedAt: workflow.createdAt,
+                sourceUpdatedAt: workflow.updatedAt,
+            },
+        };
+    }
+
+    async importWorkflow(dto: ImportWorkflowDto): Promise<SampleWorkflowDocument> {
+        const schemaVersion =
+            dto.schemaVersion ??
+            dto.workflow?.schemaVersion ??
+            WORKFLOW_SCHEMA_VERSION;
+
+        if (!SUPPORTED_WORKFLOW_SCHEMA_VERSIONS.includes(schemaVersion)) {
+            throw new BadRequestException(`Unsupported workflow schema version: ${schemaVersion}`);
+        }
+
+        if (!dto.workflow) {
+            throw new BadRequestException('Workflow payload is required');
+        }
+
+        const {
+            _id,
+            createdAt,
+            updatedAt,
+            executionCount,
+            lastExecutedAt,
+            ...rest
+        } = dto.workflow as any;
+
+        const normalizedNodes = (rest.nodes || []).map((node: any) => {
+            const position = Array.isArray(node.position)
+                ? node.position
+                : [node.position?.x ?? 0, node.position?.y ?? 0];
+
+            return {
+                ...node,
+                position,
+            };
+        });
+
+        const workflowPayload: CreateSampleWorkflowDto = {
+            ...rest,
+            name: dto.name?.trim() || rest.name,
+            schemaVersion,
+            nodes: normalizedNodes,
+        };
+
+        if (!workflowPayload.name) {
+            throw new BadRequestException('Workflow name is required');
+        }
+
+        this.validatorService.validateAndThrow(workflowPayload);
+
+        const workflow = new this.workflowModel(workflowPayload);
+        const savedWorkflow = await workflow.save();
+        await this.schedulerService.refreshSchedule(savedWorkflow._id.toString());
+        return savedWorkflow;
     }
 
     // ==================== SINGLE NODE EXECUTION ====================

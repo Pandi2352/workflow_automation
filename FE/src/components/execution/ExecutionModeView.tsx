@@ -6,18 +6,7 @@ import { ExecutionDetailsPanel } from './ExecutionDetailsPanel';
 import { ExecutionCanvas } from './ExecutionCanvas';
 import { useWorkflowStore } from '../../store/workflowStore';
 import { FileText, X } from 'lucide-react';
-import { NodeConfigPanel as GoogleDriveConfigPanel } from '../../nodes/google-drive/NodeConfigPanel';
-import { NodeConfigPanel as OneDriveConfigPanel } from '../../nodes/onedrive/NodeConfigPanel';
-import { NodeConfigPanel as GmailConfigPanel } from '../../nodes/gmail/NodeConfigPanel';
-import { NodeConfigPanel as ScheduleConfigPanel } from '../../nodes/schedule/NodeConfigPanel';
-import { NodeConfigPanel as OCRConfigPanel } from '../../nodes/ocr/NodeConfigPanel';
-import { NodeConfigPanel as IfElseConfigPanel } from '../../nodes/if-else/NodeConfigPanel';
-import { NodeConfigPanel as ParsingConfigPanel } from '../../nodes/parsing/NodeConfigPanel';
-import { NodeConfigPanel as MongoDBConfigPanel } from '../../nodes/mongodb/NodeConfigPanel';
-import { NodeConfigPanel as SummarizeConfigPanel } from '../../nodes/summarize/NodeConfigPanel';
-
-import { NodeConfigPanel as SmartExtractionConfigPanel } from '../../nodes/smart-extraction/NodeConfigPanel';
-import FileUploadConfigPanel from '../../nodes/file-upload/NodeConfigPanel';
+import { NODE_CONFIG_PANELS } from '../../nodes/nodeConfigPanels';
 import { workflowService } from '../../services/api/workflows';
 
 export const ExecutionModeView: React.FC = () => {
@@ -230,33 +219,9 @@ export const ExecutionModeView: React.FC = () => {
                     {selectedNode && (
                         <>
                             {(() => {
-                                switch (selectedNode.type) {
-                                    case 'ONEDRIVE':
-                                        return <OneDriveConfigPanel nodeExecutionData={selectedNodeData} />;
-                                    case 'GOOGLE_DRIVE':
-                                        return <GoogleDriveConfigPanel nodeExecutionData={selectedNodeData} />;
-                                    case 'GMAIL':
-                                        return <GmailConfigPanel nodeExecutionData={selectedNodeData} />;
-                                    case 'SCHEDULE':
-                                        return <ScheduleConfigPanel nodeExecutionData={selectedNodeData} />;
-                                    case 'OCR':
-                                        return <OCRConfigPanel nodeExecutionData={selectedNodeData} />;
-                                    case 'IF_ELSE':
-                                        return <IfElseConfigPanel nodeExecutionData={selectedNodeData} />;
-                                    case 'PARSING':
-                                        return <ParsingConfigPanel nodeExecutionData={selectedNodeData} />;
-                                    case 'MONGODB':
-                                        return <MongoDBConfigPanel nodeExecutionData={selectedNodeData} />;
-                                    case 'SUMMARIZE':
-                                        return <SummarizeConfigPanel nodeExecutionData={selectedNodeData} />;
-
-                                    case 'SMART_EXTRACTION':
-                                        return <SmartExtractionConfigPanel nodeExecutionData={selectedNodeData} />;
-                                    case 'FILE_UPLOAD':
-                                        return <FileUploadConfigPanel nodeExecutionData={selectedNodeData} />;
-                                    default:
-                                        return <div className="p-4 bg-white shadow rounded">Configuration not available for {selectedNode.type}</div>;
-                                }
+                                const Panel = NODE_CONFIG_PANELS[selectedNode.type];
+                                if (Panel) return <Panel nodeExecutionData={selectedNodeData} />;
+                                return <div className="p-4 bg-white shadow rounded">Configuration not available for {selectedNode.type}</div>;
                             })()}
                         </>
                     )}

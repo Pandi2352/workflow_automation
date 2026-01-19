@@ -9,6 +9,8 @@ export const API_ENDPOINTS = {
         UPDATE: (id: string) => `/sample-workflows/${id}`,
         DELETE: (id: string) => `/sample-workflows/${id}`,
         EXECUTE: (id: string) => `/sample-workflows/${id}/execute`,
+        EXPORT: (id: string) => `/sample-workflows/${id}/export`,
+        IMPORT: '/sample-workflows/import',
     },
     GOOGLE_DRIVE: {
         LIST: '/google-drive/list',

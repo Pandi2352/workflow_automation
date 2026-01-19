@@ -15,6 +15,7 @@ export interface SampleWorkflow {
     _id: string;
     name: string;
     description?: string;
+    schemaVersion?: number;
     nodes: WorkflowNode[];
     edges: WorkflowEdge[];
     variables?: Record<string, any>;
@@ -29,11 +30,37 @@ export interface SampleWorkflow {
 export interface CreateWorkflowPayload {
     name: string;
     description?: string;
+    schemaVersion?: number;
     active?: boolean;
     nodes: WorkflowNode[];
     edges: WorkflowEdge[];
     settings?: {
         maxConcurrency?: number;
+    };
+    variables?: Record<string, any>;
+    tags?: string[];
+}
+
+export interface WorkflowExportBundle {
+    schemaVersion: number;
+    exportedAt: string;
+    workflow: {
+        name: string;
+        description?: string;
+        schemaVersion?: number;
+        isActive?: boolean;
+        nodes: WorkflowNode[];
+        edges: WorkflowEdge[];
+        settings?: {
+            maxConcurrency?: number;
+        };
+        variables?: Record<string, any>;
+        tags?: string[];
+    };
+    metadata?: {
+        sourceWorkflowId?: string;
+        sourceCreatedAt?: string;
+        sourceUpdatedAt?: string;
     };
 }
 

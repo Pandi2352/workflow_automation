@@ -6,20 +6,14 @@ import {
     Layers, 
     Cpu, 
     Network, 
-    FileText, 
     Database,
     ChevronRight,
     Github,
     ExternalLink,
     Zap,
     Shield,
-    Mail,
-    HardDrive,
-    Binary,
     Code,
     Sparkles,
-
-    Calendar,
     HelpCircle,
     Activity,
     EyeOff,
@@ -31,7 +25,6 @@ import {
     Cloud,
     CheckCircle2,
     Share2,
-    Upload,
     Construction,
     BrainCircuit,
     Search,
@@ -39,6 +32,7 @@ import {
 } from 'lucide-react';
 import { Button } from '../common/Button';
 import { DocumentationButton } from '../common/DocumentationButton';
+import { NODE_DOCS } from '../nodes/nodeDocs';
 import { BadgeCheck, Info, Lightbulb as IdeaIcon } from 'lucide-react';
 import { cn } from '../lib/utils';
 
@@ -63,104 +57,7 @@ export const DocumentationPage: React.FC = () => {
         { id: 'faq', title: 'FAQ', icon: HelpCircle }
     ];
 
-    const nodes = [
-        { 
-            id: 'smart-extraction', 
-            name: 'Smart Extraction', 
-            category: 'ai', 
-            icon: Sparkles, 
-            purpose: 'AI-driven structured data extraction.', 
-            usage: 'Define a JSON schema and provide text/file input. Uses Gemini 1.5/2.0 to normalize complex data.', 
-            features: ['Handlebars support', 'Recursive nesting', 'Multi-model selection'],
-            howItWorks: 'This node uses Google Gemini Large Language Models (LLM) to parse unstructured or semi-structured data. It takes your provided JSON schema and maps raw text or OCR outputs into that exact structure using sophisticated prompt engineering and validation.',
-            whyUseIt: 'Ideal for variable-format documents like invoices, receipts, or legal contracts where traditional regex-based extraction would fail. It provides human-like understanding with machine-like precision.',
-            example: 'Extracting "Total Amount", "Vendor Name", and "Due Date" from a scanned PDF invoice.'
-        },
-        { 
-            id: 'ocr-surya', 
-            name: 'OCR (Surya-AI)', 
-            category: 'ai', 
-            icon: Binary, 
-            purpose: 'High-accuracy neural OCR for complex layouts.', 
-            usage: 'Pass a image/PDF path. Surya provides line-by-line text and layout coordinates.', 
-            features: ['Table detection', 'Multi-language', 'PDF support'],
-            howItWorks: 'Surya is a line-level neural OCR that excels in document layout analysis. It processes images through a deep learning model that identifies text regions, reading order, and table structures across 90+ languages.',
-            whyUseIt: 'Use this when standard Tesseract OCR fails or when you need to preserve the visual context of the document (like items in a specific table column).',
-            example: 'Reading a dense academic paper with multi-column layouts and mathematical formulas.'
-        },
-        { 
-            id: 'summarize', 
-            name: 'Summarize', 
-            category: 'ai', 
-            icon: FileText, 
-            purpose: 'LLM-powered text condensation.', 
-            usage: 'Takes long text inputs and generates executive summaries or bullet points.', 
-            features: ['Tone control', 'Custom length', 'Multi-document merge'],
-            howItWorks: 'Leveraging Gemini flash models, this node analyzes the context of a body of text and applies your specific compression rules (e.g., "summarize in 3 bullet points").',
-            whyUseIt: 'Saves time for humans by pre-processing long emails, transcriptions, or reports into actionable insights.',
-            example: 'Creating a 50-word summary of a 10-page meeting transcript.'
-        },
-        { 
-            id: 'gmail-trigger', 
-            name: 'Gmail Trigger', 
-            category: 'integration', 
-            icon: Mail, 
-            purpose: 'Real-time email workflow activation.', 
-            usage: 'Polls or watches your inbox for specific queries (e.g., from:finance@email.com).', 
-            features: ['Attachment auto-save', 'OAuth2 lifecycle', 'Filter regex'],
-            howItWorks: 'Connects to the Google Gmail API using secure OAuth2 credentials. It polls for new messages matching your search criteria and automatically downloads relevant metadata and attachments.',
-            whyUseIt: 'The starting point for any email-based automation. It eliminates the need for manual monitoring of shared inboxes or support queues.',
-            example: 'Monitoring for emails with "INVOICE" in the subject line to trigger a payment workflow.'
-        },
-        { 
-            id: 'google-drive', 
-            name: 'Google Drive', 
-            category: 'integration', 
-            icon: HardDrive, 
-            purpose: 'Cloud file management.', 
-            usage: 'Search, upload, or download files from GDrive. Can append to existing docs.', 
-            features: ['Folder traversal', 'Metadata injection', 'Permission audit'],
-            howItWorks: 'Uses the Google Drive v3 API to perform file operations. It allows for dynamic path resolution using workflow variables, making it easy to organize files into project-specific folders.',
-            whyUseIt: 'Provides a centralized storage layer for your automated processes, ensuring files are saved where your team can find them.',
-            example: 'Uploading an extracted invoice data file to a specific client folder on Google Drive.'
-        },
-        { 
-            id: 'if-else', 
-            name: 'If / Else', 
-            category: 'logic', 
-            icon: Code, 
-            purpose: 'Boolean path branching.', 
-            usage: 'Compare variables using syntax like {{node.data}} > 100.', 
-            features: ['Multiple conditions', 'Custom expressions', 'Visual routing'],
-            howItWorks: 'Evaluates logical expressions at runtime. It supports common operators like ==, !=, >, <, and includes() for string checks. It splits the workflow path based on the result.',
-            whyUseIt: 'Essential for decision-making. Allows the workflow to behave differently based on the data it encounters (e.g., different approval routes for high vs low amounts).',
-            example: 'Sending the workflow to a "Manager" manual review if an invoice total exceeds $5000.'
-        },
-        { 
-            id: 'schedule', 
-            name: 'Schedule', 
-            category: 'logic', 
-            icon: Calendar, 
-            purpose: 'Time-based workflow execution.', 
-            usage: 'Set Cron or interval timers to run automations periodically.', 
-            features: ['Cron builder', 'Timezone support', 'Overlap protection'],
-            howItWorks: 'Registers handlers in the backend scheduler (BullMQ/Cron). When the time arrives, the engine instantiates the workflow with an empty trigger payload.',
-            whyUseIt: 'Useful for recurring tasks like end-of-month reporting, daily data syncs, or weekly backup operations.',
-            example: 'Triggering a "Daily Summary" workflow every morning at 9:00 AM.'
-        },
-        { 
-            id: 'file-upload', 
-            name: 'File Upload', 
-            category: 'data', 
-            icon: Upload, 
-            purpose: 'Ingest local assets into the execution engine.', 
-            usage: 'Upload data for OCR or Smart Extraction processing.', 
-            features: ['Multi-file handling', 'Temp storage'],
-            howItWorks: 'Provides a web-based portal for users to manually submit files into the system. It handles multipart/form-data uploads and generates temporary secure URLs for processing.',
-            whyUseIt: 'The primary way to handle ad-hoc document processing that isn\'t coming through an automated channel like email.',
-            example: 'Dragging and dropping a batch of PDF receipts into the browser for processing.'
-        },
-    ];
+    const nodes = NODE_DOCS;
 
     useEffect(() => {
         const nodeParam = searchParams.get('node');

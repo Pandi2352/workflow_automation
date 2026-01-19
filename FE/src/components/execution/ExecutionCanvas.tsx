@@ -1,27 +1,11 @@
 
 import React, { useMemo, useCallback, useRef } from 'react';
 import {
-  MiniMap,
   ReactFlowProvider,
 } from '@xyflow/react';
-import { Controls } from '../designer/Controls';
-import { Canvas } from '../designer/Canvas';
+import { FlowCanvas } from '../designer/FlowCanvas';
 import { useWorkflowStore } from '../../store/workflowStore';
-import { GenericNode } from '../../nodes/GenericNode';
-import { GoogleDriveNode } from '../../nodes/google-drive/GoogleDriveNode';
-import { ScheduleNode } from '../../nodes/schedule/ScheduleNode';
-import { GmailNode } from '../../nodes/gmail/GmailNode';
-import { OneDriveNode } from '../../nodes/onedrive/OneDriveNode';
-import { OCRNode } from '../../nodes/ocr/OCRNode';
-import { SmartExtractionNode } from '../../nodes/smart-extraction/SmartExtractionNode';
-import FileUploadNode from '../../nodes/file-upload/FileUploadNode';
-import { HttpNode } from '../../nodes/http-request/HttpNode';
-import { IfElseNode } from '../../nodes/if-else/IfElseNode';
-import { ParsingNode } from '../../nodes/parsing/ParsingNode';
-import { MongoDBNode } from '../../nodes/mongodb/MongoDBNode';
-import { SummarizeNode } from '../../nodes/summarize/SummarizeNode';
-import { DataMapperNode } from '../../nodes/data-mapper/DataMapperNode';
-import { ScraperNode } from '../../nodes/scraper/ScraperNode';
+import { NODE_TYPES } from '../../nodes/nodeTypes';
 
 interface ExecutionCanvasProps {
     executionData?: any;
@@ -29,32 +13,7 @@ interface ExecutionCanvasProps {
     onNodeContextMenu?: (nodeId: string, position: { x: number; y: number }) => void;
 }
 
-const nodeTypes = {
-    GOOGLE_DRIVE: GoogleDriveNode,
-    ONEDRIVE: OneDriveNode,
-    GMAIL: GmailNode,
-    SCHEDULE: ScheduleNode,
-    OCR: OCRNode,
-    ocr: OCRNode,
-    SMART_EXTRACTION: SmartExtractionNode,
-    smart_extraction: SmartExtractionNode,
-    FILE_UPLOAD: FileUploadNode,
-    file_upload: FileUploadNode,
-    BROWSER_SCRAPER: ScraperNode,
-    HTTP_REQUEST: HttpNode,
-    IF_ELSE: IfElseNode,
-    MONGODB: MongoDBNode,
-    PARSING: ParsingNode,
-    SUMMARIZE: SummarizeNode,
-    DATA_MAPPER: DataMapperNode,
-    default: GenericNode, 
-    input: GenericNode,
-    webhook: GenericNode,
-    api: GenericNode,
-    transform: GenericNode,
-    output: GenericNode,
-    schedule: ScheduleNode
-};
+const nodeTypes = NODE_TYPES;
 
 const ExecutionCanvasInner: React.FC<ExecutionCanvasProps> = ({ executionData, onNodeClick, onNodeContextMenu }) => {
   const reactFlowWrapper = useRef<HTMLDivElement>(null);
@@ -144,7 +103,7 @@ const ExecutionCanvasInner: React.FC<ExecutionCanvasProps> = ({ executionData, o
 
   return (
     <div className="flex-1 h-full relative bg-slate-50/[0.5]" ref={reactFlowWrapper}>
-      <Canvas
+      <FlowCanvas
         nodes={nodesWithStatus}
         nodeTypes={nodeTypes}
         edges={edges}
@@ -156,21 +115,14 @@ const ExecutionCanvasInner: React.FC<ExecutionCanvasProps> = ({ executionData, o
         elementsSelectable={true}
         className="bg-slate-50/[0.5]"
         proOptions={proOptions}
+        showControls={false}
       >
-        <Controls />
-        {useWorkflowStore.getState().showMinimap && (
-            <MiniMap
-                className="bg-white rounded-lg border border-gray-200"
-                nodeColor="#e5e7eb"
-                maskColor="rgba(0,0,0,0.1)"
-            />
-        )}
         {/* Read Only Badge */}
         <div className="absolute top-4 right-4 bg-gray-100/80 backdrop-blur-sm border border-gray-200 px-3 py-1.5 rounded-full text-xs font-semibold text-gray-500 pointer-events-none z-10 selection:bg-none flex items-center gap-2">
             <div className="w-2 h-2 rounded-full bg-gray-400" />
             Read Only Mode
         </div>
-      </Canvas>
+      </FlowCanvas>
     </div>
   );
 };
