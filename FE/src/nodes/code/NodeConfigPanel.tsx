@@ -3,7 +3,6 @@ import React, { useState, useEffect, useMemo } from 'react';
 import { useWorkflowStore } from '../../store/workflowStore';
 import { X, Code, Database, Plus, RefreshCw, Terminal, Trash2, Settings, Zap, History, Sparkles, Bot, Send, BrainCircuit, Key, Box } from 'lucide-react';
 import { axiosInstance } from '../../api/axiosConfig';
-import { GeminiCredentialModal } from '../../components/credentials/GeminiCredentialModal';
 import { DataTreeViewer } from '../../common/DataTreeViewer';
 import { NodeDataSidebar } from '../../components/designer/NodeDataSidebar';
 import { cn } from '../../lib/utils';
@@ -66,7 +65,6 @@ export const NodeConfigPanel: React.FC<{ nodeExecutionData?: any }> = ({ nodeExe
     const [aiIdeas, setAiIdeas] = useState<string[]>([]);
     const [aiChat, setAiChat] = useState<{ role: 'user' | 'ai', content: string, code?: string }[]>([]);
     const [userPrompt, setUserPrompt] = useState('');
-    const [isCredentialModalOpen, setIsCredentialModalOpen] = useState(false);
 
     // Fetch credentials on mount
     useEffect(() => {
@@ -275,7 +273,13 @@ export const NodeConfigPanel: React.FC<{ nodeExecutionData?: any }> = ({ nodeExe
     const getAiIdeas = async () => {
         const selectedCred = credentials.find(c => c._id === config.credentialId) || geminiCredentials[0];
         if (!selectedCred) {
-            setIsCredentialModalOpen(true);
+            setAiChat(prev => [
+                ...prev,
+                {
+                    role: 'ai',
+                    content: 'No Gemini credential found. Add one in the Credentials page to use AI features.'
+                }
+            ]);
             return;
         }
 
@@ -300,7 +304,13 @@ export const NodeConfigPanel: React.FC<{ nodeExecutionData?: any }> = ({ nodeExe
     const handleAiGenerate = async (prompt: string) => {
         const selectedCred = credentials.find(c => c._id === config.credentialId) || geminiCredentials[0];
         if (!selectedCred) {
-            setIsCredentialModalOpen(true);
+            setAiChat(prev => [
+                ...prev,
+                {
+                    role: 'ai',
+                    content: 'No Gemini credential found. Add one in the Credentials page to use AI features.'
+                }
+            ]);
             return;
         }
 
@@ -337,10 +347,10 @@ export const NodeConfigPanel: React.FC<{ nodeExecutionData?: any }> = ({ nodeExe
 
     // Auto-fetch ideas when switching to AI tab
     useEffect(() => {
-        if (activeTab === 'ai' && aiIdeas.length === 0) {
+        if (activeTab === 'ai' && aiIdeas.length === 0 && geminiCredentials.length > 0) {
             getAiIdeas();
         }
-    }, [activeTab]);
+    }, [activeTab, geminiCredentials.length]);
 
     return (
         <div className="fixed inset-0 z-50 flex justify-end overflow-hidden">
@@ -549,6 +559,11 @@ export const NodeConfigPanel: React.FC<{ nodeExecutionData?: any }> = ({ nodeExe
                                             </p>
                                         </div>
                                     </div>
+                                    {geminiCredentials.length === 0 && (
+                                        <div className="rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-[11px] font-semibold text-amber-800">
+                                            Gemini credential not found. Add one in the Credentials page to enable AI features.
+                                        </div>
+                                    )}
 
                                     {/* AI Settings (Credentials & Model) */}
                                     <div className="grid grid-cols-2 gap-3">
@@ -557,12 +572,9 @@ export const NodeConfigPanel: React.FC<{ nodeExecutionData?: any }> = ({ nodeExe
                                                 <label className="text-[9px] font-bold text-slate-400 uppercase tracking-widest flex items-center gap-1.5">
                                                     <Key size={10} /> Key
                                                 </label>
-                                                <button 
-                                                    onClick={() => setIsCredentialModalOpen(true)}
-                                                    className="text-[9px] text-indigo-600 font-bold hover:underline"
-                                                >
-                                                    + Add
-                                                </button>
+                                                <span className="text-[9px] text-slate-400 font-bold">
+                                                    Manage in Credentials
+                                                </span>
                                             </div>
                                             <select
                                                 value={config.credentialId || ''}
@@ -600,7 +612,7 @@ export const NodeConfigPanel: React.FC<{ nodeExecutionData?: any }> = ({ nodeExe
                                             </label>
                                             <button 
                                                 onClick={getAiIdeas} 
-                                                disabled={isAiLoading}
+                                                disabled={isAiLoading || geminiCredentials.length === 0}
                                                 className="text-[10px] text-indigo-600 font-bold hover:underline disabled:opacity-50"
                                             >
                                                 Refresh
@@ -616,7 +628,7 @@ export const NodeConfigPanel: React.FC<{ nodeExecutionData?: any }> = ({ nodeExe
                                                     <button
                                                         key={i}
                                                         onClick={() => handleAiGenerate(idea)}
-                                                        disabled={isAiLoading}
+                                                        disabled={isAiLoading || geminiCredentials.length === 0}
                                                         className="text-left px-3 py-2 text-[11px] font-semibold text-slate-600 bg-white border border-slate-200 rounded-xl hover:border-indigo-400 hover:text-indigo-600 transition-all group flex items-center justify-between"
                                                     >
                                                         <span>{idea}</span>
@@ -685,7 +697,7 @@ export const NodeConfigPanel: React.FC<{ nodeExecutionData?: any }> = ({ nodeExe
                                         />
                                         <button 
                                             onClick={() => handleAiGenerate(userPrompt)}
-                                            disabled={!userPrompt.trim() || isAiLoading}
+                                            disabled={!userPrompt.trim() || isAiLoading || geminiCredentials.length === 0}
                                             className="absolute right-2.5 bottom-2.5 p-2 bg-slate-900 text-white rounded-xl hover:bg-black disabled:opacity-30 transition-all active:scale-95"
                                         >
                                             <Send size={14} />
@@ -856,11 +868,6 @@ export const NodeConfigPanel: React.FC<{ nodeExecutionData?: any }> = ({ nodeExe
                     </div>
                 </div>
             </div>
-            <GeminiCredentialModal 
-                isOpen={isCredentialModalOpen}
-                onClose={() => setIsCredentialModalOpen(false)}
-                onSuccess={() => fetchCredentials('GEMINI')}
-            />
         </div>
     );
 };

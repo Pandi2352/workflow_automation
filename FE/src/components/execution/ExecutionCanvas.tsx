@@ -32,7 +32,7 @@ const ExecutionCanvasInner: React.FC<ExecutionCanvasProps> = ({ executionData, o
 
     if (hasEmbeddedPositions) {
         // Reconstruct nodes entirely from execution history
-        return executionData.nodeExecutions.map((ex: any) => {
+        return executionData.nodeExecutions.map((ex: any, index: number) => {
             let statusClass = '';
             if (ex.status === 'SUCCESS') statusClass = '!border-green-500 !ring-2 !ring-green-200 !shadow-lg';
             else if (ex.status === 'FAILED') statusClass = '!border-red-500 !ring-2 !ring-red-200 !shadow-lg';
@@ -53,7 +53,8 @@ const ExecutionCanvasInner: React.FC<ExecutionCanvasProps> = ({ executionData, o
                 measured: ex.measured,
                 draggable: false,
                 connectable: false,
-                className: `${statusClass} bg-white rounded-xl`, // Ensure basic styling
+                className: `${statusClass} bg-white rounded-xl node-reveal`, // Ensure basic styling
+                style: { animationDelay: `calc(var(--node-reveal-stagger, 30ms) * ${index})` },
                 data: {
                     ...ex.data, // Use the data snapshot from execution
                     label: ex.nodeName,
@@ -65,7 +66,7 @@ const ExecutionCanvasInner: React.FC<ExecutionCanvasProps> = ({ executionData, o
     }
 
     // Fallback for legacy executions: Overlay status on CURRENT workflow nodes
-    return nodes.map(node => {
+    return nodes.map((node, index) => {
         const execution = executionData.nodeExecutions.find((ex: any) => ex.nodeId === node.id);
         
         let statusClass = '';
@@ -78,7 +79,8 @@ const ExecutionCanvasInner: React.FC<ExecutionCanvasProps> = ({ executionData, o
         // If this node was unrelated to the execution (e.g. added later), it stays default.
         return {
             ...node,
-            className: `${node.className || ''} ${statusClass}`,
+            className: `${node.className || ''} ${statusClass} node-reveal`.trim(),
+            style: { ...(node.style || {}), animationDelay: `calc(var(--node-reveal-stagger, 30ms) * ${index})` },
             data: {
                 ...node.data,
                 label: execution?.nodeName || node.data.label,

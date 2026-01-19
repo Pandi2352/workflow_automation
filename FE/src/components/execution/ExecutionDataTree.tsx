@@ -80,82 +80,102 @@ export const ExecutionDataTree: React.FC<ExecutionDataTreeProps> = ({
 
     return (
         <div className={`w-full text-sm font-sans ${level === 0 ? 'bg-transparent' : ''}`}>
-            {keys.map((key) => {
-                const value = data[key];
-                const type = getType(value);
-                const isComposite = type === 'object' || type === 'array';
-                const [isExpanded, setIsExpanded] = useState(initiallyExpanded);
-                const [copied, setCopied] = useState(false);
-
-                const handleCopy = (e: React.MouseEvent) => {
-                    e.stopPropagation();
-                    navigator.clipboard.writeText(typeof value === 'object' ? JSON.stringify(value, null, 2) : String(value));
-                    setCopied(true);
-                    setTimeout(() => setCopied(false), 1500);
-                };
-
-                return (
-                    <div key={key} className="flex flex-col relative group/row w-full border-b border-gray-50/50 last:border-0">
-                        {/* Row Content */}
-                        <div 
-                            className={`flex items-start py-1 px-1 hover:bg-slate-50 transition-colors cursor-pointer rounded-sm w-full`}
-                            style={{ paddingLeft: `${level * 12 + 4}px` }}
-                            onClick={() => isComposite && setIsExpanded(!isExpanded)}
-                        >
-                            {/* Expander Icon */}
-                            <div className="w-4 flex-shrink-0 flex items-center justify-center mt-0.5 mr-1 text-slate-400">
-                                {isComposite ? (
-                                    isExpanded ? <ChevronDown size={12} /> : <ChevronRight size={12} />
-                                ) : (
-                                    <div className="w-3" />
-                                )}
-                            </div>
-
-                            {/* Key & Value Container */}
-                            <div className="flex-1 min-w-0 flex flex-wrap items-center gap-1.5 break-words"> 
-                                {/* Key */}
-                                <span className={`font-medium text-[11px] shrink-0 ${isArray ? 'text-slate-400 font-mono' : 'text-slate-700'}`}>
-                                    {key}:
-                                </span>
-
-                                {/* Value Preview (for collapsed composite or scalar) */}
-                                {(!isComposite || !isExpanded) && (
-                                    <div className="flex-1 min-w-0">
-                                        <ValueDisplay value={value} type={type} />
-                                    </div>
-                                )}
-                            </div>
-
-                            {/* Actions (Copy) */}
-                            <div className={`opacity-0 group-hover/row:opacity-100 transition-opacity flex items-center ml-2 px-1 shrink-0`}>
-                                <button 
-                                    onClick={handleCopy}
-                                    className="p-1 text-slate-300 hover:text-blue-500 rounded transition-colors"
-                                    title="Copy value"
-                                >
-                                    {copied ? <Check size={12} className="text-green-500" /> : <Copy size={12} />}
-                                </button>
-                            </div>
-                        </div>
-
-                        {/* Children (if expanded) */}
-                        {isComposite && isExpanded && (
-                            <div className="w-full">
-                                <ExecutionDataTree 
-                                    data={value} 
-                                    level={level + 1} 
-                                    initiallyExpanded={false}
-                                    pathPrefix={isArray ? `${pathPrefix}[${key}]` : `${pathPrefix}.${key}`}
-                                    truncate={truncate}
-                                />
-                            </div>
-                        )}
-                    </div>
-                );
-            })}
+            {keys.map((key) => (
+                <ExecutionDataTreeRow
+                    key={key}
+                    nodeKey={key}
+                    value={data[key]}
+                    level={level}
+                    initiallyExpanded={initiallyExpanded}
+                    isArray={isArray}
+                    pathPrefix={pathPrefix}
+                    truncate={truncate}
+                />
+            ))}
              {keys.length === 0 && (
                 <div className="p-1 text-[11px] text-slate-400 italic pl-6">
                     Empty {Array.isArray(data) ? 'Array' : 'Object'}
+                </div>
+            )}
+        </div>
+    );
+};
+
+const ExecutionDataTreeRow: React.FC<{
+    nodeKey: string;
+    value: any;
+    level: number;
+    initiallyExpanded: boolean;
+    isArray: boolean;
+    pathPrefix: string;
+    truncate: boolean;
+}> = ({ nodeKey, value, level, initiallyExpanded, isArray, pathPrefix, truncate }) => {
+    const type = getType(value);
+    const isComposite = type === 'object' || type === 'array';
+    const [isExpanded, setIsExpanded] = useState(initiallyExpanded);
+    const [copied, setCopied] = useState(false);
+
+    const handleCopy = (e: React.MouseEvent) => {
+        e.stopPropagation();
+        navigator.clipboard.writeText(typeof value === 'object' ? JSON.stringify(value, null, 2) : String(value));
+        setCopied(true);
+        setTimeout(() => setCopied(false), 1500);
+    };
+
+    return (
+        <div className="flex flex-col relative group/row w-full border-b border-gray-50/50 last:border-0">
+            {/* Row Content */}
+            <div 
+                className="flex items-start py-1 px-1 hover:bg-slate-50 transition-colors cursor-pointer rounded-sm w-full"
+                style={{ paddingLeft: `${level * 12 + 4}px` }}
+                onClick={() => isComposite && setIsExpanded(!isExpanded)}
+            >
+                {/* Expander Icon */}
+                <div className="w-4 flex-shrink-0 flex items-center justify-center mt-0.5 mr-1 text-slate-400">
+                    {isComposite ? (
+                        isExpanded ? <ChevronDown size={12} /> : <ChevronRight size={12} />
+                    ) : (
+                        <div className="w-3" />
+                    )}
+                </div>
+
+                {/* Key & Value Container */}
+                <div className="flex-1 min-w-0 flex flex-wrap items-center gap-1.5 break-words"> 
+                    {/* Key */}
+                    <span className={`font-medium text-[11px] shrink-0 ${isArray ? 'text-slate-400 font-mono' : 'text-slate-700'}`}>
+                        {nodeKey}:
+                    </span>
+
+                    {/* Value Preview (for collapsed composite or scalar) */}
+                    {(!isComposite || !isExpanded) && (
+                        <div className="flex-1 min-w-0">
+                            <ValueDisplay value={value} type={type} />
+                        </div>
+                    )}
+                </div>
+
+                {/* Actions (Copy) */}
+                <div className="opacity-0 group-hover/row:opacity-100 transition-opacity flex items-center ml-2 px-1 shrink-0">
+                    <button 
+                        onClick={handleCopy}
+                        className="p-1 text-slate-300 hover:text-blue-500 rounded transition-colors"
+                        title="Copy value"
+                    >
+                        {copied ? <Check size={12} className="text-green-500" /> : <Copy size={12} />}
+                    </button>
+                </div>
+            </div>
+
+            {/* Children (if expanded) */}
+            {isComposite && isExpanded && (
+                <div className="w-full">
+                    <ExecutionDataTree 
+                        data={value} 
+                        level={level + 1} 
+                        initiallyExpanded={false}
+                        pathPrefix={isArray ? `${pathPrefix}[${nodeKey}]` : `${pathPrefix}.${nodeKey}`}
+                        truncate={truncate}
+                    />
                 </div>
             )}
         </div>

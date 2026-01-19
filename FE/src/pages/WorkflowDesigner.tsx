@@ -140,12 +140,14 @@ export const WorkflowDesigner: React.FC = () => {
         try {
             const workflow = await workflowService.getById(workflowId);
             if (workflow) {
-                const hydratedNodes = (workflow.nodes || []).map((n: any) => ({
+                const hydratedNodes = (workflow.nodes || []).map((n: any, index: number) => ({
                     ...n,
                     // Map backend array [x,y] to ReactFlow object {x,y}
                     position: Array.isArray(n.position) 
                         ? { x: n.position[0], y: n.position[1] } 
                         : (n.position || { x: 0, y: 0 }),
+                    className: `${n.className || ''} node-reveal`.trim(),
+                    style: { ...(n.style || {}), animationDelay: `calc(var(--node-reveal-stagger, 30ms) * ${index})` },
                     data: {
                         ...n.data,
                         label: n.nodeName || n.id
@@ -419,6 +421,8 @@ export const WorkflowDesigner: React.FC = () => {
             type, 
             position: { x: 100, y: 100 + nodes.length * 50 },
             data: { label },
+            className: 'node-reveal',
+            style: { animationDelay: '0ms' },
             nodeName: label
         };
         

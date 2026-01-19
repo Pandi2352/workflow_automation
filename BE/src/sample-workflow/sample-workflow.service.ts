@@ -167,8 +167,8 @@ export class SampleWorkflowService {
             },
             metadata: {
                 sourceWorkflowId: workflow._id.toString(),
-                sourceCreatedAt: workflow.createdAt,
-                sourceUpdatedAt: workflow.updatedAt,
+                sourceCreatedAt: (workflow as any).createdAt,
+                sourceUpdatedAt: (workflow as any).updatedAt,
             },
         };
     }
@@ -436,7 +436,7 @@ export class SampleWorkflowService {
         const workflow = await this.findOne(history.workflowId.toString());
 
         const failedNodeIds = (history.nodeExecutions || [])
-            .filter(node => node.status === NodeExecutionStatus.FAILED || node.status === 'FAILED')
+            .filter(node => node.status === NodeExecutionStatus.FAILED)
             .map(node => node.nodeId);
 
         if (failedNodeIds.length === 0) {

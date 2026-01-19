@@ -1,5 +1,5 @@
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { X, RefreshCw, Clock } from 'lucide-react';
 import { workflowService } from '../../services/api/workflows';
 
@@ -41,6 +41,8 @@ const getStatusBadgeClass = (status: string) => {
     }
 };
 
+const RECENT_HIGHLIGHT_DURATION_MS = 2400;
+
 interface ExecutionPanelProps {
     workflowId: string;
     isOpen: boolean;
@@ -65,6 +67,8 @@ export const ExecutionPanel: React.FC<ExecutionPanelProps> = ({
     const [scrollTop, setScrollTop] = useState(0);
     const [listHeight, setListHeight] = useState(0);
     const listRef = React.useRef<HTMLDivElement>(null);
+    const [highlightMap, setHighlightMap] = useState<Record<string, number>>({});
+    const lastStatusRef = useRef<Map<string, string>>(new Map());
     const ITEM_HEIGHT = 72;
     const OVERSCAN = 6;
 
@@ -164,6 +168,54 @@ export const ExecutionPanel: React.FC<ExecutionPanelProps> = ({
             };
         }
     }, [isOpen, workflowId]);
+
+    useEffect(() => {
+        if (executions.length === 0) return;
+        const now = Date.now();
+        let changed = false;
+        setHighlightMap(prev => {
+            const next = { ...prev };
+            executions.forEach(exec => {
+                const prevStatus = lastStatusRef.current.get(exec._id);
+                if (prevStatus && prevStatus !== exec.status) {
+                    next[exec._id] = now;
+                    changed = true;
+                }
+                lastStatusRef.current.set(exec._id, exec.status);
+            });
+            Object.keys(next).forEach(id => {
+                if (now - next[id] > RECENT_HIGHLIGHT_DURATION_MS) {
+                    delete next[id];
+                    changed = true;
+                }
+            });
+            return changed ? next : prev;
+        });
+    }, [executions]);
+
+    useEffect(() => {
+        if (Object.keys(highlightMap).length === 0) return;
+        const timer = setTimeout(() => {
+            setHighlightMap(prev => {
+                const now = Date.now();
+                const next = { ...prev };
+                let changed = false;
+                Object.keys(next).forEach(id => {
+                    if (now - next[id] > RECENT_HIGHLIGHT_DURATION_MS) {
+                        delete next[id];
+                        changed = true;
+                    }
+                });
+                return changed ? next : prev;
+            });
+        }, RECENT_HIGHLIGHT_DURATION_MS);
+        return () => clearTimeout(timer);
+    }, [highlightMap]);
+
+    const isRecentlyHighlighted = (execution: any) => {
+        const ts = highlightMap[execution._id];
+        return typeof ts === 'number' && Date.now() - ts < RECENT_HIGHLIGHT_DURATION_MS;
+    };
     
     useEffect(() => {
         if (activeExecutionId) {
@@ -230,6 +282,7 @@ export const ExecutionPanel: React.FC<ExecutionPanelProps> = ({
                         onClick={() => handleSelect(exec)}
                         className={`p-3 border-b border-gray-100 cursor-pointer hover:bg-white transition-colors
                             ${selectedId === exec._id ? 'bg-white border-l-4 border-l-blue-500 shadow-sm' : 'border-l-4 border-l-transparent'}
+                            ${isRecentlyHighlighted(exec) ? 'recent-highlight' : ''}
                         `}
                         style={{ height: ITEM_HEIGHT }}
                     >
@@ -251,7 +304,20 @@ export const ExecutionPanel: React.FC<ExecutionPanelProps> = ({
                         </div>
                     );
                 })()}
-                    {executions.length === 0 && (
+                    {isLoading && executions.length === 0 && (
+                        <div className="p-4 space-y-3">
+                            {Array.from({ length: 6 }).map((_, idx) => (
+                                <div key={idx} className="p-3 border-b border-gray-100">
+                                    <div className="flex justify-between items-start mb-2">
+                                        <div className="h-3 w-20 skeleton rounded-full" />
+                                        <div className="h-3 w-16 skeleton rounded" />
+                                    </div>
+                                    <div className="h-3 w-24 skeleton rounded" />
+                                </div>
+                            ))}
+                        </div>
+                    )}
+                    {executions.length === 0 && !isLoading && (
                         <div className="p-4 text-center text-gray-400 text-sm">No executions yet</div>
                     )}
 

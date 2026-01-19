@@ -1,5 +1,5 @@
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { RefreshCw, Clock } from 'lucide-react';
 import { workflowService } from '../../services/api/workflows';
 
@@ -11,6 +11,8 @@ const formatTime = (dateString: string) => {
         return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' });
     } catch (e) { return '-'; }
 };
+
+const RECENT_HIGHLIGHT_DURATION_MS = 2400;
 
 interface ExecutionSidebarProps {
     workflowId: string;
@@ -34,6 +36,8 @@ export const ExecutionSidebar: React.FC<ExecutionSidebarProps> = ({
     const [scrollTop, setScrollTop] = useState(0);
     const [listHeight, setListHeight] = useState(0);
     const listRef = React.useRef<HTMLDivElement>(null);
+    const [highlightMap, setHighlightMap] = useState<Record<string, number>>({});
+    const lastStatusRef = useRef<Map<string, string>>(new Map());
     const ITEM_HEIGHT = 72;
     const OVERSCAN = 6;
 
@@ -91,6 +95,54 @@ export const ExecutionSidebar: React.FC<ExecutionSidebarProps> = ({
     useEffect(() => {
         fetchExecutions();
     }, [workflowId]);
+
+    useEffect(() => {
+        if (executions.length === 0) return;
+        const now = Date.now();
+        let changed = false;
+        setHighlightMap(prev => {
+            const next = { ...prev };
+            executions.forEach(exec => {
+                const prevStatus = lastStatusRef.current.get(exec._id);
+                if (prevStatus && prevStatus !== exec.status) {
+                    next[exec._id] = now;
+                    changed = true;
+                }
+                lastStatusRef.current.set(exec._id, exec.status);
+            });
+            Object.keys(next).forEach(id => {
+                if (now - next[id] > RECENT_HIGHLIGHT_DURATION_MS) {
+                    delete next[id];
+                    changed = true;
+                }
+            });
+            return changed ? next : prev;
+        });
+    }, [executions]);
+
+    useEffect(() => {
+        if (Object.keys(highlightMap).length === 0) return;
+        const timer = setTimeout(() => {
+            setHighlightMap(prev => {
+                const now = Date.now();
+                const next = { ...prev };
+                let changed = false;
+                Object.keys(next).forEach(id => {
+                    if (now - next[id] > RECENT_HIGHLIGHT_DURATION_MS) {
+                        delete next[id];
+                        changed = true;
+                    }
+                });
+                return changed ? next : prev;
+            });
+        }, RECENT_HIGHLIGHT_DURATION_MS);
+        return () => clearTimeout(timer);
+    }, [highlightMap]);
+
+    const isRecentlyHighlighted = (execution: any) => {
+        const ts = highlightMap[execution._id];
+        return typeof ts === 'number' && Date.now() - ts < RECENT_HIGHLIGHT_DURATION_MS;
+    };
 
     // Poll for list updates (new executions) with idle backoff
     useEffect(() => {
@@ -203,6 +255,7 @@ export const ExecutionSidebar: React.FC<ExecutionSidebarProps> = ({
                         onClick={() => handleSelect(exec)}
                         className={`group p-4 border-b border-gray-100 cursor-pointer transition-all
                             ${selectedId === exec._id ? 'bg-blue-50/50 border-l-4 border-l-blue-500' : 'border-l-4 border-l-transparent hover:bg-gray-50'}
+                            ${isRecentlyHighlighted(exec) ? 'recent-highlight' : ''}
                         `}
                         style={{ height: ITEM_HEIGHT }}
                     >
@@ -230,6 +283,23 @@ export const ExecutionSidebar: React.FC<ExecutionSidebarProps> = ({
                     </div>
                 ))}
                 </div>
+
+                {isLoading && executions.length === 0 && (
+                    <div className="p-4 space-y-3">
+                        {Array.from({ length: 6 }).map((_, idx) => (
+                            <div key={idx} className="p-4 border-b border-gray-100">
+                                <div className="flex justify-between items-start mb-2">
+                                    <div className="h-3 w-24 skeleton rounded" />
+                                    <div className="h-4 w-16 skeleton rounded-full" />
+                                </div>
+                                <div className="flex items-center justify-between">
+                                    <div className="h-3 w-20 skeleton rounded" />
+                                    <div className="h-3 w-14 skeleton rounded" />
+                                </div>
+                            </div>
+                        ))}
+                    </div>
+                )}
                 
                 {executions.length === 0 && !isLoading && (
                     <div className="p-8 text-center text-gray-400 text-sm">

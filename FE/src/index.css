@@ -9,6 +9,11 @@
   --color-ring: #94a3b8;
   --muted-foreground: #64748b;
   --color-background: #1e293b; /* slate-800 for dark shimmer text */
+  --skeleton-speed: 1.2s;
+  --node-reveal-duration: 420ms;
+  --node-reveal-stagger: 30ms;
+  --recent-highlight-color: rgba(253, 224, 71, 0.2);
+  --recent-highlight-duration: 2400ms;
 }
 
 @keyframes dashdraw {
@@ -146,4 +151,47 @@ pre[class*="language-"] {
 
 .prism-editor textarea {
   outline: none !important;
+}
+
+@keyframes skeleton-shimmer {
+  0% {
+    background-position: -200px 0;
+  }
+  100% {
+    background-position: 200px 0;
+  }
+}
+
+.skeleton {
+  background: linear-gradient(90deg, #eef2f7 25%, #f8fafc 50%, #eef2f7 75%);
+  background-size: 400px 100%;
+  animation: skeleton-shimmer var(--skeleton-speed, 1.2s) ease-in-out infinite;
+}
+
+@keyframes node-reveal {
+  0% {
+    opacity: 0;
+    filter: blur(2px);
+  }
+  100% {
+    opacity: 1;
+    filter: blur(0);
+  }
+}
+
+.node-reveal {
+  animation: node-reveal var(--node-reveal-duration, 420ms) ease-out both;
+}
+
+@keyframes recent-highlight {
+  0% {
+    background-color: var(--recent-highlight-color, rgba(253, 224, 71, 0.2));
+  }
+  100% {
+    background-color: transparent;
+  }
+}
+
+.recent-highlight {
+  animation: recent-highlight var(--recent-highlight-duration, 2400ms) ease-out;
 }

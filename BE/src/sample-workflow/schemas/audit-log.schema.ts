@@ -1,6 +1,6 @@
 import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
 import { Document } from 'mongoose';
-import { ClientInfo } from '../../common/utils/client-info.util';
+import type { ClientInfo } from '../../common/utils/client-info.util';
 
 export type AuditLogDocument = AuditLog & Document;
 

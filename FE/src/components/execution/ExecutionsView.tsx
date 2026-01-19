@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useParams } from 'react-router-dom';
 import { Filter, RotateCcw, CheckCircle2, XCircle, ChevronRight, LayoutList } from 'lucide-react';
 import { Badge } from '../../common/Badge';
@@ -6,23 +6,29 @@ import { Button } from '../../common/Button';
 import { ExecutionLogsPanel } from './ExecutionLogsPanel';
 import { workflowService } from '../../services/api/workflows';
 
+const RECENT_HIGHLIGHT_DURATION_MS = 2400;
+
 export const ExecutionsView: React.FC = () => {
     const { id: workflowId } = useParams<{ id: string }>();
     const [executions, setExecutions] = useState<any[]>([]);
     const [selectedExecutionId, setSelectedExecutionId] = useState<string | null>(null);
     const [logsHeight, setLogsHeight] = useState(300);
     const [isResizing, setIsResizing] = useState(false);
+    const [isLoading, setIsLoading] = useState(false);
     const [isLoadingMore, setIsLoadingMore] = useState(false);
     const [page, setPage] = useState(1);
     const [hasNextPage, setHasNextPage] = useState(false);
     const [scrollTop, setScrollTop] = useState(0);
     const [listHeight, setListHeight] = useState(0);
     const listRef = React.useRef<HTMLDivElement>(null);
+    const [highlightMap, setHighlightMap] = useState<Record<string, number>>({});
+    const lastStatusRef = useRef<Map<string, string>>(new Map());
     const ITEM_HEIGHT = 72;
     const OVERSCAN = 6;
 
     const fetchExecutions = async () => {
         if (!workflowId) return;
+        setIsLoading(true);
         try {
             const res = await workflowService.getExecutions(workflowId, 1, 20);
             const list = res.data || [];
@@ -34,6 +40,8 @@ export const ExecutionsView: React.FC = () => {
             }
         } catch (err) {
             console.error('Failed to fetch executions', err);
+        } finally {
+            setIsLoading(false);
         }
     };
 
@@ -74,6 +82,49 @@ export const ExecutionsView: React.FC = () => {
         }
     }, []);
 
+    useEffect(() => {
+        if (executions.length === 0) return;
+        const now = Date.now();
+        let changed = false;
+        setHighlightMap(prev => {
+            const next = { ...prev };
+            executions.forEach(exec => {
+                const prevStatus = lastStatusRef.current.get(exec._id);
+                if (prevStatus && prevStatus !== exec.status) {
+                    next[exec._id] = now;
+                    changed = true;
+                }
+                lastStatusRef.current.set(exec._id, exec.status);
+            });
+            Object.keys(next).forEach(id => {
+                if (now - next[id] > RECENT_HIGHLIGHT_DURATION_MS) {
+                    delete next[id];
+                    changed = true;
+                }
+            });
+            return changed ? next : prev;
+        });
+    }, [executions]);
+
+    useEffect(() => {
+        if (Object.keys(highlightMap).length === 0) return;
+        const timer = setTimeout(() => {
+            setHighlightMap(prev => {
+                const now = Date.now();
+                const next = { ...prev };
+                let changed = false;
+                Object.keys(next).forEach(id => {
+                    if (now - next[id] > RECENT_HIGHLIGHT_DURATION_MS) {
+                        delete next[id];
+                        changed = true;
+                    }
+                });
+                return changed ? next : prev;
+            });
+        }, RECENT_HIGHLIGHT_DURATION_MS);
+        return () => clearTimeout(timer);
+    }, [highlightMap]);
+
     const selectedExecution = executions.find(e => e._id === selectedExecutionId);
 
     const getStatusIcon = (status: string) => {
@@ -96,6 +147,11 @@ export const ExecutionsView: React.FC = () => {
             case 'pending': return 'default';
             default: return 'default';
         }
+    };
+
+    const isRecentlyHighlighted = (execution: any) => {
+        const ts = highlightMap[execution._id];
+        return typeof ts === 'number' && Date.now() - ts < RECENT_HIGHLIGHT_DURATION_MS;
     };
 
     const startResizing = React.useCallback((mouseDownEvent: React.MouseEvent) => {
@@ -173,6 +229,7 @@ export const ExecutionsView: React.FC = () => {
                                 ${selectedExecutionId === exec._id 
                                     ? 'bg-green-50/50 border-l-[#10b981]' 
                                     : 'bg-white border-l-transparent hover:bg-slate-50'}
+                                ${isRecentlyHighlighted(exec) ? 'recent-highlight' : ''}
                             `}
                             style={{ height: ITEM_HEIGHT }}
                         >
@@ -199,12 +256,23 @@ export const ExecutionsView: React.FC = () => {
                                 <ChevronRight size={14} />
                             </div>
                         </div>
-                    ))}
+                    ))} 
                             </div>
                         );
                     })()}
 
-                    {executions.length === 0 && (
+                    {isLoading && executions.length === 0 && (
+                        <div className="p-3 space-y-3">
+                            {Array.from({ length: 6 }).map((_, idx) => (
+                                <div key={idx} className="p-3 border-b border-slate-100">
+                                    <div className="h-3 w-32 skeleton rounded mb-2" />
+                                    <div className="h-3 w-20 skeleton rounded" />
+                                </div>
+                            ))}
+                        </div>
+                    )}
+
+                    {executions.length === 0 && !isLoading && (
                         <div className="p-6 text-center text-slate-400 text-sm">No executions yet</div>
                     )}
 
