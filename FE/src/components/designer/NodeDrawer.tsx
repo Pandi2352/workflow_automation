@@ -1,5 +1,5 @@
 import React, { useState, useMemo } from 'react';
-import { Search, X, ChevronRight, Zap, Split, ArrowUpRight, Clock, FileText, Database, Cpu, BrainCircuit, Upload, Earth, Type, Terminal, Mail } from 'lucide-react';
+import { Search, X, ChevronRight, Zap, Split, ArrowUpRight, Clock, FileText, Database, Cpu, BrainCircuit, Upload, Earth, Type, Terminal, Mail, Rss } from 'lucide-react';
 import googleDriveIcon from '../../assets/nodeIcons/google-drive-svgrepo-com.svg';
 import oneDriveIcon from '../../assets/nodeIcons/ms-onedrive-svgrepo-com.svg';
 import gmailIcon from '../../assets/nodeIcons/gmail-icon-logo-svgrepo-com.svg';
@@ -27,6 +27,7 @@ const availableNodes: NodeType[] = [
     // Triggers
     // { type: 'input', label: 'Manual Trigger', description: 'Starts the workflow manually', icon: MousePointerClick, color: 'text-slate-600', category: 'TRIGGER' },
     { type: 'WEBHOOK', label: 'Webhook', description: 'Start workflow via HTTP request', icon: Zap, color: 'text-amber-500', category: 'TRIGGER' },
+    { type: 'RSS', label: 'RSS Feed', description: 'Fetch items from an RSS feed', icon: Rss, color: 'text-orange-500', category: 'TRIGGER' },
     { type: 'SCHEDULE', label: 'Schedule', description: 'Run workflow on a schedule', icon: Clock, color: 'text-purple-500', category: 'TRIGGER' },
     { type: 'GMAIL', label: 'Gmail', description: 'Fetch emails from Gmail', icon: ({size}: any) => <img src={gmailIcon} style={{width: size, height: size}} />, color: 'text-red-600', category: 'TRIGGER' },
     { type: 'OUTLOOK', label: 'Outlook', description: 'Fetch emails from Outlook', icon: Mail, color: 'text-blue-600', category: 'TRIGGER' },

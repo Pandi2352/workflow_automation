@@ -18,5 +18,6 @@ export enum SampleNodeType {
     TESSERACT_OCR = 'TESSERACT_OCR',
     CODE = 'CODE',
     OUTLOOK = 'OUTLOOK',
+    RSS = 'RSS',
 }
 // Force recompile

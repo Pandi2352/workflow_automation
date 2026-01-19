@@ -20,6 +20,7 @@ import { SuryaOCRService } from '../node-services/surya-ocr.service';
 import { TesseractOCRService } from '../node-services/tesseract-ocr.service';
 import { OutlookNode } from '../nodes/outlook.node';
 import { OutlookService } from '../node-services/outlook.service';
+import { RSSNode } from '../nodes/rss.node';
 
 import { SmartExtractionNodeStrategy } from '../nodes/smart-extraction.node';
 import { FileUploadNodeStrategy } from '../nodes/file-upload.node';
@@ -87,6 +88,7 @@ export class NodeRegistryService {
         this.nodeInstances.set(SampleNodeType.DATA_MAPPER, new DataMapperNodeStrategy());
         this.nodeInstances.set(SampleNodeType.BROWSER_SCRAPER, new ScraperNodeStrategy(this.ocrService));
         this.nodeInstances.set(SampleNodeType.CODE, this.codeNodeStrategy);
+        this.nodeInstances.set(SampleNodeType.RSS, new RSSNode());
 
         // Register node definitions
         this.nodeDefinitions.set(SampleNodeType.BROWSER_SCRAPER, {
@@ -117,6 +119,22 @@ export class NodeRegistryService {
 
 
         // Register node definitions
+        this.nodeDefinitions.set(SampleNodeType.RSS, {
+            type: SampleNodeType.RSS,
+            name: 'RSS Feed',
+            description: 'Fetch and parse RSS feeds',
+            category: 'Network',
+            inputs: 1,
+            outputs: 1,
+            configSchema: {
+                url: {
+                    type: 'string',
+                    description: 'RSS Feed URL',
+                    default: ''
+                }
+            }
+        });
+
         this.nodeDefinitions.set(SampleNodeType.GOOGLE_DRIVE, {
             type: SampleNodeType.GOOGLE_DRIVE,
             name: 'Google Drive',

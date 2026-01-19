@@ -17,6 +17,7 @@ import { SuryaOCRNode } from './surya-ocr/SuryaOCRNode';
 import { TesseractOCRNode } from './tesseract-ocr/TesseractOCRNode';
 import { CodeNode } from './code/CodeNode';
 import { OutlookNode } from './outlook/OutlookNode';
+import { RSSNode } from './rss/RSSNode';
 
 export const NODE_TYPES = {
     GOOGLE_DRIVE: GoogleDriveNode,
@@ -40,6 +41,7 @@ export const NODE_TYPES = {
     TESSERACT_OCR: TesseractOCRNode,
     CODE: CodeNode,
     OUTLOOK: OutlookNode,
+    RSS: RSSNode,
     default: GenericNode,
     input: GenericNode,
     webhook: GenericNode,

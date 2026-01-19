@@ -17,6 +17,8 @@ import { NodeConfigPanel as TesseractOCRConfigPanel } from './tesseract-ocr/Node
 import { NodeConfigPanel as CodeConfigPanel } from './code/NodeConfigPanel';
 import { NodeConfigPanel as OutlookConfigPanel } from './outlook/NodeConfigPanel';
 
+import { NodeConfigPanel as RSSConfigPanel } from './rss/NodeConfigPanel';
+
 export const NODE_CONFIG_PANELS: Record<string, React.FC<any>> = {
     ONEDRIVE: OneDriveConfigPanel,
     GOOGLE_DRIVE: GoogleDriveConfigPanel,
@@ -36,4 +38,5 @@ export const NODE_CONFIG_PANELS: Record<string, React.FC<any>> = {
     TESSERACT_OCR: TesseractOCRConfigPanel,
     CODE: CodeConfigPanel,
     OUTLOOK: OutlookConfigPanel,
+    RSS: RSSConfigPanel,
 };

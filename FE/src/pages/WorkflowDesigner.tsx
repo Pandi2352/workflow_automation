@@ -518,7 +518,7 @@ export const WorkflowDesigner: React.FC = () => {
                                 );
                             }
 
-                            const Panel = NODE_CONFIG_PANELS[selectedNode.type];
+                            const Panel = NODE_CONFIG_PANELS[selectedNode.type as any];
                             if (Panel) {
                                 return (
                                     <Panel
