@@ -52,6 +52,17 @@ export const BaseNode = memo(({ id, data, isConnectable, selected, label, icon: 
                 source: true
             }}
         >
+            {/* Top Toolbar - Actions */}
+            <div className="absolute bottom-full right-0 pb-1 flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-all duration-200 z-50 scale-95 group-hover:scale-100 pointer-events-none group-hover:pointer-events-auto">
+                 <button 
+                    onClick={handleDelete}
+                    className="p-1 text-slate-500 hover:text-red-600 hover:bg-red-50 transition-colors cursor-pointer"
+                    title="Delete Node"
+                >
+                    <Trash2 size={14} />
+                </button>
+            </div>
+
             <NodeHeader className="flex flex-row items-center justify-between space-y-0 p-2">
                  <div className="flex items-center gap-2">
                     <div className={`p-1.5 rounded-md bg-white border border-slate-200 shadow-sm ${color}`}>
@@ -63,13 +74,6 @@ export const BaseNode = memo(({ id, data, isConnectable, selected, label, icon: 
                  </div>
                  
                  <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                    <button 
-                        onClick={handleDelete}
-                        className="text-slate-400 hover:text-red-600 p-1 rounded-md hover:bg-red-50 transition-colors cursor-pointer"
-                        title="Delete Node"
-                    >
-                        <Trash2 size={14} />
-                    </button>
                     <button className="text-slate-400 hover:text-indigo-600 p-1 rounded-md hover:bg-slate-100 transition-colors cursor-pointer">
                         <MoreVertical size={14} />
                     </button>

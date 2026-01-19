@@ -50,7 +50,7 @@ const generateCodeTemplate = (language: string, args: Record<string, string>) =>
 };
 
 export const NodeConfigPanel: React.FC<{ nodeExecutionData?: any }> = ({ nodeExecutionData }) => {
-    const { selectedNode, updateNodeData, setSelectedNode, nodes, edges, currentExecution } = useWorkflowStore();
+    const { selectedNode, updateNodeData, setSelectedNode, nodes, edges, currentExecution, deleteNode } = useWorkflowStore();
     const [label, setLabel] = useState('');
     const [isExecuting, setIsExecuting] = useState(false);
     const [executionResult, setExecutionResult] = useState<any>(null);
@@ -345,7 +345,7 @@ export const NodeConfigPanel: React.FC<{ nodeExecutionData?: any }> = ({ nodeExe
         <div className="fixed inset-0 z-50 flex justify-end overflow-hidden">
             {/* Backdrop */}
             <div 
-                className="absolute inset-0 bg-black/20 animate-in fade-in duration-200"
+                className="absolute inset-0 bg-slate-900/40 backdrop-blur-[2px] animate-in fade-in duration-300"
                 onClick={() => setSelectedNode(null)}
             />
             
@@ -353,7 +353,7 @@ export const NodeConfigPanel: React.FC<{ nodeExecutionData?: any }> = ({ nodeExe
             <div className="relative z-50 h-full flex flex-row animate-in slide-in-from-right duration-300 mr-0">
                 
                 {/* Variable Sidebar (Left of Drawer) */}
-                <div className="w-80 h-full bg-slate-50 border-r border-slate-200 shadow-2xl flex flex-col -mr-[1px]">
+                <div className="w-80 h-full bg-slate-50 border-r border-slate-200 flex flex-col -mr-[1px]">
                         <NodeDataSidebar 
                         availableNodes={inputData.map(d => ({
                             nodeId: d.nodeId,
@@ -368,77 +368,65 @@ export const NodeConfigPanel: React.FC<{ nodeExecutionData?: any }> = ({ nodeExe
                 </div>
 
                 {/* Main Drawer */}
-                <div className="w-[600px] h-full bg-white shadow-2xl flex flex-col border-l border-slate-100">
+                <div className="w-[620px] h-full bg-white flex flex-col border-l border-slate-200">
                     
                     {/* Header */}
                     <div className="p-4 border-b border-slate-100 flex justify-between items-center bg-white">
                         <div className="flex items-center gap-3">
-                            <div className="p-2 rounded-lg bg-indigo-100 text-indigo-600">
-                                <Terminal size={20} />
+                            <div className="p-2.5 rounded-xl bg-slate-50 border border-slate-200 text-indigo-600">
+                                <Terminal size={18} />
                             </div>
                             <div>
-                                <h3 className="text-lg font-bold text-slate-900">Code Execution</h3>
-                                <p className="text-xs text-slate-600">Node ID: {selectedNode.id}</p>
+                                <h3 className="text-sm font-bold text-slate-900">Code Execution</h3>
+                                <p className="text-[10px] text-slate-500 font-medium font-mono uppercase tracking-tight">{selectedNode.id}</p>
                             </div>
                         </div>
-                        <button 
-                            onClick={() => setSelectedNode(null)}
-                            className="p-2 hover:bg-slate-100 rounded-full text-slate-400 hover:text-slate-600 transition-colors"
-                        >
-                            <X size={20} />
-                        </button>
+                        <div className="flex items-center gap-1">
+                            <button 
+                                onClick={() => {
+                                    if (window.confirm('Are you sure you want to delete this node?')) {
+                                        deleteNode(selectedNode.id);
+                                        setSelectedNode(null);
+                                    }
+                                }}
+                                className="p-2 hover:bg-red-50 rounded-full text-slate-400 hover:text-red-600 transition-colors"
+                                title="Delete Node"
+                            >
+                                <Trash2 size={20} />
+                            </button>
+                            <button 
+                                onClick={() => setSelectedNode(null)}
+                                className="p-2 hover:bg-slate-100 rounded-full text-slate-400 hover:text-slate-600 transition-colors"
+                            >
+                                <X size={20} />
+                            </button>
+                        </div>
                     </div>
 
-                    {/* Tabs */}
-                    <div className="flex border-b border-slate-100 px-4 bg-white relative z-10">
-                        <button
-                            onClick={() => setActiveTab('config')}
-                            className={cn(
-                                "flex items-center gap-2 px-4 py-3 text-sm font-medium border-b-2 transition-colors",
-                                activeTab === 'config' 
-                                    ? "border-indigo-500 text-indigo-600" 
-                                    : "border-transparent text-slate-500 hover:text-slate-700"
-                            )}
-                        >
-                            <Settings size={14} />
-                            Configuration
-                        </button>
-                        <button
-                            onClick={() => setActiveTab('editor')}
-                            className={cn(
-                                "flex items-center gap-2 px-4 py-3 text-sm font-medium border-b-2 transition-colors",
-                                activeTab === 'editor' 
-                                    ? "border-indigo-500 text-indigo-600" 
-                                    : "border-transparent text-slate-500 hover:text-slate-700"
-                            )}
-                        >
-                            <Code size={14} />
-                            Code Editor
-                        </button>
-                        <button
-                            onClick={() => setActiveTab('ai')}
-                            className={cn(
-                                "flex items-center gap-2 px-4 py-3 text-sm font-medium border-b-2 transition-colors",
-                                activeTab === 'ai' 
-                                    ? "border-indigo-500 text-indigo-600" 
-                                    : "border-transparent text-slate-500 hover:text-slate-700"
-                            )}
-                        >
-                            <Sparkles size={14} className={activeTab === 'ai' ? "text-amber-500" : ""} />
-                            AI Assistant
-                        </button>
-                        <button
-                            onClick={() => setActiveTab('output')}
-                            className={cn(
-                                "flex items-center gap-2 px-4 py-3 text-sm font-medium border-b-2 transition-colors",
-                                activeTab === 'output' 
-                                    ? "border-indigo-500 text-indigo-600" 
-                                    : "border-transparent text-slate-500 hover:text-slate-700"
-                            )}
-                        >
-                            <History size={14} />
-                            Output & Logs
-                        </button>
+                    {/* Tabs / Segmented Control */}
+                    <div className="px-5 py-3 border-b border-slate-100 bg-white">
+                        <div className="flex bg-slate-100/80 p-1 rounded-xl border border-slate-200/50">
+                            {[
+                                { id: 'config', label: 'Configuration', icon: Settings },
+                                { id: 'editor', label: 'Code Editor', icon: Code },
+                                { id: 'ai', label: 'AI Assistant', icon: Sparkles, color: 'text-amber-500' },
+                                { id: 'output', label: 'Results', icon: History }
+                            ].map((tab) => (
+                                <button
+                                    key={tab.id}
+                                    onClick={() => setActiveTab(tab.id as any)}
+                                    className={cn(
+                                        "flex-1 flex items-center justify-center gap-2 py-2 text-[11px] font-bold rounded-lg transition-all",
+                                        activeTab === tab.id 
+                                            ? "bg-white text-slate-900 border border-slate-200/60" 
+                                            : "text-slate-500 hover:text-slate-700 hover:bg-white/50"
+                                    )}
+                                >
+                                    <tab.icon size={13} className={activeTab === tab.id && tab.id === 'ai' ? tab.color : ""} />
+                                    {tab.label}
+                                </button>
+                            ))}
+                        </div>
                     </div>
 
                     {/* Content Area */}
@@ -446,90 +434,97 @@ export const NodeConfigPanel: React.FC<{ nodeExecutionData?: any }> = ({ nodeExe
                         {activeTab === 'config' && (
                             <div className="p-6 space-y-6 overflow-y-auto custom-scrollbar h-full">
                                 {/* Node Label */}
-                                <div className="bg-white p-4 rounded-xl border border-slate-200 shadow-sm">
-                                    <label className="block text-xs font-semibold text-slate-500 mb-2 uppercase tracking-wider">Node Label</label>
-                                    <input 
-                                        type="text" 
-                                        value={label} 
-                                        onChange={handleLabelChange}
-                                        className="w-full bg-slate-50 border border-slate-200 rounded-lg p-2.5 text-sm font-medium text-slate-900 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all"
-                                        placeholder="e.g., Data Processor"
-                                    />
+                                <div className="bg-white p-5 rounded-2xl border border-slate-200">
+                                    <label className="block text-[10px] font-bold text-slate-400 mb-3 uppercase tracking-widest">General Settings</label>
+                                    <div className="space-y-4">
+                                        <div>
+                                            <span className="text-[11px] font-semibold text-slate-600 mb-1.5 block">Display Name</span>
+                                            <input 
+                                                type="text" 
+                                                value={label} 
+                                                onChange={handleLabelChange}
+                                                className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-2.5 text-sm font-medium text-slate-900 focus:outline-none focus:border-indigo-500 transition-all"
+                                                placeholder="e.g., Data Processor"
+                                            />
+                                        </div>
+                                    </div>
                                 </div>
 
                                 {/* Arguments Mapping */}
-                                <div className="bg-white p-4 rounded-xl border border-slate-200 shadow-sm space-y-4">
+                                <div className="bg-white p-5 rounded-2xl border border-slate-200 space-y-4">
                                     <div className="flex items-center justify-between">
-                                        <label className="text-xs font-semibold text-slate-500 uppercase tracking-wider flex items-center gap-1.5">
+                                        <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest flex items-center gap-2">
                                             <Database size={12} />
-                                            Arguments Mapping
+                                            Input Arguments
                                         </label>
                                         <button 
                                             onClick={() => addArg()}
-                                            className="text-xs flex items-center gap-1 text-indigo-600 hover:text-indigo-700 font-medium px-2 py-1 bg-indigo-50 rounded hover:bg-indigo-100 transition-colors"
+                                            className="text-[10px] flex items-center gap-1.5 text-indigo-600 hover:bg-indigo-50 font-bold px-3 py-1.5 rounded-lg border border-indigo-100 transition-colors"
                                         >
-                                            <Plus size={12} /> Add Argument
+                                            <Plus size={11} /> New Arg
                                         </button>
                                     </div>
                                     
                                     <div className="space-y-2">
                                         {Object.entries(config.args || {}).map(([argKey, argValue], idx) => (
                                             <div key={idx} className="flex gap-2 items-center group">
-                                                <input 
-                                                    type="text"
-                                                    value={argKey}
-                                                    onChange={(e) => handleArgChange(e.target.value, argValue as string, argKey)}
-                                                    className="w-28 px-2 py-2 bg-slate-50 border border-slate-200 rounded-lg text-xs font-mono text-slate-700 focus:ring-2 focus:ring-indigo-500/20 outline-none"
-                                                    placeholder="arg_name"
-                                                />
-                                                <div className="flex-1 relative">
-                                                     <input 
+                                                <div className="bg-slate-50 border border-slate-200 rounded-xl px-2 py-1 flex-1 flex items-center gap-2 focus-within:border-indigo-300 transition-all">
+                                                    <input 
+                                                        type="text"
+                                                        value={argKey}
+                                                        onChange={(e) => handleArgChange(e.target.value, argValue as string, argKey)}
+                                                        className="w-24 bg-transparent border-r border-slate-200 text-xs font-bold text-slate-700 outline-none pr-2"
+                                                        placeholder="Key"
+                                                    />
+                                                    <input 
                                                         type="text"
                                                         value={argValue as string}
                                                         onChange={(e) => handleArgChange(argKey, e.target.value)}
-                                                        className="w-full px-2 py-2 bg-slate-50 border border-slate-200 rounded-lg text-xs font-mono text-slate-600 focus:ring-2 focus:ring-indigo-500/20 outline-none"
-                                                        placeholder="{{Node.value}}"
+                                                        className="flex-1 bg-transparent text-xs font-mono text-slate-500 outline-none py-1.5"
+                                                        placeholder="{{Path}}"
                                                     />
                                                 </div>
                                                 <button 
                                                     onClick={() => deleteArg(argKey)}
-                                                    className="p-2 text-slate-300 hover:text-red-500 hover:bg-red-50 rounded-lg transition-colors"
+                                                    className="p-2 text-slate-300 hover:text-red-500 hover:bg-red-50 rounded-xl transition-colors"
                                                 >
                                                     <Trash2 size={14} />
                                                 </button>
                                             </div>
                                         ))}
                                         {Object.keys(config.args || {}).length === 0 && (
-                                            <div className="text-center py-6 border-2 border-dashed border-slate-100 rounded-xl text-slate-500 text-xs italic font-medium">
-                                                Drag variables from the left sidebar or click "+" to add arguments.
+                                            <div className="text-center py-8 bg-slate-50/50 border border-dashed border-slate-200 rounded-xl text-slate-400 text-[10px] font-medium leading-relaxed">
+                                                No arguments mapped.<br/>Drag variables from sidebar to begin.
                                             </div>
                                         )}
                                     </div>
                                 </div>
 
                                 {/* Language Switcher */}
-                                <div className="bg-white p-4 rounded-xl border border-slate-200 shadow-sm">
-                                    <label className="text-xs font-semibold text-slate-500 uppercase tracking-wider flex items-center gap-1.5 mb-3">
-                                        Execution Language
-                                    </label>
-                                    <div className="flex bg-slate-100 p-1 rounded-lg w-fit">
-                                        {['javascript', 'python3'].map(lang => (
-                                            <button
-                                                key={lang}
-                                                onClick={() => handleConfigChange('language', lang)}
-                                                className={cn(
-                                                    "px-6 py-1.5 text-xs font-bold rounded-md transition-all uppercase",
-                                                    config.language === lang 
-                                                        ? "bg-white text-indigo-600 shadow-sm" 
-                                                        : "text-slate-500 hover:text-slate-700"
-                                                )}
-                                            >
-                                                {lang === 'python3' ? 'Python 3' : 'Node.js'}
-                                            </button>
-                                        ))}
+                                <div className="bg-white p-5 rounded-2xl border border-slate-200">
+                                    <div className="flex items-center justify-between mb-4">
+                                        <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest flex items-center gap-2">
+                                            Environment
+                                        </label>
+                                        <div className="flex bg-slate-100 p-0.5 rounded-lg border border-slate-200">
+                                            {['javascript', 'python3'].map(lang => (
+                                                <button
+                                                    key={lang}
+                                                    onClick={() => handleConfigChange('language', lang)}
+                                                    className={cn(
+                                                        "px-4 py-1.5 text-[10px] font-bold rounded-md transition-all uppercase",
+                                                        config.language === lang 
+                                                            ? "bg-white text-slate-900 border border-slate-200/50 shadow-sm" 
+                                                            : "text-slate-500 hover:text-slate-700"
+                                                    )}
+                                                >
+                                                    {lang === 'python3' ? 'Py' : 'JS'}
+                                                </button>
+                                            ))}
+                                        </div>
                                     </div>
-                                    <p className="text-[10px] text-slate-500 mt-2 font-medium">
-                                        Note: Changing language will prompt to reset your code template.
+                                    <p className="text-[11px] text-slate-500 font-medium leading-relaxed">
+                                        Select the language for code execution. Template will be generated automatically.
                                     </p>
                                 </div>
                             </div>
@@ -552,11 +547,11 @@ export const NodeConfigPanel: React.FC<{ nodeExecutionData?: any }> = ({ nodeExe
                                     </div>
 
                                     {/* AI Settings (Credentials & Model) */}
-                                    <div className="grid grid-cols-2 gap-4">
-                                        <div className="bg-slate-50 p-3 rounded-xl border border-slate-200 shadow-sm">
-                                            <div className="flex items-center justify-between mb-2">
-                                                <label className="text-[10px] font-bold text-slate-500 uppercase tracking-wider flex items-center gap-1.5">
-                                                    <Key size={12} /> Credentials
+                                    <div className="grid grid-cols-2 gap-3">
+                                        <div className="bg-slate-50 border border-slate-200 p-3 rounded-xl">
+                                            <div className="flex items-center justify-between mb-2 px-1">
+                                                <label className="text-[9px] font-bold text-slate-400 uppercase tracking-widest flex items-center gap-1.5">
+                                                    <Key size={10} /> Key
                                                 </label>
                                                 <button 
                                                     onClick={() => setIsCredentialModalOpen(true)}
@@ -568,24 +563,22 @@ export const NodeConfigPanel: React.FC<{ nodeExecutionData?: any }> = ({ nodeExe
                                             <select
                                                 value={config.credentialId || ''}
                                                 onChange={(e) => handleConfigChange('credentialId', e.target.value)}
-                                                className="w-full px-2 py-1.5 bg-white border border-slate-200 rounded-lg text-[11px] focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all cursor-pointer"
+                                                className="w-full px-2 py-1.5 bg-white border border-slate-200 rounded-lg text-[11px] font-bold text-slate-700 focus:outline-none focus:border-indigo-500 transition-all cursor-pointer appearance-none"
                                             >
                                                 <option value="">Select Key...</option>
                                                 {geminiCredentials.map((cred: any) => (
-                                                    <option key={cred._id} value={cred._id}>
-                                                        {cred.name}
-                                                    </option>
+                                                    <option key={cred._id} value={cred._id}>{cred.name}</option>
                                                 ))}
                                             </select>
                                         </div>
-                                        <div className="bg-slate-50 p-3 rounded-xl border border-slate-200 shadow-sm">
-                                            <label className="text-[10px] font-bold text-slate-500 uppercase tracking-wider flex items-center gap-1.5 mb-2">
-                                                <Box size={12} /> Model
+                                        <div className="bg-slate-50 border border-slate-200 p-3 rounded-xl">
+                                            <label className="text-[9px] font-bold text-slate-400 uppercase tracking-widest flex items-center gap-1.5 mb-2 px-1">
+                                                <Box size={10} /> Model
                                             </label>
                                             <select
                                                 value={config.modelName || 'gemini-1.5-flash'}
                                                 onChange={(e) => handleConfigChange('modelName', e.target.value)}
-                                                className="w-full px-2 py-1.5 bg-white border border-slate-200 rounded-lg text-[11px] focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all cursor-pointer"
+                                                className="w-full px-2 py-1.5 bg-white border border-slate-200 rounded-lg text-[11px] font-bold text-slate-700 focus:outline-none focus:border-indigo-500 transition-all cursor-pointer appearance-none"
                                             >
                                                 <option value="gemini-1.5-flash">1.5 Flash</option>
                                                 <option value="gemini-1.5-pro">1.5 Pro</option>
@@ -620,7 +613,7 @@ export const NodeConfigPanel: React.FC<{ nodeExecutionData?: any }> = ({ nodeExe
                                                         key={i}
                                                         onClick={() => handleAiGenerate(idea)}
                                                         disabled={isAiLoading}
-                                                        className="text-left px-3 py-2 text-xs text-slate-700 bg-slate-50 border border-slate-100 rounded-lg hover:border-indigo-300 hover:bg-white hover:shadow-sm transition-all group flex items-center justify-between"
+                                                        className="text-left px-3 py-2 text-[11px] font-semibold text-slate-600 bg-white border border-slate-200 rounded-xl hover:border-indigo-400 hover:text-indigo-600 transition-all group flex items-center justify-between"
                                                     >
                                                         <span>{idea}</span>
                                                         <Plus size={12} className="text-slate-300 group-hover:text-indigo-500" />
@@ -645,9 +638,9 @@ export const NodeConfigPanel: React.FC<{ nodeExecutionData?: any }> = ({ nodeExe
                                                         {msg.content}
                                                     </div>
                                                     {msg.code && (
-                                                        <div className="mt-2 w-full bg-[#f6f8fa] border border-slate-200 rounded-lg overflow-hidden flex flex-col">
-                                                            <div className="flex justify-between items-center px-3 py-1.5 border-b border-slate-200 bg-slate-50">
-                                                                <span className="text-[9px] font-bold text-slate-400 uppercase">{config.language}</span>
+                                                        <div className="mt-2 w-full bg-slate-50 border border-slate-200 rounded-xl overflow-hidden flex flex-col">
+                                                            <div className="flex justify-between items-center px-3 py-1.5 border-b border-slate-200 bg-white/50">
+                                                                <span className="text-[9px] font-bold text-slate-400 uppercase tracking-widest">{config.language} Output</span>
                                                                 <button 
                                                                     onClick={() => {
                                                                         handleConfigChange('code', msg.code);
@@ -655,7 +648,7 @@ export const NodeConfigPanel: React.FC<{ nodeExecutionData?: any }> = ({ nodeExe
                                                                     }}
                                                                     className="text-[9px] text-indigo-600 font-bold hover:underline py-0.5 px-2 rounded hover:bg-indigo-50"
                                                                 >
-                                                                    Apply Code
+                                                                    Include Code
                                                                 </button>
                                                             </div>
                                                             <pre className="p-3 text-[11px] font-mono text-slate-700 overflow-x-auto whitespace-pre-wrap">
@@ -682,14 +675,14 @@ export const NodeConfigPanel: React.FC<{ nodeExecutionData?: any }> = ({ nodeExe
                                                     handleAiGenerate(userPrompt);
                                                 }
                                             }}
-                                            placeholder="Ask me to write code..."
+                                            placeholder="Ask code assistant..."
                                             rows={2}
-                                            className="w-full pl-4 pr-12 py-3 bg-slate-50 border border-slate-200 rounded-xl text-xs focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all resize-none shadow-inner"
+                                            className="w-full pl-4 pr-12 py-3 bg-slate-50 border border-slate-200 rounded-2xl text-[11px] font-medium focus:outline-none focus:border-indigo-400 transition-all resize-none"
                                         />
                                         <button 
                                             onClick={() => handleAiGenerate(userPrompt)}
                                             disabled={!userPrompt.trim() || isAiLoading}
-                                            className="absolute right-2 bottom-2 p-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 disabled:opacity-50 transition-all shadow-md active:scale-90"
+                                            className="absolute right-2.5 bottom-2.5 p-2 bg-slate-900 text-white rounded-xl hover:bg-black disabled:opacity-30 transition-all active:scale-95"
                                         >
                                             <Send size={14} />
                                         </button>
@@ -710,12 +703,12 @@ export const NodeConfigPanel: React.FC<{ nodeExecutionData?: any }> = ({ nodeExe
                                     </span>
                                     <button 
                                         onClick={regenerateCode}
-                                        className="text-[10px] text-indigo-500 hover:text-indigo-700 font-bold flex items-center gap-1"
+                                        className="text-[10px] text-slate-400 hover:text-indigo-600 font-bold transition-colors flex items-center gap-1.5"
                                     >
-                                        <RefreshCw size={10} /> Reset Template
+                                        <RefreshCw size={11} /> Reset Template
                                     </button>
                                 </div>
-                                <div className="flex-1 bg-[#f6f8fa] rounded-xl overflow-hidden shadow-sm border border-slate-200 flex flex-col group relative">
+                                <div className="flex-1 bg-white rounded-2xl border border-slate-200 overflow-hidden flex flex-col group relative">
                                     <div className="flex-1 overflow-auto custom-scrollbar">
                                         <Editor
                                             value={config.code || ''}
@@ -753,15 +746,15 @@ export const NodeConfigPanel: React.FC<{ nodeExecutionData?: any }> = ({ nodeExe
                                     <div className="space-y-6">
                                         {/* Status Banner */}
                                         <div className={cn(
-                                            "p-4 rounded-xl border border-l-4 shadow-sm",
-                                            executionResult.success ? "bg-emerald-50 border-emerald-200 border-l-emerald-500" : "bg-red-50 border-red-200 border-l-red-500"
+                                            "p-4 rounded-2xl border-2",
+                                            executionResult.success ? "bg-emerald-50 border-emerald-100" : "bg-red-50 border-red-100"
                                         )}>
                                             <div className="flex justify-between items-center mb-1">
-                                                <span className={cn("text-sm font-bold", executionResult.success ? "text-emerald-700" : "text-red-700")}>
-                                                    {executionResult.success ? 'Execution Successful' : 'Execution Failed'}
+                                                <span className={cn("text-xs font-bold uppercase tracking-wider", executionResult.success ? "text-emerald-700" : "text-red-700")}>
+                                                    {executionResult.success ? 'Success' : 'Failed'}
                                                 </span>
-                                                <span className="text-[10px] font-mono text-slate-400 uppercase">
-                                                    {executionResult.status}
+                                                <span className="text-[10px] font-mono text-slate-400 font-bold">
+                                                    ST: {executionResult.status}
                                                 </span>
                                             </div>
                                             {executionResult.error && (
@@ -787,17 +780,17 @@ export const NodeConfigPanel: React.FC<{ nodeExecutionData?: any }> = ({ nodeExe
 
                                         {/* Logs */}
                                         <div className="space-y-2">
-                                            <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest px-1">Console Logs</label>
-                                            <div className="bg-slate-900 rounded-xl border border-slate-800 p-4 shadow-inner max-h-[300px] overflow-y-auto custom-scrollbar">
+                                            <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest px-1">Runtime Logs</label>
+                                            <div className="bg-slate-900 rounded-2xl border border-slate-800 p-5 max-h-[300px] overflow-y-auto custom-scrollbar">
                                                 {executionResult.logs && executionResult.logs.length > 0 ? (
                                                     <div className="space-y-1.5 font-mono">
                                                         {executionResult.logs.map((log: any, i: number) => (
-                                                            <div key={i} className="text-[11px] border-b border-white/5 pb-1 mb-1 last:border-0 last:mb-0">
-                                                                <div className="flex items-center gap-2 mb-0.5">
+                                                            <div key={i} className="text-[11px] border-b border-white/5 pb-1.5 mb-1.5 last:border-0 last:mb-0">
+                                                                <div className="flex items-center gap-2 mb-1">
                                                                     <span className={cn(
-                                                                        "text-[9px] font-bold px-1 rounded",
+                                                                        "text-[8px] font-bold px-1.5 py-0.5 rounded",
                                                                         log.level === 'ERROR' ? "bg-red-500 text-white" :
-                                                                        log.level === 'WARN' ? "bg-yellow-500 text-black" : "bg-blue-500 text-white"
+                                                                        log.level === 'WARN' ? "bg-amber-500 text-black" : "bg-emerald-500 text-white"
                                                                     )}>
                                                                         {log.level}
                                                                     </span>
@@ -827,26 +820,35 @@ export const NodeConfigPanel: React.FC<{ nodeExecutionData?: any }> = ({ nodeExe
                     </div>
 
                     {/* Footer Action Bar */}
-                    <div className="p-4 border-t border-slate-100 bg-white flex items-center justify-between gap-4">
+                    <div className="p-5 border-t border-slate-100 bg-white flex items-center justify-between">
                         <button
                             onClick={() => setSelectedNode(null)}
-                            className="px-6 py-2 text-sm font-medium text-slate-500 hover:text-slate-700 hover:bg-slate-50 rounded-lg transition-all"
+                            className="px-5 py-2 text-xs font-bold text-slate-400 hover:text-slate-900 border border-slate-200 rounded-xl hover:bg-slate-50 transition-all uppercase tracking-widest"
                         >
-                            Close
+                            Dismiss
                         </button>
-                        <button 
-                            onClick={handleExecuteNode}
-                            disabled={isExecuting}
-                            className={cn(
-                                "flex-1 flex justify-center items-center gap-2 px-6 py-2 rounded-lg font-bold text-white shadow-lg transition-all",
-                                isExecuting 
-                                    ? "bg-slate-100 text-slate-400 cursor-not-allowed" 
-                                    : "bg-indigo-600 hover:bg-indigo-700 shadow-indigo-100 hover:scale-[1.02] active:scale-95"
-                            )}
-                        >
-                            {isExecuting ? <RefreshCw className="animate-spin" size={16} /> : <Zap size={16} fill="currentColor" />}
-                            {isExecuting ? 'Executing...' : 'Run & Test Code'}
-                        </button>
+                        <div className="flex items-center gap-3">
+                            <span className="text-[10px] text-slate-400 font-mono font-bold hidden md:inline-block">CTRL + ENTER</span>
+                            <button 
+                                onClick={handleExecuteNode}
+                                disabled={isExecuting}
+                                className={cn(
+                                    "flex items-center gap-2.5 px-6 py-2.5 rounded-xl font-bold text-[11px] uppercase tracking-wider transition-all border",
+                                    isExecuting 
+                                        ? "bg-slate-50 text-slate-300 border-slate-100 cursor-not-allowed" 
+                                        : "bg-blue-600 text-white border-blue-600 hover:bg-blue-700 hover:border-blue-700 active:scale-95"
+                                )}
+                            >
+                                {isExecuting ? (
+                                    <RefreshCw className="animate-spin" size={12} />
+                                ) : (
+                                    <div className="w-4 h-4 rounded-md bg-blue-400/30 flex items-center justify-center">
+                                        <Zap size={10} fill="white" stroke="white" />
+                                    </div>
+                                )}
+                                {isExecuting ? 'Processing...' : 'Run Analysis'}
+                            </button>
+                        </div>
                     </div>
                 </div>
             </div>

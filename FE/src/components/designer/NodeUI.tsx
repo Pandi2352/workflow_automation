@@ -25,7 +25,7 @@ export type NodeProps = ComponentProps<typeof Card> & {
 export const Node = ({ handles, className, status, selected, isConnectable, ...props }: NodeProps) => (
   <Card
     className={cn(
-      "node-container relative h-auto w-auto min-w-[200px] max-w-[280px] rounded-xl bg-white shadow-sm transition-all duration-200 border border-slate-200 hover:shadow-md hover:border-slate-300 hover:-translate-y-0.5",
+      "node-container group relative h-auto w-auto min-w-[200px] max-w-[280px] rounded-xl bg-white shadow-sm transition-all duration-200 border border-slate-200 hover:shadow-md hover:border-slate-300 hover:-translate-y-0.5",
       status === "success" && "border-green-500 ring-2 ring-green-500/10",
       status === "error" && "border-red-500 ring-2 ring-red-500/10",
       selected && "border-indigo-500 ring-2 ring-indigo-500/20 shadow-lg",
