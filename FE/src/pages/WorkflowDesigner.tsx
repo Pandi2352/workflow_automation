@@ -47,7 +47,7 @@ export const WorkflowDesigner: React.FC = () => {
     const navigate = useNavigate();
     const { 
         nodes, edges, setNodes, setEdges, selectedNode, addNode, activeTab,
-        setWorkflowMetadata, workflowName, workflowDescription, isWorkflowActive,
+        setWorkflowMetadata, workflowName, workflowDescription, isWorkflowActive, maxConcurrency,
         toast, showToast, hideToast, executionTrigger, 
         currentExecution, setCurrentExecution,
         isDirty, setIsDirty, resetWorkflowStore
@@ -141,7 +141,8 @@ export const WorkflowDesigner: React.FC = () => {
                 setWorkflowMetadata({
                     workflowName: workflow.name,
                     workflowDescription: workflow.description,
-                    isWorkflowActive: workflow.isActive
+                    isWorkflowActive: workflow.isActive,
+                    maxConcurrency: workflow.settings?.maxConcurrency ?? 2
                 });
                 setIsDirty(false); // Reset dirty flag
 
@@ -169,11 +170,12 @@ export const WorkflowDesigner: React.FC = () => {
 
 
 
-    const handleMetadataSave = (data: { name: string; description: string; active: boolean }) => {
+    const handleMetadataSave = (data: { name: string; description: string; active: boolean; maxConcurrency: number }) => {
         setWorkflowMetadata({
             workflowName: data.name,
             workflowDescription: data.description,
-            isWorkflowActive: data.active
+            isWorkflowActive: data.active,
+            maxConcurrency: data.maxConcurrency
         });
     };
 
@@ -195,7 +197,10 @@ export const WorkflowDesigner: React.FC = () => {
                     selected: n.selected,
                     dragging: n.dragging
                 })) as any,
-                edges: edges as any
+                edges: edges as any,
+                settings: {
+                    maxConcurrency
+                }
             };
 
             if (id === 'new') {
@@ -493,7 +498,8 @@ export const WorkflowDesigner: React.FC = () => {
                 initialData={{
                     name: workflowName,
                     description: workflowDescription || '',
-                    active: isWorkflowActive ?? true
+                    active: isWorkflowActive ?? true,
+                    maxConcurrency
                 }}
             />
 

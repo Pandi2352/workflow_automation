@@ -128,7 +128,9 @@ export const ExecutionSidebar: React.FC<ExecutionSidebarProps> = ({
                             <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full uppercase
                                 ${exec.status === 'COMPLETED' ? 'bg-green-100 text-green-700' : 
                                   exec.status === 'FAILED' ? 'bg-red-100 text-red-700' : 
-                                  'bg-blue-100 text-blue-700'}`}>
+                                  exec.status === 'QUEUED' ? 'bg-amber-100 text-amber-700' :
+                                  exec.status === 'RUNNING' ? 'bg-blue-100 text-blue-700' :
+                                  'bg-gray-100 text-gray-700'}`}>
                                 {exec.status}
                             </span>
                         </div>

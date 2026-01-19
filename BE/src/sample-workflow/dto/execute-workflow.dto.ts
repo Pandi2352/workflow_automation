@@ -27,6 +27,13 @@ export class ExecuteWorkflowDto {
     @IsOptional()
     continueOnError?: boolean;
 
+    @ApiPropertyOptional({ description: 'Max concurrent executions per workflow' })
+    @IsNumber()
+    @IsOptional()
+    @Min(1)
+    @Max(50)
+    maxConcurrency?: number;
+
     @ApiPropertyOptional({ description: 'Custom trigger data to pass to the workflow' })
     @IsObject()
     @IsOptional()

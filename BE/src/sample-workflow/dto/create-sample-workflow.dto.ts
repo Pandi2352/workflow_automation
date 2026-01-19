@@ -237,6 +237,13 @@ class WorkflowSettingsDto {
     @IsBoolean()
     @IsOptional()
     continueOnError?: boolean;
+
+    @ApiPropertyOptional({ description: 'Max concurrent executions per workflow', default: 2 })
+    @IsNumber()
+    @IsOptional()
+    @Min(1)
+    @Max(50)
+    maxConcurrency?: number;
 }
 
 export class CreateSampleWorkflowDto {

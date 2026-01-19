@@ -18,6 +18,9 @@ export interface SampleWorkflow {
     nodes: WorkflowNode[];
     edges: WorkflowEdge[];
     variables?: Record<string, any>;
+    settings?: {
+        maxConcurrency?: number;
+    };
     createdAt: string;
     updatedAt: string;
     isActive: boolean;
@@ -29,6 +32,9 @@ export interface CreateWorkflowPayload {
     active?: boolean;
     nodes: WorkflowNode[];
     edges: WorkflowEdge[];
+    settings?: {
+        maxConcurrency?: number;
+    };
 }
 
 export interface ExecutionHistory {
@@ -36,7 +42,7 @@ export interface ExecutionHistory {
     workflowId: string;
     workflowName: string;
     executionNumber: number;
-    status: 'PENDING' | 'RUNNING' | 'COMPLETED' | 'FAILED' | 'CANCELLED';
+    status: 'PENDING' | 'QUEUED' | 'RUNNING' | 'COMPLETED' | 'FAILED' | 'CANCELLED';
     startTime?: string;
     endTime?: string;
     duration?: number;

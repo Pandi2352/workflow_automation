@@ -25,6 +25,22 @@ const formatTime = (dateString: string, includeMs = false) => {
     }
 };
 
+const getStatusBadgeClass = (status: string) => {
+    switch (status) {
+        case 'COMPLETED':
+            return 'bg-green-500 text-green-700';
+        case 'FAILED':
+            return 'bg-red-500 text-red-700';
+        case 'QUEUED':
+            return 'bg-amber-500 text-amber-800';
+        case 'RUNNING':
+            return 'bg-blue-500 text-blue-700';
+        case 'PENDING':
+        default:
+            return 'bg-gray-400 text-gray-800';
+    }
+};
+
 interface ExecutionPanelProps {
     workflowId: string;
     isOpen: boolean;
@@ -108,9 +124,7 @@ export const ExecutionPanel: React.FC<ExecutionPanelProps> = ({
                         >
                             <div className="flex justify-between items-start mb-1">
                                 <span className={`text-xs font-bold px-2 py-0.5 rounded-full bg-opacity-10 
-                                    ${exec.status === 'COMPLETED' ? 'bg-green-500 text-green-700' : 
-                                      exec.status === 'FAILED' ? 'bg-red-500 text-red-700' : 
-                                      'bg-blue-500 text-blue-700'}`}>
+                                    ${getStatusBadgeClass(exec.status)}`}>
                                     {exec.status}
                                 </span>
                                 <span className="text-[10px] text-gray-400">
@@ -119,7 +133,7 @@ export const ExecutionPanel: React.FC<ExecutionPanelProps> = ({
                             </div>
                             <div className="text-xs text-gray-500 mt-1 flex items-center gap-1">
                                 <Clock size={10} />
-                                {exec.duration ? `${exec.duration}ms` : 'Running...'}
+                                {exec.duration ? `${exec.duration}ms` : exec.status === 'QUEUED' ? 'Queued' : 'Running...'}
                             </div>
                         </div>
                     ))}

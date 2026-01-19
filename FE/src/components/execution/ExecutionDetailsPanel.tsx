@@ -16,6 +16,38 @@ const formatTime = (dateString: string, includeMs = false) => {
     } catch (e) { return '-'; }
 };
 
+const getExecutionStatusTextClass = (status: string) => {
+    switch (status) {
+        case 'COMPLETED':
+            return 'text-green-600';
+        case 'FAILED':
+            return 'text-red-600';
+        case 'QUEUED':
+            return 'text-amber-700';
+        case 'RUNNING':
+            return 'text-blue-600';
+        case 'PENDING':
+        default:
+            return 'text-gray-600';
+    }
+};
+
+const getExecutionStatusBadgeClass = (status: string) => {
+    switch (status) {
+        case 'COMPLETED':
+            return 'bg-green-100 text-green-700';
+        case 'FAILED':
+            return 'bg-red-100 text-red-700';
+        case 'QUEUED':
+            return 'bg-amber-100 text-amber-700';
+        case 'RUNNING':
+            return 'bg-blue-100 text-blue-700';
+        case 'PENDING':
+        default:
+            return 'bg-gray-100 text-gray-700';
+    }
+};
+
 interface ExecutionDetailsPanelProps {
     execution: any;
     selectedNodeId?: string | null;
@@ -118,7 +150,7 @@ export const ExecutionDetailsPanel: React.FC<ExecutionDetailsPanelProps> = ({ ex
                         <div className="grid grid-cols-4 gap-4">
                             <div className="p-3 bg-gray-50 rounded-lg border border-gray-100">
                                 <span className="text-xs text-gray-500 uppercase font-semibold">Status</span>
-                                <div className={`mt-1 font-bold ${execution.status === 'COMPLETED' ? 'text-green-600' : 'text-blue-600'}`}>
+                                <div className={`mt-1 font-bold ${getExecutionStatusTextClass(execution.status)}`}>
                                     {execution.status}
                                 </div>
                             </div>
@@ -315,7 +347,7 @@ export const ExecutionDetailsPanel: React.FC<ExecutionDetailsPanelProps> = ({ ex
                         </span>
                         {execution && (
                             <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full uppercase ml-2 
-                                ${execution.status === 'COMPLETED' ? 'bg-green-100 text-green-700' : 'bg-blue-100 text-blue-700'}`}>
+                                ${getExecutionStatusBadgeClass(execution.status)}`}>
                                 {execution.status}
                             </span>
                         )}

@@ -7,11 +7,12 @@ import { Button } from '../../common/Button';
 interface WorkflowMetadataModalProps {
     isOpen: boolean;
     onClose: () => void;
-    onSave: (data: { name: string; description: string; active: boolean }) => void;
+    onSave: (data: { name: string; description: string; active: boolean; maxConcurrency: number }) => void;
     initialData?: {
         name: string;
         description: string;
         active: boolean;
+        maxConcurrency?: number;
     };
 }
 
@@ -24,23 +25,26 @@ export const WorkflowMetadataModal: React.FC<WorkflowMetadataModalProps> = ({
     const [name, setName] = useState('');
     const [description, setDescription] = useState('');
     const [active, setActive] = useState(true);
+    const [maxConcurrency, setMaxConcurrency] = useState(2);
 
     useEffect(() => {
         if (isOpen && initialData) {
             setName(initialData.name);
             setDescription(initialData.description || '');
             setActive(initialData.active ?? true);
+            setMaxConcurrency(initialData.maxConcurrency ?? 2);
         } else if (isOpen) {
             // Defaults for new
             setName('Untitled Workflow');
             setDescription('');
             setActive(true);
+            setMaxConcurrency(2);
         }
     }, [isOpen, initialData]);
 
     const handleSubmit = (e: React.FormEvent) => {
         e.preventDefault();
-        onSave({ name, description, active });
+        onSave({ name, description, active, maxConcurrency });
         onClose();
     };
 
@@ -85,6 +89,24 @@ export const WorkflowMetadataModal: React.FC<WorkflowMetadataModalProps> = ({
                     <label htmlFor="active-toggle" className="text-sm font-medium text-slate-700 select-none cursor-pointer">
                         Enable Workflow
                     </label>
+                </div>
+
+                <div>
+                    <label className="block text-sm font-medium text-slate-700 mb-1">
+                        Max Concurrency
+                    </label>
+                    <input
+                        type="number"
+                        min={1}
+                        max={20}
+                        value={maxConcurrency}
+                        onChange={(e) => setMaxConcurrency(Math.max(1, Number(e.target.value) || 1))}
+                        className="w-full px-3 py-2 border border-slate-300 rounded-md focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-transparent"
+                        placeholder="2"
+                    />
+                    <p className="mt-1 text-xs text-slate-500">
+                        Limit how many executions for this workflow can run at the same time.
+                    </p>
                 </div>
 
                 <div className="flex justify-end gap-2 pt-4 border-t border-slate-100 mt-6">

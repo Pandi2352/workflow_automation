@@ -43,6 +43,7 @@ export interface WorkflowExecutionOptions {
     maxRetries?: number;
     continueOnError?: boolean;
     waitForCompletion?: boolean;
+    maxConcurrency?: number;
 }
 
 export interface INodeStrategy {

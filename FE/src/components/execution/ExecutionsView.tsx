@@ -39,6 +39,7 @@ export const ExecutionsView: React.FC = () => {
         switch (status?.toLowerCase()) {
             case 'completed': return <CheckCircle2 size={16} className="text-green-500" />;
             case 'failed': return <XCircle size={16} className="text-red-500" />;
+            case 'queued': return <RotateCcw size={16} className="text-amber-500 animate-spin" />;
             case 'running': 
             case 'pending': return <RotateCcw size={16} className="text-blue-500 animate-spin" />;
             default: return <RotateCcw size={16} className="text-slate-400" />;
@@ -49,6 +50,7 @@ export const ExecutionsView: React.FC = () => {
         switch (status?.toLowerCase()) {
             case 'completed': return 'success';
             case 'failed': return 'error';
+            case 'queued': return 'warning';
             case 'running': 
             case 'pending': return 'default';
             default: return 'default';
@@ -122,7 +124,10 @@ export const ExecutionsView: React.FC = () => {
                                 <div className="flex items-center gap-2 text-xs text-slate-500">
                                      <span className={
                                          exec.status === 'COMPLETED' ? 'text-green-600' : 
-                                         exec.status === 'FAILED' ? 'text-red-500' : 'text-blue-500'
+                                         exec.status === 'FAILED' ? 'text-red-500' : 
+                                         exec.status === 'QUEUED' ? 'text-amber-600' :
+                                         exec.status === 'RUNNING' ? 'text-blue-500' :
+                                         'text-gray-500'
                                      }>
                                          {exec.status}
                                      </span>

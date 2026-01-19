@@ -219,6 +219,7 @@ export class SampleWorkflowService {
             maxRetries: executeDto?.maxRetries || workflow.settings?.maxRetries,
             retryFailedNodes: executeDto?.retryFailedNodes,
             continueOnError: executeDto?.continueOnError || workflow.settings?.continueOnError,
+            maxConcurrency: executeDto?.maxConcurrency || workflow.settings?.maxConcurrency,
         };
 
         const executionId = await this.executorService.startExecution(
@@ -268,6 +269,7 @@ export class SampleWorkflowService {
             maxRetries: executeDto?.maxRetries || workflow.settings?.maxRetries,
             retryFailedNodes: executeDto?.retryFailedNodes,
             continueOnError: executeDto?.continueOnError || workflow.settings?.continueOnError,
+            maxConcurrency: executeDto?.maxConcurrency || workflow.settings?.maxConcurrency,
         };
 
         const executionId = await this.executorService.createExecutionEntry(

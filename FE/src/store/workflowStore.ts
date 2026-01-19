@@ -57,7 +57,8 @@ interface WorkflowState {
     workflowName: string;
     workflowDescription: string;
     isWorkflowActive: boolean;
-    setWorkflowMetadata: (metadata: Partial<{ workflowName: string; workflowDescription: string; isWorkflowActive: boolean }>) => void;
+    maxConcurrency: number;
+    setWorkflowMetadata: (metadata: Partial<{ workflowName: string; workflowDescription: string; isWorkflowActive: boolean; maxConcurrency: number }>) => void;
 
     nodeDefinitions: any[];
     fetchNodeDefinitions: () => Promise<void>;
@@ -241,6 +242,7 @@ export const useWorkflowStore = create<WorkflowState>()((set, get) => ({
     workflowName: 'Untitled Workflow',
     workflowDescription: '',
     isWorkflowActive: true,
+    maxConcurrency: 2,
     setWorkflowMetadata: (metadata) => set((state) => ({ ...state, ...metadata })),
 
     nodeDefinitions: [],
@@ -293,6 +295,7 @@ export const useWorkflowStore = create<WorkflowState>()((set, get) => ({
             workflowName: 'Untitled Workflow',
             workflowDescription: '',
             isWorkflowActive: true,
+            maxConcurrency: 2,
             currentExecution: null,
             isExecuting: false,
             executionTrigger: 0,

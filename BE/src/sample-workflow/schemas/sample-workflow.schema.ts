@@ -367,6 +367,7 @@ export class SampleWorkflow {
         timeout?: number;
         maxRetries?: number;
         continueOnError?: boolean;
+        maxConcurrency?: number;
     };
 
     @Prop({ type: [String], default: [] })

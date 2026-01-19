@@ -37,7 +37,7 @@ export const ExecutionModeView: React.FC = () => {
 
     // Poll selected execution if it is running
     React.useEffect(() => {
-        if (!selectedExecution || (selectedExecution.status !== 'RUNNING' && selectedExecution.status !== 'PENDING')) return;
+        if (!selectedExecution || (selectedExecution.status !== 'RUNNING' && selectedExecution.status !== 'PENDING' && selectedExecution.status !== 'QUEUED')) return;
 
         const intervalId = setInterval(async () => {
              try {

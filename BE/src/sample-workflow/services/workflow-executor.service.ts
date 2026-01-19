@@ -21,6 +21,19 @@ interface ActiveExecution {
     timeoutId?: NodeJS.Timeout;
 }
 
+interface RetryPolicy {
+    maxRetries: number;
+    baseDelayMs: number;
+    maxDelayMs: number;
+    jitter: number; // 0.2 => +/-20%
+}
+
+interface QueuedExecution {
+    executionId: string;
+    workflow: SampleWorkflowDocument;
+    options: WorkflowExecutionOptions;
+}
+
 /**
  * Internal structure to track node data during execution
  * Used for expression evaluation context
@@ -50,6 +63,8 @@ interface ExecutionNodeData {
 export class WorkflowExecutorService {
     private readonly logger = new Logger(WorkflowExecutorService.name);
     private activeExecutions: Map<string, ActiveExecution> = new Map();
+    private workflowQueues: Map<string, QueuedExecution[]> = new Map();
+    private workflowActiveCounts: Map<string, number> = new Map();
 
     constructor(
         @InjectModel(WorkflowHistory.name) private historyModel: Model<WorkflowHistoryDocument>,
@@ -122,6 +137,64 @@ export class WorkflowExecutorService {
     }
 
     async runExecution(
+        executionId: string,
+        workflow: SampleWorkflowDocument,
+        options: WorkflowExecutionOptions,
+    ): Promise<void> {
+        await this.enqueueOrRunExecution(executionId, workflow, options);
+    }
+
+    private getConcurrencyLimit(
+        workflow: SampleWorkflowDocument,
+        options: WorkflowExecutionOptions,
+    ): number {
+        return options.maxConcurrency
+            ?? workflow.settings?.maxConcurrency
+            ?? 2;
+    }
+
+    private async enqueueOrRunExecution(
+        executionId: string,
+        workflow: SampleWorkflowDocument,
+        options: WorkflowExecutionOptions,
+    ): Promise<void> {
+        const workflowId = workflow._id.toString();
+        const limit = this.getConcurrencyLimit(workflow, options);
+        const active = this.workflowActiveCounts.get(workflowId) || 0;
+
+        if (active < limit) {
+            this.workflowActiveCounts.set(workflowId, active + 1);
+            await this.runExecutionInternal(executionId, workflow, options);
+            return;
+        }
+
+        const queue = this.workflowQueues.get(workflowId) || [];
+        queue.push({ executionId, workflow, options });
+        this.workflowQueues.set(workflowId, queue);
+
+        await this.updateExecutionStatus(executionId, ExecutionStatus.QUEUED);
+        await this.addLog(
+            executionId,
+            LogLevel.INFO,
+            `Execution queued. Active: ${active}/${limit}`,
+        );
+    }
+
+    private async startNextInQueue(workflowId: string): Promise<void> {
+        const queue = this.workflowQueues.get(workflowId) || [];
+        if (queue.length === 0) return;
+
+        const next = queue.shift();
+        if (!next) return;
+        this.workflowQueues.set(workflowId, queue);
+
+        const active = this.workflowActiveCounts.get(workflowId) || 0;
+        this.workflowActiveCounts.set(workflowId, active + 1);
+
+        await this.runExecutionInternal(next.executionId, next.workflow, next.options);
+    }
+
+    private async runExecutionInternal(
         executionId: string,
         workflow: SampleWorkflowDocument,
         options: WorkflowExecutionOptions,
@@ -566,7 +639,8 @@ export class WorkflowExecutorService {
             },
         );
 
-        const maxRetries = options.maxRetries || 3;
+        const retryPolicy = this.resolveRetryPolicy(node.type, options, evaluatedData?.config?.retryPolicy);
+        const maxRetries = retryPolicy.maxRetries;
         let retryCount = 0;
         let lastError: ErrorDetail | undefined;
 
@@ -646,15 +720,16 @@ export class WorkflowExecutorService {
 
                     retryCount++;
                     if (retryCount <= maxRetries && options.retryFailedNodes !== false) {
+                        const delay = this.computeBackoffDelay(retryPolicy, retryCount);
                         await this.addLog(
                             executionId,
                             LogLevel.WARN,
-                            `Node ${node.nodeName} failed, retrying (${retryCount}/${maxRetries}): ${result.error}`,
+                            `Node ${node.nodeName} failed, retrying (${retryCount}/${maxRetries}) in ${delay}ms: ${result.error}`,
                             node.id,
                             node.nodeName,
                         );
                         await this.updateNodeRetryCount(executionId, node.id, retryCount);
-                        await new Promise(resolve => setTimeout(resolve, 1000 * retryCount));
+                        await new Promise(resolve => setTimeout(resolve, delay));
                     }
                 }
             } catch (error) {
@@ -673,15 +748,16 @@ export class WorkflowExecutorService {
 
                 retryCount++;
                 if (retryCount <= maxRetries && options.retryFailedNodes !== false) {
+                    const delay = this.computeBackoffDelay(retryPolicy, retryCount);
                     await this.addLog(
                         executionId,
                         LogLevel.WARN,
-                        `Node ${node.nodeName} threw exception, retrying (${retryCount}/${maxRetries}): ${errorMessage}`,
+                        `Node ${node.nodeName} threw exception, retrying (${retryCount}/${maxRetries}) in ${delay}ms: ${errorMessage}`,
                         node.id,
                         node.nodeName,
                     );
                     await this.updateNodeRetryCount(executionId, node.id, retryCount);
-                    await new Promise(resolve => setTimeout(resolve, 1000 * retryCount));
+                    await new Promise(resolve => setTimeout(resolve, delay));
                 }
             }
         }
@@ -816,6 +892,8 @@ export class WorkflowExecutorService {
         await this.addLog(executionId, LogLevel.WARN, `Execution cancelled by ${cancelledBy}: ${reason || 'No reason provided'}`);
 
         this.activeExecutions.delete(executionId);
+        this.removeFromQueue(executionId);
+        await this.onExecutionFinished(executionId);
         return true;
     }
 
@@ -987,6 +1065,29 @@ export class WorkflowExecutorService {
             clearTimeout(activeExec.timeoutId);
         }
         this.activeExecutions.delete(executionId);
+        await this.onExecutionFinished(executionId);
+    }
+
+    private async onExecutionFinished(executionId: string): Promise<void> {
+        const history = await this.historyModel.findById(executionId).select('workflowId').exec();
+        if (!history) return;
+
+        const workflowId = history.workflowId.toString();
+        const active = this.workflowActiveCounts.get(workflowId) || 0;
+        const nextActive = Math.max(active - 1, 0);
+        this.workflowActiveCounts.set(workflowId, nextActive);
+
+        await this.startNextInQueue(workflowId);
+    }
+
+    private removeFromQueue(executionId: string): void {
+        for (const [workflowId, queue] of this.workflowQueues.entries()) {
+            const nextQueue = queue.filter(item => item.executionId !== executionId);
+            if (nextQueue.length !== queue.length) {
+                this.workflowQueues.set(workflowId, nextQueue);
+                break;
+            }
+        }
     }
 
     isExecutionActive(executionId: string): boolean {
@@ -998,6 +1099,44 @@ export class WorkflowExecutorService {
     }
 
     // ==================== HELPER METHODS ====================
+
+    private resolveRetryPolicy(
+        nodeType: string,
+        options: WorkflowExecutionOptions,
+        nodePolicy?: Partial<RetryPolicy>,
+    ): RetryPolicy {
+        const defaultPolicy: RetryPolicy = {
+            maxRetries: 3,
+            baseDelayMs: 1000,
+            maxDelayMs: 30000,
+            jitter: 0.2,
+        };
+
+        const policyByType: Record<string, Partial<RetryPolicy>> = {
+            [SampleNodeType.OCR]: { maxRetries: 4, baseDelayMs: 2000, maxDelayMs: 60000, jitter: 0.3 },
+            [SampleNodeType.SMART_EXTRACTION]: { maxRetries: 4, baseDelayMs: 2000, maxDelayMs: 60000, jitter: 0.3 },
+            [SampleNodeType.SUMMARIZE]: { maxRetries: 4, baseDelayMs: 2000, maxDelayMs: 60000, jitter: 0.3 },
+            [SampleNodeType.BROWSER_SCRAPER]: { maxRetries: 3, baseDelayMs: 1500, maxDelayMs: 30000, jitter: 0.2 },
+            [SampleNodeType.HTTP_REQUEST]: { maxRetries: 5, baseDelayMs: 1000, maxDelayMs: 20000, jitter: 0.2 },
+        };
+
+        const typePolicy = policyByType[nodeType] || {};
+
+        return {
+            maxRetries: options.maxRetries ?? nodePolicy?.maxRetries ?? typePolicy.maxRetries ?? defaultPolicy.maxRetries,
+            baseDelayMs: nodePolicy?.baseDelayMs ?? typePolicy.baseDelayMs ?? defaultPolicy.baseDelayMs,
+            maxDelayMs: nodePolicy?.maxDelayMs ?? typePolicy.maxDelayMs ?? defaultPolicy.maxDelayMs,
+            jitter: nodePolicy?.jitter ?? typePolicy.jitter ?? defaultPolicy.jitter,
+        };
+    }
+
+    private computeBackoffDelay(policy: RetryPolicy, retryCount: number): number {
+        const exponent = Math.max(retryCount - 1, 0);
+        const baseDelay = policy.baseDelayMs * Math.pow(2, exponent);
+        const cappedDelay = Math.min(policy.maxDelayMs, baseDelay);
+        const jitterMultiplier = 1 + ((Math.random() * 2 - 1) * policy.jitter);
+        return Math.max(0, Math.floor(cappedDelay * jitterMultiplier));
+    }
 
     /**
      * Get the type of a value for metadata tracking

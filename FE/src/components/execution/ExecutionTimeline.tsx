@@ -13,6 +13,7 @@ const getStatusColor = (status: string) => {
         case 'FAILED': return 'bg-red-100 text-red-600 border-red-200';
         case 'RUNNING': return 'bg-blue-100 text-blue-600 border-blue-200 animate-pulse';
         case 'PENDING': return 'bg-gray-100 text-gray-500 border-gray-200';
+        case 'QUEUED': return 'bg-amber-100 text-amber-700 border-amber-200';
         default: return 'bg-gray-50 text-gray-400 border-gray-200';
     }
 };
@@ -22,6 +23,7 @@ const getStatusIcon = (status: string) => {
         case 'COMPLETED': return <CheckCircle size={14} className="text-green-600" />;
         case 'FAILED': return <XCircle size={14} className="text-red-600" />;
         case 'RUNNING': return <Clock size={14} className="text-blue-600 animate-spin" />;
+        case 'QUEUED': return <CircleEllipsis size={14} className="text-amber-700" />;
         default: return <CircleEllipsis size={14} className="text-gray-400" />;
     }
 };
