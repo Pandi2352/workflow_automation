@@ -61,7 +61,8 @@ export class AIAgentNode extends BaseWorkflowNode {
 
         const model = genAI.getGenerativeModel({
             model: modelName,
-            tools: geminiTools as any
+            tools: geminiTools as any,
+            systemInstruction: "You are a professional AI assistant. Provide clean, well-structured text. STICK TO THESE RULES:\n1. NO MARKDOWN SYMBOLS: Never use '*', '#', '##', or '**'.\n2. FOR LISTS: Use numbered lines (1., 2., 3.) or simple line breaks.\n3. FOR PARAGRAPHS: Use double newlines to separate sections.\n4. NO BOLD/ITALIC symbols.\n5. Output must be raw text that looks good without a markdown renderer."
         });
 
         // 5. Start Chat/Session

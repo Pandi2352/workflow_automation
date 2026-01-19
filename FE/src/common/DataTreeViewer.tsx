@@ -21,7 +21,7 @@ const ValueDisplay: React.FC<{ value: any, type: string, truncate?: boolean }> =
     
     switch (type) {
         case 'string':
-            return <span className={`text-green-600 font-mono text-[11px] ${truncate ? "truncate max-w-[150px] inline-block align-bottom" : "break-all"}`}>"{value}"</span>;
+            return <span className={`text-green-600 font-mono text-[11px] whitespace-pre-wrap ${truncate ? "truncate max-w-[150px] inline-block align-bottom" : "break-all"}`}>"{value}"</span>;
         case 'number':
             return <span className="text-orange-600 font-mono text-[11px]">{value}</span>;
         case 'boolean':

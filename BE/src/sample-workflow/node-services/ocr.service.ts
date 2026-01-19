@@ -135,7 +135,10 @@ export class OCRService extends BaseOCRService {
     private initializeAI(apiKey: string, modelName: string = 'gemini-2.5-flash') {
         this.genAI = new GoogleGenerativeAI(apiKey);
         this.fileManager = new GoogleAIFileManager(apiKey);
-        this.model = this.genAI.getGenerativeModel({ model: modelName });
+        this.model = this.genAI.getGenerativeModel({
+            model: modelName,
+            systemInstruction: "Always provide clean, human-readable text output. STICK TO THESE RULES:\n1. NO MARKDOWN SYMBOLS: Never use '*', '#', '##', or '**'.\n2. FOR LISTS: Use numbered lines (1., 2., 3.) or simple line breaks.\n3. FOR PARAGRAPHS: Use double newlines to separate sections.\n4. NO BOLD/ITALIC symbols.\n5. Output must be raw text that looks good without a markdown renderer."
+        });
     }
 
     private async hashFile(filePath: string): Promise<string> {
