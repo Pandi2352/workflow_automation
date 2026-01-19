@@ -27,11 +27,11 @@ const ValueDisplay: React.FC<{ value: any, type: string, truncate?: boolean }> =
         case 'boolean':
             return <span className="text-purple-600 font-mono text-[11px] font-bold">{value.toString()}</span>;
         case 'null':
-            return <span className="text-slate-400 font-mono text-[11px] italic">null</span>;
+            return <span className="text-slate-500 font-mono text-[11px] italic font-medium">null</span>;
         case 'array':
-            return <span className="text-slate-400 text-[10px] font-medium">Array({value.length})</span>;
+            return <span className="text-slate-500 text-[10px] font-bold">Array({value.length})</span>;
         case 'object':
-            return <span className="text-slate-400 text-[10px] font-medium">Object &#123; {Object.keys(value).length} &#125;</span>;
+            return <span className="text-slate-500 text-[10px] font-bold">Object &#123; {Object.keys(value).length} &#125;</span>;
         default:
             return <span className={`text-slate-600 text-[11px] ${truncateClass}`}>{String(value)}</span>;
     }
@@ -65,7 +65,7 @@ export const DataTreeViewer: React.FC<DataTreeViewerProps> = ({
     const isArray = Array.isArray(data);
 
     return (
-        <div className={`w-[340px] text-sm font-sans ${level === 0 ? 'bg-transparent' : ''}`}>
+        <div className={`w-full text-sm font-sans ${level === 0 ? 'bg-transparent' : ''}`}>
             {keys.map((key) => {
                 const value = data[key];
                 const type = getType(value);
@@ -159,7 +159,7 @@ export const DataTreeViewer: React.FC<DataTreeViewerProps> = ({
                 );
             })}
              {keys.length === 0 && (
-                <div className="p-2 text-xs text-slate-400 italic pl-8">
+                <div className="p-2 text-xs text-slate-500 italic pl-8 font-medium">
                     Empty {Array.isArray(data) ? 'Array' : 'Object'}
                 </div>
             )}

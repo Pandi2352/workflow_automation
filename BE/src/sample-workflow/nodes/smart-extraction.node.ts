@@ -18,6 +18,7 @@ export class SmartExtractionNodeStrategy extends BaseWorkflowNode {
     }
 
     async executeWithContext(context: WorkflowNodeContext): Promise<NodeExecutionResult> {
+        this.context = context;
         this.logs = [];
         const startTime = Date.now();
 

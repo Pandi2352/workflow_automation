@@ -1,8 +1,9 @@
 import React, { useEffect, useState } from 'react';
 import { useParams, useNavigate, useBlocker } from 'react-router-dom';
-import { Zap, Plus, Sparkles } from 'lucide-react';
+import { Zap, Plus, Sparkles, FileText } from 'lucide-react';
 import { NodeDrawer } from '../components/designer/NodeDrawer';
 import { AIChatDrawer } from '../components/designer/AIChatDrawer';
+import { TemplatesDrawer } from '../components/designer/TemplatesDrawer';
 
 import { NodeConfigPanel } from '../nodes/google-drive/NodeConfigPanel';
 import { NodeConfigPanel as OneDriveNodeConfigPanel } from '../nodes/onedrive/NodeConfigPanel';
@@ -40,6 +41,7 @@ export const WorkflowDesigner: React.FC = () => {
     const [isSaving, setIsSaving] = useState(false);
     const [isDrawerOpen, setIsDrawerOpen] = useState(false);
     const [isAiModalOpen, setIsAiModalOpen] = useState(false);
+    const [isTemplatesDrawerOpen, setIsTemplatesDrawerOpen] = useState(false);
     const [showSelector, setShowSelector] = useState(false);
 
     const navigate = useNavigate();
@@ -318,15 +320,23 @@ export const WorkflowDesigner: React.FC = () => {
                         {/* Top Left Controls */}
                         <div className="absolute top-4 left-4 z-30 flex flex-col gap-2">
                              <button 
-                                onClick={() => setIsAiModalOpen(true)}
-                                className="w-12 h-12 p-0 rounded-lg shadow-lg hover:shadow-xl hover:scale-105 flex items-center justify-center bg-gradient-to-br from-indigo-500 to-purple-600 text-white cursor-pointer transition-all border border-white/20"
-                                title="AI Workflow Generator"
-                            >
-                                <Sparkles size={22} />
-                            </button>
+                 onClick={() => setIsAiModalOpen(true)}
+                 className="w-12 h-12 p-0 rounded-lg shadow-lg hover:shadow-xl hover:scale-105 flex items-center justify-center bg-gradient-to-br from-indigo-500 to-purple-600 text-white cursor-pointer transition-all border border-white/20"
+                 title="AI Workflow Architect"
+             >
+                 <Sparkles size={22} />
+             </button>
 
-                            <button 
-                                onClick={() => setIsDrawerOpen(true)}
+            <button 
+                 onClick={() => setIsTemplatesDrawerOpen(true)}
+                 className="w-12 h-12 p-0 rounded-lg shadow-md hover:text-indigo-600 hover:border-indigo-600 flex items-center justify-center bg-white cursor-pointer border border-gray-200"
+                 title="Pre-built Templates"
+             >
+                 <FileText size={22} className='text-gray-500' />
+             </button>
+
+             <button 
+                 onClick={() => setIsDrawerOpen(true)}
                                 className="w-12 h-12 p-0 rounded-lg shadow-md hover:text-[#10b981] hover:border-[#10b981] flex items-center justify-center bg-white cursor-pointer border border-gray-200"
                                 title="Add Node"
                             >
@@ -507,6 +517,11 @@ export const WorkflowDesigner: React.FC = () => {
             <AIChatDrawer 
                 isOpen={isAiModalOpen} 
                 onClose={() => setIsAiModalOpen(false)} 
+            />
+
+            <TemplatesDrawer 
+                isOpen={isTemplatesDrawerOpen}
+                onClose={() => setIsTemplatesDrawerOpen(false)}
             />
 
             {showSelector && (

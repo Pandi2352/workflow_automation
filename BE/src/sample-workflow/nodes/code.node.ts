@@ -21,6 +21,7 @@ export class CodeNodeStrategy extends BaseWorkflowNode {
     }
 
     async executeWithContext(context: WorkflowNodeContext): Promise<NodeExecutionResult> {
+        this.context = context;
         this.logs = [];
         const startTime = Date.now();
 
@@ -40,9 +41,12 @@ export class CodeNodeStrategy extends BaseWorkflowNode {
             // 1. Resolve Arguments
             const resolvedArgs: Record<string, any> = {};
             for (const [argName, argValuePath] of Object.entries(argsConfig)) {
-                resolvedArgs[argName] = this.resolveInput(argValuePath as string, context.inputs);
+                // Use the standard resolveVariables from BaseWorkflowNode for consistency
+                resolvedArgs[argName] = this.resolveVariables(argValuePath as string);
             }
             this.log('INFO', `Resolved Arguments: ${Object.keys(resolvedArgs).join(', ')}`);
+            this.log('DEBUG', `Resolved Values: ${JSON.stringify(resolvedArgs)}`);
+
 
             let result: any;
 
@@ -81,99 +85,31 @@ export class CodeNodeStrategy extends BaseWorkflowNode {
         }
     }
 
-    private resolveInput(pathString: string, inputs: any[]): any {
-        if (!pathString) return undefined;
-        const trimmed = pathString.trim();
-
-        // Handle literal values (not starting with brackets/braces maybe? or just always treat as string if not {{}})
-        // But for now assume {{Node.path}} for vars, else literal string.
-        if (!trimmed.startsWith('{{') || !trimmed.endsWith('}}')) {
-            // Attempt to parse if it looks like JSON? No, just string literal.
-            return trimmed;
-        }
-
-        const variablePath = trimmed.replace(/^\{\{|\}\}$/g, '').trim();
-        const parts = variablePath.split('.');
-        const nodeName = parts.shift();
-
-        let targetInput = inputs.find(i => i.nodeName === nodeName);
-
-        // Fallback or specific logic (From SmartExtraction logic)
-        // If nodeName matches nothing, maybe it's just a ref to the first input? 
-        // Or if inputs has only 1 item and strict match fails.
-        // But let's stick to strict match first.
-
-        if (!targetInput) {
-            // Try matching by id if nodeName is actually an ID? 
-            // Usually inputs have nodeName.
-            // If strictly not found, return undefined.
-            this.log('WARN', `Input node '${nodeName}' not found in inputs.`);
-            return undefined;
-        }
-
-        let val = targetInput.value;
-        const dataPathParts = parts;
-
-        // Traverse
-        // Handle "output" prefix commonly used
-        if (dataPathParts[0] === 'output') {
-            dataPathParts.shift();
-        }
-
-        // Clean array accessors from "items[0]" to "items", "0"
-        const cleanPath: string[] = [];
-        for (const p of dataPathParts) {
-            if (p.includes('[')) {
-                const subParts = p.split(/\[|\]/).filter(Boolean);
-                cleanPath.push(...subParts);
-            } else {
-                cleanPath.push(p);
-            }
-        }
-
-        for (const key of cleanPath) {
-            if (val && typeof val === 'object') {
-                if (Array.isArray(val) && !isNaN(Number(key))) {
-                    val = val[Number(key)];
-                } else if (key in val) {
-                    val = val[key];
-                } else {
-                    return undefined;
-                }
-            } else {
-                return undefined;
-            }
-        }
-
-        return val;
-    }
 
     private async executeJavascript(code: string, args: Record<string, any>, outputVar: string): Promise<any> {
         return new Promise((resolve, reject) => {
             try {
+                // Filter environment variables to avoid leaking sensitive server info, 
+                // but allow AI keys or common config if needed.
+                const env = {
+                    GEMINI_API_KEY: process.env.GEMINI_API_KEY,
+                    OPENAI_API_KEY: process.env.OPENAI_API_KEY,
+                    ANTHROPIC_API_KEY: process.env.ANTHROPIC_API_KEY,
+                };
+
                 const sandbox = {
                     ...args,
+                    env,
+                    process: { env },
                     console: {
-                        log: (...msgs: any[]) => this.log('INFO', msgs.map(m => JSON.stringify(m)).join(' ')),
-                        error: (...msgs: any[]) => this.log('ERROR', msgs.map(m => JSON.stringify(m)).join(' ')),
-                        warn: (...msgs: any[]) => this.log('WARN', msgs.map(m => JSON.stringify(m)).join(' '))
+                        log: (...msgs: any[]) => this.log('INFO', msgs.map(m => typeof m === 'object' ? JSON.stringify(m, null, 2) : String(m)).join(' ')),
+                        error: (...msgs: any[]) => this.log('ERROR', msgs.map(m => typeof m === 'object' ? JSON.stringify(m, null, 2) : String(m)).join(' ')),
+                        warn: (...msgs: any[]) => this.log('WARN', msgs.map(m => typeof m === 'object' ? JSON.stringify(m, null, 2) : String(m)).join(' '))
                     },
                     result: undefined
                 };
 
-                // Wrap code to ensure it runs contextually
-                // User code should set 'result' variable or return it?
-                // The prompt says "Return the result variable defined above", implies setting a var or returning.
-                // Let's assume the user writes code that sets the specific outputVar OR just returns valid JS.
-                // We'll wrap it in an async function.
-
                 vm.createContext(sandbox);
-
-                // We do 'result = await (async function() { ...user code... return result; })();'
-                // But user might not return. They might just set 'result = 5'.
-                // If they set 'result' (or whatever outputVar is named), we capture it.
-
-                // We will alias the outputVar to 'result' or just look for outputVar in sandbox after run.
 
                 const scriptCode = `
                     (async () => {
@@ -181,14 +117,10 @@ export class CodeNodeStrategy extends BaseWorkflowNode {
                         
                         // Check if main exists and call it
                         if (typeof main === 'function') {
-                            try {
-                                return await main(${Object.keys(args).join(', ')});
-                            } catch (e) {
-                                throw e;
-                            }
+                            return await main(${Object.keys(args).join(', ')});
                         }
                         
-                        // Fallback to variable check
+                        // Fallback to explicit output variable check
                         if (typeof ${outputVar} !== 'undefined') {
                             return ${outputVar};
                         }
@@ -198,7 +130,7 @@ export class CodeNodeStrategy extends BaseWorkflowNode {
                 `;
 
                 const script = new vm.Script(scriptCode);
-                const executionPromise = script.runInContext(sandbox);
+                const executionPromise = script.runInContext(sandbox, { timeout: 30000 }); // 30s timeout
 
                 if (executionPromise instanceof Promise) {
                     executionPromise.then(resolve).catch(reject);
@@ -211,92 +143,120 @@ export class CodeNodeStrategy extends BaseWorkflowNode {
         });
     }
 
+    private async getPythonCommand(): Promise<string> {
+        return new Promise((resolve) => {
+            const checkPython = (cmd: string) => {
+                return new Promise<boolean>((res) => {
+                    const proc = spawn(cmd, ['--version']);
+                    proc.on('error', () => res(false));
+                    proc.on('close', (code) => res(code === 0));
+                });
+            };
+
+            (async () => {
+                if (await checkPython('python3')) resolve('python3');
+                else if (await checkPython('python')) resolve('python');
+                else resolve('python'); // Fallback to python and let it fail if missing
+            })();
+        });
+    }
+
     private async executePython(code: string, args: Record<string, any>, outputVar: string): Promise<any> {
+        const pythonCmd = await this.getPythonCommand();
+
         return new Promise((resolve, reject) => {
             const tempDir = os.tmpdir();
-            const scriptPath = path.join(tempDir, `script_${Date.now()}.py`);
+            const scriptPath = path.join(tempDir, `script_${Date.now()}_${Math.random().toString(36).substr(2, 9)}.py`);
 
             // Serialize args to JSON to pass safely
-            const argsJson = JSON.stringify(args);
+            const argsJson = JSON.stringify(args).replace(/\\/g, '\\\\').replace(/'/g, "\\'");
 
-            // Helper python code to load args and print result
             const pythonWrapper = `
 import json
 import sys
+import os
+
+# Filtered environment variables
+os.environ['GEMINI_API_KEY'] = "${process.env.GEMINI_API_KEY || ''}"
 
 # Load args
-args = json.loads('''${argsJson}''')
-${Object.keys(args).map(k => `${k} = args.get('${k}')`).join('\n')}
+try:
+    args = json.loads('${argsJson}')
+except Exception as e:
+    print(f"Error loading args: {e}", file=sys.stderr)
+    args = {}
+
+# Set local variables for each arg
+for k, v in args.items():
+    locals()[k] = v
 
 # User Code Start
-${code}
+try:
+${code.split('\n').map(line => '    ' + line).join('\n')}
+except Exception as e:
+    print(f"User Code Error: {e}", file=sys.stderr)
+    sys.exit(1)
 # User Code End
 
-# Print result as JSON
+# Capture Result
 result_val = None
 if 'main' in locals() and callable(locals()['main']):
     try:
-        # Call main with arguments
-        # We need to pass args. If main expects args by name, we iterate.
-        # Simplest: pass **args (which are dict)
         import inspect
-        has_kwargs = False
         sig = inspect.signature(locals()['main'])
-        
-        # Simple call with spread dictionary of args
+        # Try to call with keyword args if possible, or just positional if they match
         result_val = locals()['main'](**args)
-        
     except Exception as e:
-        print(f"Error calling main: {e}", file=sys.stderr)
-        exit(1)
+        print(f"Error calling main(): {e}", file=sys.stderr)
+        sys.exit(1)
 elif '${outputVar}' in locals():
     result_val = locals()['${outputVar}']
 
-if result_val is not None:
-    try:
-        print(json.dumps(result_val))
-    except:
-        print(str(result_val))
-else:
-    print("null")
+# Final output must be JSON on a marked line
+print("---PYTHON_RESULT_START---")
+try:
+    print(json.dumps(result_val))
+except:
+    print(json.dumps(str(result_val)))
+print("---PYTHON_RESULT_END---")
             `;
 
             fs.writeFileSync(scriptPath, pythonWrapper);
 
-            const process = spawn('python', [scriptPath]);
+            const pyProcess = spawn(pythonCmd, [scriptPath]);
 
             let stdout = '';
             let stderr = '';
 
-            process.stdout.on('data', (data) => {
+            pyProcess.stdout.on('data', (data) => {
                 stdout += data.toString();
+                // Real-time logging for anything before the result markers
+                const currentOutput = data.toString();
+                if (!currentOutput.includes('---PYTHON_RESULT_START---')) {
+                    this.log('INFO', `[Python]: ${currentOutput.trim()}`);
+                }
             });
 
-            process.stderr.on('data', (data) => {
+            pyProcess.stderr.on('data', (data) => {
                 stderr += data.toString();
-                this.log('ERROR', `[Python Legacy]: ${data.toString().trim()}`);
+                this.log('ERROR', `[Python Error]: ${data.toString().trim()}`);
             });
 
-            process.on('close', (code) => {
-                fs.unlinkSync(scriptPath); // Clean up
+            pyProcess.on('close', (code) => {
+                if (fs.existsSync(scriptPath)) fs.unlinkSync(scriptPath);
+
                 if (code !== 0) {
-                    reject(new Error(`Python script exited with code ${code}. Error: ${stderr}`));
+                    reject(new Error(`Python script exited with code ${code}. ${stderr}`));
                 } else {
                     try {
-                        const lines = stdout.trim().split('\n');
-                        const lastLine = lines[lines.length - 1]; // Result should be last line
-                        // Filter out logs (hacky) - ideally script should only print result on specific channel or everything else to stderr
-                        // For now assume last line is JSON.
-                        if (lastLine) {
-                            try {
-                                resolve(JSON.parse(lastLine));
-                            } catch { // If not JSON, return string
-                                resolve(lastLine);
-                            }
+                        const resultMatch = stdout.match(/---PYTHON_RESULT_START---([\s\S]*?)---PYTHON_RESULT_END---/);
+                        if (resultMatch && resultMatch[1]) {
+                            resolve(JSON.parse(resultMatch[1].trim()));
                         } else {
                             resolve(null);
                         }
                     } catch (e) {
+                        this.log('ERROR', `Failed to parse Python result: ${e.message}`);
                         resolve(stdout.trim());
                     }
                 }
@@ -304,3 +264,4 @@ else:
         });
     }
 }
+

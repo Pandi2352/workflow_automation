@@ -14,6 +14,7 @@ import { ExecutionStatus } from './enums/execution-status.enum';
 import { WorkflowHistory, WorkflowHistoryDocument } from './schemas/workflow-history.schema';
 import { CredentialsService } from '../credentials/credentials.service';
 import { SampleNodeType } from './enums/node-type.enum';
+import { OCRService } from './node-services/ocr.service';
 
 export interface PaginatedResponse<T> {
     data: T[];
@@ -36,6 +37,7 @@ export class SampleWorkflowService {
         private validatorService: WorkflowValidatorService,
         private nodeRegistry: NodeRegistryService,
         private credentialsService: CredentialsService, // Injected
+        private ocrService: OCRService,
         @Inject(forwardRef(() => SchedulerService)) private schedulerService: SchedulerService,
     ) { }
 
@@ -524,5 +526,66 @@ export class SampleWorkflowService {
 
     getNodesByCategory() {
         return this.nodeRegistry.getNodesByCategory();
+    }
+
+    // ==================== AI ASSISTANT ====================
+
+    async getAIAssistance(dto: {
+        type: 'SUGGEST_IDEAS' | 'GENERATE_CODE',
+        context: string,
+        currentCode?: string,
+        prompt?: string,
+        language: string,
+        credentialId?: string,
+        apiKey?: string,
+        modelName?: string
+    }) {
+        let apiKey = dto.apiKey;
+
+        if (dto.credentialId) {
+            const credential = await this.credentialsService.findById(dto.credentialId);
+            if (credential && credential.provider === 'GEMINI') {
+                apiKey = credential.accessToken;
+            }
+        }
+
+        if (!apiKey) throw new BadRequestException('API Key or Credential is required');
+
+        const model = dto.modelName || 'gemini-1.5-flash';
+
+        if (dto.type === 'SUGGEST_IDEAS') {
+            const prompt = `You are an AI coding assistant for a workflow automation tool.
+            The user is working on a "Code Node" that receives data from previous nodes.
+            
+            Incoming Data Context (Schema/Values):
+            ${dto.context}
+            
+            Based on this data, suggest 3-4 creative and useful code ideas the user might want to implement in ${dto.language}.
+            Keep ideas concise (max 1 sentence each).
+            
+            Return ONLY a valid JSON array of strings. No markdown, no explanations.
+            Example: ["Combine firstName and lastName", "Calculate total sum of items", "Filter items where price > 100"]`;
+
+            return this.ocrService.generateStructuredData(prompt, apiKey, model);
+        } else {
+            const prompt = `You are an AI coding assistant. Generate a ${dto.language} function for a workflow node.
+            
+            Context:
+            - Incoming Data: ${dto.context}
+            - Current Code: ${dto.currentCode || 'None'}
+            - User Request: ${dto.prompt || 'Generate a useful processing function'}
+            
+            Requirements:
+            - The function MUST be named "main".
+            - It receives arguments based on the user's mapping (assume arg1, arg2, etc. match the keys in the data).
+            - It MUST return an object.
+            - Provide ONLY the code. No markdown code blocks, no explanations.
+            
+            Language: ${dto.language === 'python3' ? 'Python 3' : 'JavaScript (Node.js)'}`;
+
+            const code = await this.ocrService.generateText(prompt, apiKey, model);
+            // Clean markdown if AI included it
+            return { code: code.replace(/```[a-z]*\n|```/g, '').trim() };
+        }
     }
 }

@@ -1,13 +1,11 @@
 
 import React, { useMemo, useCallback, useRef } from 'react';
 import {
-  ReactFlow,
   MiniMap,
-  Controls,
-  Background,
   ReactFlowProvider,
-  BackgroundVariant,
 } from '@xyflow/react';
+import { Controls } from '../designer/Controls';
+import { Canvas } from '../designer/Canvas';
 import { useWorkflowStore } from '../../store/workflowStore';
 import { GenericNode } from '../../nodes/GenericNode';
 import { GoogleDriveNode } from '../../nodes/google-drive/GoogleDriveNode';
@@ -138,12 +136,11 @@ const ExecutionCanvasInner: React.FC<ExecutionCanvasProps> = ({ executionData, o
 
   return (
     <div className="flex-1 h-full relative bg-slate-50/[0.5]" ref={reactFlowWrapper}>
-      <ReactFlow
+      <Canvas
         nodes={nodesWithStatus}
         nodeTypes={nodeTypes}
         edges={edges}
         onNodeClick={handleNodeClick}
-        fitView
         fitViewOptions={{ padding: 0.2, maxZoom: 1, duration: 200 }}
         nodesDraggable={false}
         nodesConnectable={false}
@@ -151,26 +148,20 @@ const ExecutionCanvasInner: React.FC<ExecutionCanvasProps> = ({ executionData, o
         className="bg-slate-50/[0.5]"
         proOptions={proOptions}
       >
-        <Controls 
-            position="bottom-left"
-            orientation='horizontal'
-            className="m-4 bg-white border border-slate-100 rounded-md p-1" 
-            showInteractive={false} // Hide interactive controls like lock/unlock if supported
-        />
-        <MiniMap
-            className="bg-white rounded-lg border border-gray-200"
-            nodeColor="#e5e7eb"
-            maskColor="rgba(0,0,0,0.1)"
-        />
-        {/* Lighter background to differentiate from Editor */}
-        <Background variant={BackgroundVariant.Dots} gap={20} size={1} color="#cbd5e1" />
-        
+        <Controls />
+        {useWorkflowStore.getState().showMinimap && (
+            <MiniMap
+                className="bg-white rounded-lg border border-gray-200"
+                nodeColor="#e5e7eb"
+                maskColor="rgba(0,0,0,0.1)"
+            />
+        )}
         {/* Read Only Badge */}
         <div className="absolute top-4 right-4 bg-gray-100/80 backdrop-blur-sm border border-gray-200 px-3 py-1.5 rounded-full text-xs font-semibold text-gray-500 pointer-events-none z-10 selection:bg-none flex items-center gap-2">
             <div className="w-2 h-2 rounded-full bg-gray-400" />
             Read Only Mode
         </div>
-      </ReactFlow>
+      </Canvas>
     </div>
   );
 };

@@ -80,6 +80,10 @@ interface WorkflowState {
     // Reset
     resetWorkflowStore: () => void;
 
+    // Display options
+    showMinimap: boolean;
+    toggleMinimap: () => void;
+
     // Helpers
     deleteNode: (id: string) => void;
 }
@@ -295,6 +299,10 @@ export const useWorkflowStore = create<WorkflowState>()((set, get) => ({
             activeTab: 'editor'
         });
     },
+
+    // Display options
+    showMinimap: true,
+    toggleMinimap: () => set((state) => ({ showMinimap: !state.showMinimap })),
 
     // Deletion helper
     deleteNode: (id: string) => {

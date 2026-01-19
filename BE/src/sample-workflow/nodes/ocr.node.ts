@@ -17,7 +17,7 @@ export class OCRNodeStrategy extends BaseWorkflowNode {
     async execute(inputs: any[], data?: any): Promise<NodeExecutionResult | any[]> {
         const config = data?.config || {};
         const apiKey = config.apiKey || process.env.GEMINI_API_KEY;
-        const modelName = config.modelName || 'gemini-1.5-flash';
+        const modelName = config.modelName || 'gemini-2.5-flash';
         const forceProcess = config.forceProcess !== false; // Default to true
 
         if (!apiKey) {
@@ -25,41 +25,47 @@ export class OCRNodeStrategy extends BaseWorkflowNode {
         }
 
         // Determine input files
-        // Strategy: iterate through 'inputs' array (which now includes merged config values) and find things that look like files.
-
         let filesToProcess: any[] = [];
-        const potentialInputs = [...inputs];
 
-        // Also check direct config.files/file if they weren't merged or if we need to handle specific logic
-        // But since we merge in executeWithContext, inputs should have them. 
-        // We'll keep the logic robust.
-
-        if (config.files && typeof config.files !== 'string') potentialInputs.push(config.files);
-        else if (config.files && typeof config.files === 'string' && !config.files.startsWith('{{')) {
-            potentialInputs.push({ path: config.files });
-        }
-
-        if (config.file && typeof config.file !== 'string') potentialInputs.push(config.file);
-
-
-        for (const val of potentialInputs) {
-            if (!val) continue;
-
-            if (Array.isArray(val)) {
-                // Check if array of files
-                for (const item of val) {
-                    if (item && (item.key || item.path || item.url || item.file_id)) {
+        // 1. Check explicit config.files/file first (User's primary intent)
+        const configFiles = config.files || config.file;
+        if (configFiles) {
+            const items = Array.isArray(configFiles) ? configFiles : [configFiles];
+            for (const item of items) {
+                if (typeof item === 'object' && item !== null) {
+                    if (item.key || item.path || item.url || item.file_id) {
                         filesToProcess.push(item);
                     }
-                }
-            } else if (typeof val === 'object') {
-                if (val.key || val.path || val.url || val.file_id) {
-                    filesToProcess.push(val);
+                } else if (typeof item === 'string' && item.length > 0) {
+                    // If user explicitly provided a string in config.files, treat it as a path/URL
+                    filesToProcess.push({ path: item });
                 }
             }
         }
 
+        // 2. If no files found in config, check inputs for file-like objects
+        if (filesToProcess.length === 0) {
+            for (const val of inputs) {
+                if (!val) continue;
+
+                if (Array.isArray(val)) {
+                    for (const item of val) {
+                        if (item && typeof item === 'object' && (item.key || item.path || item.url || item.file_id)) {
+                            filesToProcess.push(item);
+                        }
+                    }
+                } else if (typeof val === 'object') {
+                    if (val.key || val.path || val.url || val.file_id) {
+                        filesToProcess.push(val);
+                    }
+                }
+                // NOTE: We deliberately skip raw strings here because they are often
+                // metadata (labels, IDs) and not actual file paths.
+            }
+        }
+
         // Remove duplicates if any (by file_id or path)
+
         const uniqueFiles = new Map();
         for (const f of filesToProcess) {
             const id = f.file_id || f.key || f.path || f.url;
@@ -213,6 +219,7 @@ export class OCRNodeStrategy extends BaseWorkflowNode {
     }
 
     async executeWithContext(context: NodeExecutionContext): Promise<NodeExecutionResult> {
+        this.context = context;
         this.logs = [];
         const startTime = Date.now();
 
@@ -223,24 +230,29 @@ export class OCRNodeStrategy extends BaseWorkflowNode {
             // We want BOTH the config usage AND the raw inputs.
             // BaseWorkflowNode chooses one or the other.
 
-            let inputValues: any[] = context.inputs.map(input => input.value);
-
-            if (context.data?.config && Object.keys(context.data.config).length > 0) {
-                const configValues = Object.values(context.data.config);
-                // Append config values to inputs so we check everything
-                inputValues = [...inputValues, ...configValues];
-                this.log('DEBUG', `Merging inputs and config values: ${JSON.stringify(inputValues)}`);
-            } else {
-                this.log('DEBUG', `Input values: ${JSON.stringify(context.inputs)}`);
+            // 1. Resolve variables in the config object specifically
+            const resolvedConfig = { ...context.data?.config };
+            for (const key of Object.keys(resolvedConfig)) {
+                resolvedConfig[key] = this.resolveVariables(resolvedConfig[key]);
             }
+
+            // 2. Prepare context data with resolved config
+            const executionData = {
+                ...context.data,
+                config: resolvedConfig
+            };
+
+            // 3. Keep inputs clean - only use actual node inputs
+            let inputValues: any[] = context.inputs.map(input => input.value);
+            this.log('DEBUG', `Input values: ${JSON.stringify(inputValues)}`);
 
             // Pass triggerData
             if (context.triggerData) {
-                if (!context.data) context.data = {};
-                context.data._triggerData = context.triggerData;
+                executionData._triggerData = context.triggerData;
             }
 
-            const result = await this.execute(inputValues, context.data);
+            const result = await this.execute(inputValues, executionData);
+
 
             this.log('INFO', `Node executed successfully`);
 

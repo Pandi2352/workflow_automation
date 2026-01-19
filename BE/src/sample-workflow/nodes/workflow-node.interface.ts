@@ -169,20 +169,44 @@ export abstract class BaseWorkflowNode implements WorkflowNode {
         // If propertyPath is empty, return the whole value
         if (!propertyPath) return matchingInput.value;
 
-        // Remove 'outputs.' prefix if it exists, as input.value IS usually the outputs
+        // Remove 'outputs.' or 'outputs[' prefix if it exists, as input.value IS usually the outputs
         if (propertyPath.startsWith('outputs.')) {
             propertyPath = propertyPath.substring(8);
+        } else if (propertyPath.startsWith('outputs[')) {
+            // Remove 'outputs' but keep the '[' for getNestedValue
+            propertyPath = propertyPath.substring(7);
         } else if (propertyPath === 'outputs') {
             return matchingInput.value;
         }
+
+
 
         return this.getNestedValue(matchingInput.value, propertyPath);
     }
 
     private getNestedValue(obj: any, path: string): any {
         if (!path) return obj;
-        return path.split('.').reduce((prev, curr) => {
-            return prev ? prev[curr] : undefined;
+
+        // Handle array brackets like [0] or .[0] or property[0]
+        const parts = path.split('.').reduce((acc: string[], part) => {
+            if (part.includes('[')) {
+                const subParts = part.split(/\[|\]/).filter(Boolean);
+                acc.push(...subParts);
+            } else {
+                acc.push(part);
+            }
+            return acc;
+        }, []);
+
+        return parts.reduce((prev, curr) => {
+            if (prev && typeof prev === 'object') {
+                if (Array.isArray(prev) && !isNaN(Number(curr))) {
+                    return prev[Number(curr)];
+                }
+                return prev[curr];
+            }
+            return undefined;
         }, obj);
     }
+
 }

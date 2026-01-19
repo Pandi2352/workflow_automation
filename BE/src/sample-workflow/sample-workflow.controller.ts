@@ -106,10 +106,15 @@ export class SampleWorkflowController {
     // ==================== WORKFLOW EXECUTION ====================
 
     @Post('nodes/test')
-    @ApiOperation({ summary: 'Execute a single node for testing' })
-    @ApiResponse({ status: 200, description: 'Node executed successfully' })
+    @ApiOperation({ summary: 'Test execute a single node' })
     executeNodeTest(@Body() dto: any) {
         return this.sampleWorkflowService.executeNodeTest(dto);
+    }
+
+    @Post('ai/assist')
+    @ApiOperation({ summary: 'Get AI assistance for coding nodes' })
+    getAIAssistance(@Body() dto: any) {
+        return this.sampleWorkflowService.getAIAssistance(dto);
     }
 
     @Post(':id/executions')

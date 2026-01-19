@@ -1,17 +1,22 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { useWorkflowStore } from '../../store/workflowStore';
-import { X, FileText, Zap, Key, Box, Type, Database, Plus, RefreshCw } from 'lucide-react';
+import { X, FileText, Zap, Key, Box, Type, Settings, Terminal, Plus, RefreshCw } from 'lucide-react';
 import { axiosInstance } from '../../api/axiosConfig';
-import { NodeDataSidebar } from '../../components/designer/NodeDataSidebar';
-import { DataTreeViewer } from '../../common/DataTreeViewer';
 import { GeminiCredentialModal } from '../../components/credentials/GeminiCredentialModal';
+import { Button } from '../../common/Button';
+import { cn } from '../../lib/utils';
+import { DataTreeViewer } from '../../common/DataTreeViewer';
+import { NodeDataSidebar } from '../../components/designer/NodeDataSidebar';
 
 export const NodeConfigPanel: React.FC<{ nodeExecutionData?: any }> = ({ nodeExecutionData }) => {
-    const { selectedNode, updateNodeData, setSelectedNode, nodes, edges, currentExecution, fetchCredentials, credentials } = useWorkflowStore();
+// ... imports
+
+    const { selectedNode, updateNodeData, setSelectedNode, fetchCredentials, credentials, nodes, edges, currentExecution } = useWorkflowStore();
     const [label, setLabel] = useState('');
     const [isExecuting, setIsExecuting] = useState(false);
     const [executionResult, setExecutionResult] = useState<any>(null);
     const [isCredentialModalOpen, setIsCredentialModalOpen] = useState(false);
+    const [activeTab, setActiveTab] = useState<'config' | 'output'>('config');
 
     // Fetch credentials on mount
     useEffect(() => {
@@ -22,14 +27,41 @@ export const NodeConfigPanel: React.FC<{ nodeExecutionData?: any }> = ({ nodeExe
         return credentials.filter((c: any) => c.provider === 'GEMINI');
     }, [credentials]);
 
+    // Input Data Calculation
+    const inputData = useMemo(() => {
+        if (!selectedNode) return [];
+        const incomingEdges = edges.filter(edge => edge.target === selectedNode.id);
+        return incomingEdges.map(edge => {
+            const sourceNode = nodes.find(n => n.id === edge.source);
+            const sourceExecution = currentExecution?.nodeExecutions?.find((ex: any) => ex.nodeId === edge.source);
+            const sourceOutput = currentExecution?.nodeOutputs?.find((out: any) => out.nodeId === edge.source); 
+            
+            return {
+                nodeId: edge.source,
+                nodeLabel: (sourceNode?.data?.label as string) || sourceNode?.id || 'Unknown Node',
+                outputs: sourceExecution?.outputs || sourceOutput?.value || sourceExecution?.value || null,
+                status: sourceExecution?.status || 'NOT_RUN'
+            };
+        });
+    }, [selectedNode, edges, nodes, currentExecution]);
+
+    const [prevSelectedId, setPrevSelectedId] = useState<string | null>(null);
+
     useEffect(() => {
         if (selectedNode) {
-            setLabel((selectedNode.data?.label as string) || '');
-            if (!nodeExecutionData) {
-                setExecutionResult(null);
+            const isNewNode = selectedNode.id !== prevSelectedId;
+            if (isNewNode) {
+                setLabel((selectedNode.data?.label as string) || '');
+                if (!nodeExecutionData) {
+                    setExecutionResult(null);
+                }
+                setActiveTab('config');
+                setPrevSelectedId(selectedNode.id);
             }
+        } else {
+            setPrevSelectedId(null);
         }
-    }, [selectedNode]);
+    }, [selectedNode, prevSelectedId]);
 
     useEffect(() => {
         if (nodeExecutionData) {
@@ -39,36 +71,11 @@ export const NodeConfigPanel: React.FC<{ nodeExecutionData?: any }> = ({ nodeExe
                 logs: nodeExecutionData.logs,
                 status: nodeExecutionData.status
             });
+             if (nodeExecutionData.status) {
+                 setActiveTab('output');
+             }
         }
     }, [nodeExecutionData]);
-
-    const inputData = useMemo(() => {
-        if (!selectedNode) return [];
-        
-        // Find edges connected to this node's input
-        const incomingEdges = edges.filter(edge => edge.target === selectedNode.id);
-        
-        // Map edges to source nodes and their execution data
-        return incomingEdges.map(edge => {
-            const sourceNode = nodes.find(n => n.id === edge.source);
-            const sourceExecution = currentExecution?.nodeExecutions?.find((ex: any) => ex.nodeId === edge.source);
-            const sourceOutput = currentExecution?.nodeOutputs?.find((out: any) => out.nodeId === edge.source);
-            
-            console.log('Debug OCR Input:', { 
-                sourceNode, 
-                sourceExecution, 
-                sourceOutput,
-                outputs: sourceExecution?.outputs || sourceOutput?.value || sourceExecution?.value
-            });
-
-            return {
-                nodeId: edge.source,
-                nodeLabel: (sourceNode?.data?.label as string) || sourceNode?.id || 'Unknown Node',
-                outputs: sourceExecution?.outputs || sourceOutput?.value || sourceExecution?.value || null,
-                status: sourceExecution?.status || 'NOT_RUN'
-            };
-        });
-    }, [selectedNode, edges, nodes, currentExecution]);
 
     if (!selectedNode) return null;
 
@@ -91,15 +98,19 @@ export const NodeConfigPanel: React.FC<{ nodeExecutionData?: any }> = ({ nodeExe
     const handleExecuteNode = async () => {
         setIsExecuting(true);
         setExecutionResult(null);
+        setActiveTab('output');
+        
         try {
-            // Optimize: Only process the FIRST item (Latest) from the input array for testing
-            const rawInputs = inputData.map(d => d.outputs).filter(Boolean).flat();
-            const inputs = rawInputs.length > 0 ? [rawInputs[0]] : [];
+            const rawInputs = inputData.map(d => ({
+                nodeId: d.nodeId,
+                nodeName: d.nodeLabel,
+                value: d.outputs
+            }));
 
             const response = await axiosInstance.post('/sample-workflows/nodes/test', {
-                nodeType: 'OCR', // Changed to match standardized type
+                nodeType: 'OCR',
                 nodeData: { ...config, forceProcess: true },
-                inputs: [inputs] // Wrap in array as node expects grouping
+                inputs: rawInputs
             });
             setExecutionResult(response.data);
         } catch (error: any) {
@@ -113,27 +124,48 @@ export const NodeConfigPanel: React.FC<{ nodeExecutionData?: any }> = ({ nodeExe
     };
 
 
-    const [activeTab, setActiveTab] = useState<'output' | 'logs'>('output');
-
-    // ... (rest of the component logic)
 
     return (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm animate-in fade-in duration-200">
-            {/* ... (Header and Left/Center Columns remain same) ... */}
-            
+        <div className="fixed inset-0 z-50 flex justify-end overflow-hidden">
+            {/* Backdrop */}
             <div 
-                className="bg-white rounded-xl shadow-2xl w-[95vw] max-w-[1600px] h-[85vh] flex flex-col transform transition-all animate-in zoom-in-95 duration-200 overflow-hidden"
-                onClick={(e) => e.stopPropagation()}
-            >
-                {/* Header */}
-                <div className="p-4 border-b border-slate-100 flex justify-between items-center bg-white shrink-0">
+                className="absolute inset-0 bg-black/20 animate-in fade-in duration-200"
+                onClick={() => setSelectedNode(null)}
+            />
+            
+            {/* Sliding Panel Container */}
+            <div className="relative z-50 h-full flex flex-row animate-in slide-in-from-right duration-300 mr-0">
+                
+                {/* Variable Sidebar (Left of Drawer) */}
+                {activeTab === 'config' && (
+                    <div className="w-80 h-full bg-slate-50 border-r border-slate-200 shadow-2xl flex flex-col -mr-[1px]">
+                         <NodeDataSidebar 
+                            availableNodes={inputData.map(d => ({
+                                nodeId: d.nodeId,
+                                nodeName: d.nodeLabel,
+                                data: d.outputs,
+                                status: d.status
+                            }))}
+                            onDragStart={(e, variablePath) => {
+                                e.dataTransfer.setData('text/plain', `{{${variablePath}}}`);
+                            }}
+                        />
+                    </div>
+                )}
+
+                {/* Main Drawer */}
+                <div className="w-[500px] h-full bg-white shadow-2xl flex flex-col border-l border-slate-100">
+                    
+                    {/* Header */}
+                    <div className="p-4 border-b border-slate-100 flex justify-between items-center bg-white">
+                        {/* ... same header ... */}
                     <div className="flex items-center gap-3">
                          <div className="p-2 rounded-lg bg-purple-100 text-purple-600">
                              <FileText size={20} />
                          </div>
                          <div>
-                            <h3 className="text-lg font-bold text-slate-900">OCR Processing Configuration</h3>
-                            <p className="text-xs text-slate-500">Extract & Analyze with Gemini</p>
+                            <h3 className="text-lg font-bold text-slate-900">OCR Processing</h3>
+                            <p className="text-xs text-slate-600">Configure Node ID: {selectedNode.id}</p>
                          </div>
                     </div>
                     <button 
@@ -143,55 +175,53 @@ export const NodeConfigPanel: React.FC<{ nodeExecutionData?: any }> = ({ nodeExe
                         <X size={20} />
                     </button>
                 </div>
-                
-                {/* Body - 3 Column Split View */}
-                <div className="flex flex-1 overflow-hidden">
-                    
-                    {/* COLUMN 1 - Input Data Sidebar (Left) */}
-                    <div className="w-[300px] border-r border-slate-200 flex flex-col overflow-hidden bg-slate-50 shrink-0">
-                        <div className="p-3 border-b border-slate-200 bg-slate-50 flex items-center">
-                             <span className="text-xs font-bold text-slate-500 uppercase tracking-wider flex items-center gap-2">
-                                 <Database size={12} />
-                                 Input
-                             </span>
-                        </div>
-                        <div className="flex-1 overflow-hidden">
-                            <NodeDataSidebar 
-                                availableNodes={inputData.map(d => ({
-                                    nodeId: d.nodeId,
-                                    nodeName: d.nodeLabel,
-                                    data: d.outputs,
-                                    status: d.status
-                                }))}
-                                onDragStart={(e, variablePath) => {
-                                    e.dataTransfer.setData('text/plain', `{{${variablePath}}}`);
-                                }}
-                            />
-                        </div>
-                    </div>
 
-                    {/* COLUMN 2 - Configuration (Center) */}
-                    <div className="flex-1 flex flex-col bg-white overflow-hidden border-r border-slate-200 min-w-[400px]">
-                         <div className="p-3 border-b border-slate-100 bg-white flex items-center justify-between">
-                            <span className="text-xs font-bold text-slate-500 uppercase tracking-wider flex items-center gap-2">
-                                <Key size={12} />
-                                Parameters
-                            </span>
-                        </div>
-                        
-                        <div className="flex-1 overflow-y-auto p-6 custom-scrollbar">
-                            <div className="mb-6">
-                                <label className="block text-sm font-semibold text-slate-700 mb-1.5">Node Label</label>
+                {/* Tabs */}
+                <div className="flex border-b border-slate-100 px-4">
+                    <button
+                        onClick={() => setActiveTab('config')}
+                        className={cn(
+                            "flex items-center gap-2 px-4 py-3 text-sm font-medium border-b-2 transition-colors",
+                            activeTab === 'config' 
+                                ? "border-purple-500 text-purple-600" 
+                                : "border-transparent text-slate-500 hover:text-slate-700"
+                        )}
+                    >
+                        <Settings size={14} />
+                        Configuration
+                    </button>
+                    <button
+                        onClick={() => setActiveTab('output')}
+                        className={cn(
+                            "flex items-center gap-2 px-4 py-3 text-sm font-medium border-b-2 transition-colors",
+                            activeTab === 'output' 
+                                ? "border-purple-500 text-purple-600" 
+                                : "border-transparent text-slate-500 hover:text-slate-700"
+                        )}
+                    >
+                        <Terminal size={14} />
+                        Output & Logs
+                    </button>
+                </div>
+
+                {/* Content */}
+                <div className="flex-1 overflow-y-auto custom-scrollbar bg-slate-50/50 p-6">
+                    {activeTab === 'config' ? (
+                        <div className="space-y-6">
+                             {/* Node Label Input */}
+                            <div className="bg-white p-4 rounded-xl border border-slate-200 shadow-sm">
+                                <label className="block text-xs font-semibold text-slate-500 mb-2 uppercase tracking-wider">Node Label</label>
                                 <input 
                                     type="text" 
                                     value={label} 
                                     onChange={handleLabelChange}
-                                    className="w-full bg-slate-50 border border-slate-300 rounded-lg p-2.5 text-sm font-medium text-slate-900 focus:outline-none focus:ring-2 focus:ring-purple-500 transition-all"
+                                    className="w-full bg-slate-50 border border-slate-200 rounded-lg p-2.5 text-sm font-medium text-slate-900 focus:outline-none focus:ring-2 focus:ring-purple-500/20 focus:border-purple-500 transition-all"
                                     placeholder="Name your node..."
                                 />
                             </div>
 
-                            <div className="space-y-6">
+                            {/* Main Config */}
+                            <div className="bg-white p-4 rounded-xl border border-slate-200 shadow-sm space-y-6">
                                 {/* Gemini Credential Selection */}
                                 <div className="space-y-1.5">
                                     <label className="text-xs font-semibold text-slate-500 uppercase tracking-wider flex items-center gap-1.5">
@@ -202,7 +232,7 @@ export const NodeConfigPanel: React.FC<{ nodeExecutionData?: any }> = ({ nodeExe
                                         <select
                                             value={config.credentialId || ''}
                                             onChange={(e) => handleConfigChange('credentialId', e.target.value)}
-                                            className="flex-1 px-3 py-2 bg-white border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-purple-500/20 focus:border-purple-500 transition-all cursor-pointer"
+                                            className="flex-1 px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-purple-500/20 focus:border-purple-500 transition-all cursor-pointer"
                                         >
                                             <option value="">Select a saved key...</option>
                                             {geminiCredentials.map((cred: any) => (
@@ -230,7 +260,7 @@ export const NodeConfigPanel: React.FC<{ nodeExecutionData?: any }> = ({ nodeExe
                                     <select
                                         value={config.modelName || 'gemini-1.5-flash'}
                                         onChange={(e) => handleConfigChange('modelName', e.target.value)}
-                                        className="w-full px-3 py-2 bg-white border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-purple-500/20 focus:border-purple-500 transition-all appearance-none"
+                                        className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-purple-500/20 focus:border-purple-500 transition-all appearance-none"
                                     >
                                         <option value="gemini-2.5-flash">gemini-2.5-flash</option>
                                         <option value="gemini-1.5-flash">gemini-1.5-flash</option>
@@ -249,17 +279,12 @@ export const NodeConfigPanel: React.FC<{ nodeExecutionData?: any }> = ({ nodeExe
                                             value={config.files || ''}
                                             onChange={(e) => handleConfigChange('files', e.target.value)}
                                             placeholder="{{PreviousNode.outputs}} or {{Gmail.files}}"
-                                            className="w-full px-3 py-2 bg-white border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-purple-500/20 focus:border-purple-500 transition-all font-mono text-slate-600"
+                                            className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-purple-500/20 focus:border-purple-500 transition-all font-mono text-slate-600"
                                         />
-                                        <div className="absolute right-2 top-1/2 -translate-y-1/2 opacity-0 group-hover:opacity-100 transition-opacity">
-                                            <code className="bg-slate-100 text-[10px] px-1.5 py-0.5 rounded text-slate-500">
-                                                Drag Variable
-                                            </code>
-                                        </div>
                                     </div>
-                                    <p className="text-[10px] text-slate-400">
-                                        Drag a file array (e.g. from Gmail) or single file object here.
-                                    </p>
+                                     <p className="text-[10px] text-slate-500 font-medium">
+                                         Enter variable path like {'{{Gmail.files}}'} or drag locally.
+                                     </p>
                                 </div>
 
                                 {/* Prompt Input */}
@@ -273,87 +298,116 @@ export const NodeConfigPanel: React.FC<{ nodeExecutionData?: any }> = ({ nodeExe
                                         onChange={(e) => handleConfigChange('prompt', e.target.value)}
                                         placeholder="Add specific instructions to the extraction prompt..."
                                         rows={3}
-                                        className="w-full px-3 py-2 bg-white border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-purple-500/20 focus:border-purple-500 transition-all placeholder:text-slate-300 resize-none"
+                                        className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-purple-500/20 focus:border-purple-500 transition-all placeholder:text-slate-300 resize-none custom-scrollbar"
                                     />
                                 </div>
                             </div>
                         </div>
+                    ) : (
+                        <div className="h-full flex flex-col">
 
-                         {/* Footer (Actions) */}
-                        <div className="p-4 border-t border-slate-100 bg-slate-50 flex justify-end items-center shrink-0 gap-3">
-                             <div className="text-xs text-slate-400 font-mono mr-auto">
-                                ID: {selectedNode.id}
-                            </div>
-                             <button 
-                                onClick={handleExecuteNode}
-                                disabled={isExecuting}
-                                className={`px-4 py-2 font-medium rounded-lg transition-all flex items-center gap-2 text-sm ${isExecuting ? 'bg-slate-100 text-slate-400' : 'bg-purple-100 text-purple-700 hover:bg-purple-200'}`}
-                            >
-                                {isExecuting ? <RefreshCw className="animate-spin" size={14} /> : <Zap size={14} />}
-                                {isExecuting ? 'Running...' : 'Test OCR'}
-                            </button>
-                            <button 
-                                onClick={() => setSelectedNode(null)}
-                                className="px-6 py-2 bg-slate-900 text-white font-medium rounded-lg hover:bg-slate-800 transition-all shadow-sm text-sm"
-                            >
-                                Done
-                            </button>
-                        </div>
-                    </div>
-
-                    {/* COLUMN 3 - Output (Right) */}
-                    <div className="w-[380px] bg-slate-50 border-l border-slate-200 flex flex-col overflow-hidden shrink-0">
-                         {/* Tabs Header */}
-                         <div className="flex border-b border-slate-200 bg-slate-50">
-                            <button
-                                onClick={() => setActiveTab('output')}
-                                className={`flex-1 py-3 text-xs font-bold uppercase tracking-wider transition-colors border-b-2 ${activeTab === 'output' ? 'border-purple-500 text-purple-600 bg-white' : 'border-transparent text-slate-400 hover:text-slate-600'}`}
-                            >
-                                Output
-                            </button>
-                            <button
-                                onClick={() => setActiveTab('logs')}
-                                className={`flex-1 py-3 text-xs font-bold uppercase tracking-wider transition-colors border-b-2 ${activeTab === 'logs' ? 'border-purple-500 text-purple-600 bg-white' : 'border-transparent text-slate-400 hover:text-slate-600'}`}
-                            >
-                                Logs
-                            </button>
-                        </div>
-                        
-                        {/* Tab Content */}
-                        <div className="flex-1 overflow-auto custom-scrollbar bg-slate-50 relative p-0">
-                             {executionResult ? (
-                                <>
-                                    {activeTab === 'output' && (
-                                        <div className="bg-slate-50 min-h-full">
-                                            <DataTreeViewer data={executionResult.output} truncate={true} />
+                            {/* Execution Result Viewer */}
+                            {executionResult ? (
+                                <div className="flex-1 flex flex-col gap-4">
+                                     <div className={`p-4 rounded-xl border border-l-4 shadow-sm ${
+                                         executionResult.success ? 'bg-green-50 border-green-200 border-l-green-500' : 'bg-red-50 border-red-200 border-l-red-500'
+                                     }`}>
+                                        <div className="flex justify-between items-center mb-1">
+                                            <span className={`text-sm font-bold ${executionResult.success ? 'text-green-700' : 'text-red-700'}`}>
+                                                {executionResult.success ? 'Execution Successful' : 'Execution Failed'}
+                                            </span>
+                                            <span className="text-xs text-slate-500">
+                                                {executionResult.status}
+                                            </span>
                                         </div>
-                                    )}
+                                        {executionResult.error && (
+                                            <p className="text-xs text-red-600 mt-1">{executionResult.error}</p>
+                                        )}
+                                     </div>
+
+                                    {/* JSON Output Key Fix: Use DataTreeViewer or raw JSON if simpler */}
+                                    <div className="flex-1 overflow-hidden flex flex-col bg-slate-50 rounded-xl border border-slate-200">
+                                        <div className="flex justify-between items-center px-4 py-2 border-b border-slate-200 bg-white">
+                                            <span className="text-xs font-bold text-slate-500 uppercase">Output Data</span>
+                                            <button 
+                                                className="text-[10px] text-slate-500 hover:text-purple-600 uppercase font-bold tracking-wider"
+                                                onClick={() => navigator.clipboard.writeText(JSON.stringify(executionResult.output, null, 2))}
+                                            >
+                                                Copy JSON
+                                            </button>
+                                        </div>
+                                        <div className="flex-1 overflow-auto bg-slate-50">
+                                             <DataTreeViewer data={executionResult.output} />
+                                        </div>
+                                    </div>
                                     
-                                    {activeTab === 'logs' && (
-                                        <div className="p-0">
-                                            {executionResult.logs && executionResult.logs.length > 0 ? (
-                                                 <div className="divide-y divide-slate-100">
-                                                    {executionResult.logs.map((log: any, i: number) => (
-                                                        <LogMessage key={i} log={log} />
-                                                    ))}
-                                                 </div>
-                                            ) : (
-                                                <div className="p-8 text-center text-slate-400 text-xs">
-                                                    No logs available
-                                                </div>
-                                            )}
-                                        </div>
+                                    {/* Terminal Logs */}
+                                    {executionResult.logs && executionResult.logs.length > 0 && (
+                                         <div className="bg-slate-950 rounded-xl border border-slate-800 p-4 shadow-sm max-h-[200px] overflow-y-auto">
+                                            <div className="flex items-center gap-2 mb-2">
+                                                <div className="w-2 h-2 rounded-full bg-red-500/50"></div>
+                                                <div className="w-2 h-2 rounded-full bg-yellow-500/50"></div>
+                                                <div className="w-2 h-2 rounded-full bg-green-500/50"></div>
+                                                <span className="text-xs font-bold text-slate-500 uppercase tracking-wide ml-2">System Logs</span>
+                                            </div>
+                                            <div className="space-y-1 font-mono">
+                                                {executionResult.logs.map((log: any, i: number) => {
+                                                    const logMessage = typeof log === 'object' && log !== null 
+                                                        ? `[${new Date(log.timestamp).toLocaleTimeString()}] [${log.level}] ${log.message}`
+                                                        : String(log);
+                                                    
+                                                    const isError = logMessage.includes('[ERROR]');
+                                                    const isWarn = logMessage.includes('[WARN]');
+                                                    const isInfo = logMessage.includes('[INFO]');
+
+                                                    return (
+                                                        <div key={i} className={`text-xs border-b border-slate-900 last:border-0 pb-1 mb-1 break-all ${
+                                                            isError ? 'text-red-400' : 
+                                                            isWarn ? 'text-yellow-400' : 
+                                                            isInfo ? 'text-blue-300' : 'text-slate-400'
+                                                        }`}>
+                                                            <span className="text-slate-600 mr-2 select-none">{(i + 1).toString().padStart(2, '0')}</span>
+                                                            {logMessage}
+                                                        </div>
+                                                    );
+                                                })}
+                                            </div>
+                                         </div>
                                     )}
-                                </>
+                                </div>
                             ) : (
-                                <div className="h-full flex flex-col items-center justify-center text-slate-400 p-8 text-center">
-                                    <Zap size={32} className="mb-3 opacity-20" />
-                                    <p className="text-sm font-medium">No Execution Data</p>
-                                    <p className="text-xs mt-1">Run a test to see results here</p>
+                                <div className="flex-1 flex flex-col items-center justify-center text-slate-400">
+                                    <div className="w-16 h-16 bg-slate-100 rounded-full flex items-center justify-center mb-4">
+                                        <Terminal size={32} className="text-slate-300" />
+                                    </div>
+                                    <p className="text-sm font-medium text-slate-500">No execution data available</p>
+                                    <p className="text-xs text-slate-400 mt-1">Run the node to see outputs here.</p>
                                 </div>
                             )}
                         </div>
-                    </div>
+                    )}
+                </div>
+
+                {/* Footer Action Bar */}
+                <div className="p-4 border-t border-slate-100 bg-white flex items-center justify-between gap-4">
+                    <Button
+                        variant="ghost"
+                        onClick={() => setSelectedNode(null)}
+                        className="text-slate-500 hover:text-slate-700"
+                    >
+                        Close
+                    </Button>
+                    <Button 
+                        onClick={handleExecuteNode}
+                        disabled={isExecuting}
+                        className={cn(
+                            "flex-1 justify-center gap-2",
+                            isExecuting ? "bg-slate-100 text-slate-400" : "bg-purple-600 hover:bg-purple-700 text-white shadow-md shadow-purple-200"
+                        )}
+                    >
+                        {isExecuting ? <RefreshCw className="animate-spin" size={16} /> : <Zap size={16} fill="currentColor" />}
+                        {isExecuting ? 'Running...' : 'Test OCR'}
+                    </Button>
                 </div>
             </div>
             
@@ -363,32 +417,6 @@ export const NodeConfigPanel: React.FC<{ nodeExecutionData?: any }> = ({ nodeExe
                 onSuccess={() => fetchCredentials('GEMINI')}
             />
         </div>
-    );
-};
-
-const LogMessage = ({ log }: { log: any }) => {
-    const [expanded, setExpanded] = useState(false);
-    const isLong = log.message.length > 150;
-
-    return (
-        <div className="p-3 text-[10px] font-mono hover:bg-slate-100 transition-colors border-l-2 border-transparent hover:border-slate-300">
-            <div className="flex justify-between mb-1 opacity-50">
-                <span>{new Date(log.timestamp).toLocaleTimeString()}</span>
-                <span className={log.level === 'ERROR' ? 'text-red-500 font-bold' : ''}>{log.level}</span>
-            </div>
-            <div className={log.level === 'ERROR' ? 'text-red-600' : 'text-slate-600'}>
-                <span className="whitespace-pre-wrap break-all">
-                    {expanded || !isLong ? log.message : log.message.substring(0, 150) + '...'}
-                </span>
-                {isLong && (
-                     <button 
-                        onClick={() => setExpanded(!expanded)}
-                        className="ml-1.5 text-[9px] text-purple-600 hover:text-purple-800 font-bold bg-purple-50 hover:bg-purple-100 border border-purple-100 px-1.5 py-0.5 rounded cursor-pointer select-none transition-colors inline-block align-middle"
-                    >
-                        {expanded ? 'Less' : 'More'}
-                    </button>
-                )}
-            </div>
         </div>
     );
 };

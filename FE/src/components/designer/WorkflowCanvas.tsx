@@ -1,18 +1,16 @@
 import React, { useCallback, useRef, useMemo } from 'react';
 import { useParams } from 'react-router-dom';
 import {
-  ReactFlow,
   MiniMap,
-  Controls,
-  Background,
   useReactFlow,
   ReactFlowProvider,
-  BackgroundVariant,
-  ConnectionLineType,
-  ControlButton,
-} from '@xyflow/react';
+ } from '@xyflow/react';
 import { useWorkflowStore } from '../../store/workflowStore';
 import { Plus, LayoutGrid, RotateCcw, RotateCw } from 'lucide-react';
+import { Controls } from './Controls'; // Import custom Controls
+import { Canvas } from './Canvas'; // Import custom Canvas
+import { Connection } from './Connection'; // Import custom Connection
+import { Button } from '../../common/Button';
 
 import { GenericNode } from '../../nodes/GenericNode';
 import { GoogleDriveNode } from '../../nodes/google-drive/GoogleDriveNode';
@@ -35,7 +33,7 @@ import { SuryaOCRNode } from '../../nodes/surya-ocr/SuryaOCRNode';
 import { TesseractOCRNode } from '../../nodes/tesseract-ocr/TesseractOCRNode';
 import { CodeNode } from '../../nodes/code/CodeNode';
 
-import { DeletableEdge } from './DeletableEdge';
+import { Edge } from './Edge';
 import { CollaborativeCursors } from './CollaborativeCursors';
 import { getLayoutedElements } from '../../utils/layoutUtils';
 
@@ -77,13 +75,14 @@ const nodeTypes = {
 };
 
 const edgeTypes = {
-  deletable: DeletableEdge,
+  deletable: Edge.Animated, // Use Animated as default for 'deletable' or replace deletable entirely? Let's map 'deletable' to Edge.Animated for now as it's the main edge.
+  animated: Edge.Animated,
+  temporary: Edge.Temporary,
 };
 
 const defaultEdgeOptions = {
-    type: 'deletable',
-    animated: false,
-    style: { strokeWidth: 2, stroke: '#64748b' }, // slate-500 equivalent
+    type: 'animated', // Default to animated
+    animated: true,
 };
 
 const WorkflowCanvasInner: React.FC<WorkflowCanvasProps> = ({ onToggleDrawer, executionData }) => {
@@ -188,13 +187,13 @@ const WorkflowCanvasInner: React.FC<WorkflowCanvasProps> = ({ onToggleDrawer, ex
 
   return (
     <div className="flex-1 h-full relative" ref={reactFlowWrapper}>
-      <ReactFlow
+      <Canvas
         nodes={nodesWithStatus}
         nodeTypes={nodeTypes}
         edgeTypes={edgeTypes}
         edges={edges}
         defaultEdgeOptions={defaultEdgeOptions}
-        connectionLineType={ConnectionLineType.SmoothStep}
+        connectionLineComponent={Connection}
         onNodesChange={onNodesChange}
         onEdgesChange={onEdgesChange}
         onConnect={onConnect}
@@ -202,7 +201,6 @@ const WorkflowCanvasInner: React.FC<WorkflowCanvasProps> = ({ onToggleDrawer, ex
         onPaneClick={onPaneClick}
         onDrop={onDrop}
         onDragOver={onDragOver}
-        fitView
         fitViewOptions={{ padding: 0.2, maxZoom: 1.1 }}
         defaultViewport={{ x: 0, y: 0, zoom: 1.2 }}
         minZoom={0.5}
@@ -210,32 +208,49 @@ const WorkflowCanvasInner: React.FC<WorkflowCanvasProps> = ({ onToggleDrawer, ex
         className="bg-slate-50"
         proOptions={proOptions}
       >
-        <Controls 
-            position="bottom-left"
-            orientation='horizontal'
-            className="m-4 bg-white border border-slate-100 rounded-md p-1 fill-slate-500 [&>button]:border-none [&>button]:rounded-lg [&>button]:p-2 hover:[&>button]:bg-slate-50 [&>button]:transition-colors" 
-        >
-             <ControlButton onClick={() => onLayout('LR')} title="Auto Layout">
-                <LayoutGrid size={16} />
-             </ControlButton>
-             <ControlButton onClick={() => undo()} disabled={past.length === 0} title="Undo">
-                <RotateCcw size={16} className={past.length === 0 ? "opacity-30" : ""} />
-             </ControlButton>
-             <ControlButton onClick={() => redo()} disabled={future.length === 0} title="Redo">
-                <RotateCw size={16} className={future.length === 0 ? "opacity-30" : ""} />
-             </ControlButton>
+        <Controls>
+             <Button 
+                onClick={() => onLayout('LR')} 
+                title="Auto Layout" 
+                size="icon" 
+                variant="ghost"
+                className="bg-transparent hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-600 dark:text-slate-400 border-none shadow-none"
+             >
+                <LayoutGrid className="size-4" />
+             </Button>
+             <Button 
+                onClick={() => undo()} 
+                disabled={past.length === 0} 
+                title="Undo" 
+                size="icon" 
+                variant="ghost"
+                className="bg-transparent hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-600 dark:text-slate-400 border-none shadow-none"
+             >
+                <RotateCcw className={`size-4 ${past.length === 0 ? "opacity-30" : ""}`} />
+             </Button>
+             <Button 
+                onClick={() => redo()} 
+                disabled={future.length === 0} 
+                title="Redo" 
+                size="icon" 
+                variant="ghost"
+                className="bg-transparent hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-600 dark:text-slate-400 border-none shadow-none"
+             >
+                <RotateCw className={`size-4 ${future.length === 0 ? "opacity-30" : ""}`} />
+             </Button>
         </Controls>
-        <MiniMap
-            className="bg-white rounded-lg border border-gray-200"
-            nodeColor="#e5e7eb"
-            maskColor="rgba(0,0,0,0.1)"
-            draggable
-            pannable
-            zoomable
-        />
-        <Background variant={BackgroundVariant.Lines} gap={10} size={3} color="#ebedefff" />
+        {useWorkflowStore.getState().showMinimap && (
+            <MiniMap
+                className="bg-white rounded-lg border border-gray-200"
+                nodeColor="#e5e7eb"
+                maskColor="rgba(0,0,0,0.1)"
+                draggable
+                pannable
+                zoomable
+            />
+        )}
         
-      </ReactFlow>
+      </Canvas>
 
       <CollaborativeCursors workflowId={executionData?.workflowId || id || 'global-room'} />
 

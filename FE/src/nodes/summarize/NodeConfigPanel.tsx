@@ -23,14 +23,22 @@ export const NodeConfigPanel: React.FC<{ nodeExecutionData?: any }> = ({ nodeExe
         return credentials.filter((c: any) => c.provider === 'GEMINI');
     }, [credentials]);
 
+    const [prevSelectedId, setPrevSelectedId] = useState<string | null>(null);
+
     useEffect(() => {
         if (selectedNode) {
-            setLabel((selectedNode.data?.label as string) || '');
-            if (!nodeExecutionData) {
-                setExecutionResult(null);
+            const isNewNode = selectedNode.id !== prevSelectedId;
+            if (isNewNode) {
+                setLabel((selectedNode.data?.label as string) || '');
+                if (!nodeExecutionData) {
+                    setExecutionResult(null);
+                }
+                setPrevSelectedId(selectedNode.id);
             }
+        } else {
+            setPrevSelectedId(null);
         }
-    }, [selectedNode]);
+    }, [selectedNode, prevSelectedId]);
 
     useEffect(() => {
         if (nodeExecutionData) {
