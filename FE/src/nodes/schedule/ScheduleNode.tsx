@@ -1,133 +1,89 @@
 import { memo } from 'react';
 import { Handle, Position, type NodeProps } from '@xyflow/react';
-import { Clock, Zap, Play, Trash2 } from 'lucide-react';
+import { Clock, Zap, Check } from 'lucide-react';
 import { useWorkflowStore } from '../../store/workflowStore';
-import { axiosInstance } from '../../api/axiosConfig';
-
-interface ScheduleNodeData extends Record<string, unknown> {
-    config?: {
-        interval?: string;
-        value?: number | string;
-        cronExpression?: string;
-    };
-    label?: string;
-    executionStatus?: string;
-}
+import { cn } from '../../lib/utils';
 
 export const ScheduleNode = memo(({ id, data, isConnectable, selected }: NodeProps) => {
-    const nodeData = data as ScheduleNodeData;
-    const { deleteNode, showToast, currentExecution } = useWorkflowStore();
-
+    const { currentExecution } = useWorkflowStore();
+    const config = (data.config || {}) as any;
+    
     // Find execution status
-    const nodeStatus = nodeData.executionStatus || currentExecution?.nodeExecutions?.find((ex: any) => ex.nodeId === id)?.status;
-    const isRunning = nodeStatus === 'RUNNING';
+    const nodeStatus = data.executionStatus || currentExecution?.nodeExecutions?.find((ex: any) => ex.nodeId === id)?.status;
     const isSuccess = nodeStatus === 'SUCCESS';
-    const isFailed = nodeStatus === 'FAILED';
+    const isRunning = nodeStatus === 'RUNNING';
 
-    const interval = nodeData.config?.interval || 'Not set';
-    const value = nodeData.config?.value || '';
+    const interval = config.interval || 'Not set';
+    const value = config.value || '';
 
     let label = 'Schedule';
     if (interval === 'custom') {
-        label = nodeData.config?.cronExpression || 'Custom Cron';
+        label = config.cronExpression || 'Custom Cron';
     } else if (interval && value) {
-        label = `Every ${value} ${interval}`;
+        label = `Run every ${value} ${interval}`;
     }
 
-    const handleTestNode = async (e: React.MouseEvent) => {
-        e.stopPropagation();
-        showToast('Testing node...', 'info');
-        try {
-            await axiosInstance.post('/sample-workflows/nodes/test', {
-                nodeType: 'SCHEDULE',
-                nodeData: nodeData.config || {},
-                inputs: [] 
-            });
-            showToast('Node test successful', 'success');
-        } catch (error: any) {
-            showToast('Node test failed', 'error', error.message);
-        }
-    };
-
-    const getStatusColor = () => {
-        if (isRunning) return 'border-emerald-400 shadow-[0_0_15px_rgba(52,211,153,0.5)]';
-        if (isSuccess) return 'border-green-400 shadow-[0_0_15px_rgba(74,222,128,0.3)]';
-        if (isFailed) return 'border-red-400 shadow-[0_0_15px_rgba(248,113,113,0.3)]';
-        return selected ? 'border-emerald-500 ring-2 ring-emerald-100 shadow-lg' : 'border-slate-200 hover:border-emerald-400 shadow-sm';
-    };
-
     return (
-        <div className={`relative group min-w-[180px] bg-white rounded-xl border-2 transition-all duration-300 ${getStatusColor()}`}>
-            
-            {/* Top Toolbar - Actions */}
-            <div className="absolute bottom-full right-0 pb-1 flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-all duration-200 z-50 scale-95 group-hover:scale-100 pointer-events-none group-hover:pointer-events-auto">
-                 <div className="flex items-center gap-1">
-                    <button 
-                        onClick={handleTestNode}
-                        className="p-1 text-slate-500 hover:text-emerald-600 hover:bg-emerald-50 rounded-full transition-colors cursor-pointer"
-                        title="Test Node"
-                    >
-                        <Play size={14} />
-                    </button>
-                    <button 
-                        onClick={(e) => { e.stopPropagation(); deleteNode(id); }}
-                        className="p-1 text-slate-500 hover:text-red-600 hover:bg-red-50 rounded-full transition-colors cursor-pointer"
-                        title="Delete Node"
-                    >
-                        <Trash2 size={14} />
-                    </button>
-                </div>
-            </div>
+        <div className={cn(
+            "group relative flex flex-col items-center justify-center transition-all duration-300",
+            selected ? "scale-105" : "hover:scale-102"
+        )}>
+            {/* Main D-Shaped Body */}
+            <div className={cn(
+                "w-24 h-24 rounded-l-full rounded-r-2xl bg-white border-2 flex flex-col items-center justify-center shadow-lg transition-all duration-300 relative overflow-hidden",
+                selected ? "border-emerald-500 shadow-emerald-200 ring-4 ring-emerald-50" : "border-slate-200 hover:border-emerald-400 shadow-slate-100"
+            )}>
+                {/* Status Indicator Background */}
+                {isRunning && (
+                     <div className="absolute inset-0 bg-emerald-50/50 animate-pulse" />
+                )}
+                {isSuccess && (
+                     <div className="absolute inset-0 bg-green-50/50" />
+                )}
 
-            {/* Header Section */}
-            <div className="flex items-center justify-between px-3 py-2 bg-gradient-to-r from-emerald-50 to-white border-b border-emerald-100/50 rounded-t-[10px]">
-                <div className="flex items-center gap-2">
-                    <div className="w-6 h-6 flex items-center justify-center bg-emerald-100 rounded text-emerald-600 shrink-0">
-                        <Clock size={16} />
-                    </div>
-                    <div>
-                        <span className="block text-[10px] font-bold text-slate-800 uppercase tracking-tight leading-none mb-0.5">SCHEDULE</span>
-                        <span className="text-[8px] font-bold text-emerald-500 uppercase tracking-tighter flex items-center gap-0.5">
-                            <Zap size={8} fill="currentColor" /> TRIGGER
-                        </span>
+                {/* Internal Content */}
+                <div className={cn(
+                    "relative z-10 flex flex-col items-center gap-1",
+                    isSuccess ? "text-green-600" : "text-emerald-600"
+                )}>
+                    <div className="p-3 bg-emerald-50 rounded-full">
+                        <Clock size={32} className={cn(
+                            "transition-transform duration-500",
+                            isRunning ? "animate-spin-slow" : (selected ? "scale-110" : "group-hover:rotate-12")
+                        )} />
                     </div>
                 </div>
+
+                {/* Status Badge - Bottom Right Checkmark */}
+                {isSuccess && (
+                    <div className="absolute bottom-2 right-2 bg-green-500 rounded-lg p-0.5 border-2 border-white shadow-sm z-20 flex items-center justify-center">
+                         <Check size={10} className="text-white stroke-[4]" />
+                    </div>
+                )}
             </div>
 
-            {/* Body Content */}
-            <div className="p-3 bg-white space-y-3">
-                 <div className="bg-slate-50 p-2 rounded-lg border border-slate-100">
-                    <span className="block text-xs font-bold text-slate-900 leading-tight truncate px-1" title={label}>
+            {/* Labels outside the body */}
+            <div className="mt-3 text-center max-w-[140px]">
+                <span className="block text-[11px] font-extrabold text-slate-800 uppercase tracking-tight leading-none mb-1">
+                    {String(data.label || 'Scheduler')}
+                </span>
+                <div className="flex items-center justify-center gap-1 bg-emerald-50 px-2 py-0.5 rounded-md border border-emerald-100">
+                    <Zap size={8} className="text-emerald-500 fill-emerald-500" />
+                    <span className="text-[8px] font-bold text-emerald-600 uppercase tracking-tighter whitespace-nowrap">
                         {label}
                     </span>
-                    <span className="text-[10px] text-slate-400 mt-1 block font-medium px-1">Timer Trigger</span>
-                 </div>
+                </div>
             </div>
 
-            {/* Execution Status Indicator */}
-            {(isRunning || isSuccess || isFailed) && (
-                <div className="absolute -bottom-2 -right-2 flex items-center justify-center">
-                    <div className={`w-5 h-5 rounded-full border-2 border-white flex items-center justify-center text-[10px] shadow-sm transform transition-all scale-110 ${
-                        isRunning ? 'bg-blue-500 animate-spin border-t-transparent' :
-                        isSuccess ? 'bg-emerald-500 text-white' : 'bg-red-500 text-white'
-                    }`}>
-                        {isSuccess && '✓'}
-                        {isFailed && '!'}
-                    </div>
-                </div>
-            )}
-
-             {/* Loading Overlay */}
-             {isRunning && (
-                <div className="absolute inset-0 bg-emerald-50/10 backdrop-blur-[0.5px] rounded-xl animate-pulse pointer-events-none" />
-            )}
-
-            <Handle 
-                type="source" 
-                position={Position.Right} 
+            {/* Handle - Centered on the flat right side */}
+            <Handle
+                type="source"
+                position={Position.Right}
                 isConnectable={isConnectable}
-                className="!w-2 !h-4 !bg-slate-400 !border-2 !border-white !rounded-sm transition-all hover:!bg-emerald-500 shadow-sm" 
+                className="!w-3.5 !h-3.5 !bg-white !border-2 !border-emerald-500 !shadow-md transition-all hover:scale-125 hover:!bg-emerald-500"
             />
         </div>
     );
 });
+
+export default ScheduleNode;
