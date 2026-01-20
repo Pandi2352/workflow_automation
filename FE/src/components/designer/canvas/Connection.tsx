@@ -1,7 +1,5 @@
 import type { ConnectionLineComponent } from "@xyflow/react";
 
-const HALF = 0.5;
-
 export const Connection: ConnectionLineComponent = ({
   fromX,
   fromY,
@@ -11,19 +9,19 @@ export const Connection: ConnectionLineComponent = ({
   <g>
     <path
       className="animated"
-      d={`M${fromX},${fromY} C ${fromX + (toX - fromX) * HALF},${fromY} ${fromX + (toX - fromX) * HALF},${toY} ${toX},${toY}`}
+      d={`M${fromX},${fromY} L${toX},${toY}`}
       fill="none"
-      stroke="var(--color-ring)"
-      strokeWidth={1}
+      stroke="#94a3b8"
+      strokeWidth={2}
+      strokeDasharray="5,5"
     />
     <circle
       cx={toX}
       cy={toY}
       fill="#fff"
-      r={3}
-      stroke="var(--color-ring)"
-      strokeWidth={1}
+      r={4}
+      stroke="#10b981"
+      strokeWidth={2}
     />
   </g>
 );
-

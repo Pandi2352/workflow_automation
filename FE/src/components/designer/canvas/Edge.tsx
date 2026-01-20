@@ -1,12 +1,15 @@
+import React, { useState } from "react";
 import {
   BaseEdge,
   type EdgeProps,
+  getSmoothStepPath,
   getBezierPath,
   getSimpleBezierPath,
   EdgeLabelRenderer,
   useReactFlow,
+  Position,
 } from "@xyflow/react";
-import { X } from "lucide-react";
+import { X, Plus } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 const Temporary = ({
@@ -17,16 +20,14 @@ const Temporary = ({
   targetY,
   sourcePosition,
   targetPosition,
-  selected,
 }: EdgeProps) => {
-  const [edgePath] = getSimpleBezierPath({
-    sourceX,
-    sourceY,
-    sourcePosition,
-    targetX,
-    targetY,
-    targetPosition,
-  });
+  // Use Bezier for Tool nodes (Top/Bottom handles)
+  const isToolConnection = sourcePosition === Position.Top || sourcePosition === Position.Bottom || 
+                           targetPosition === Position.Top || targetPosition === Position.Bottom;
+
+  const [edgePath] = isToolConnection 
+    ? getSimpleBezierPath({ sourceX, sourceY, sourcePosition, targetX, targetY, targetPosition })
+    : getSmoothStepPath({ sourceX, sourceY, sourcePosition, targetX, targetY, targetPosition, borderRadius: 8 });
 
   return (
     <BaseEdge
@@ -34,7 +35,7 @@ const Temporary = ({
       id={id}
       path={edgePath}
       style={{
-        stroke: selected ? "var(--muted-foreground)" : "var(--border)",
+        stroke: "#94a3b8",
         strokeDasharray: "5, 5",
       }}
     />
@@ -42,40 +43,80 @@ const Temporary = ({
 };
 
 
-const Animated = ({ id, style, selected, markerEnd, sourceX, sourceY, targetX, targetY, sourcePosition, targetPosition }: EdgeProps) => {
-  const { setEdges } = useReactFlow();
-
-  const [edgePath, labelX, labelY] = getBezierPath({
-    sourceX,
-    sourceY,
-    sourcePosition,
-    targetX,
-    targetY,
+const Animated = ({ 
+    id, 
+    style, 
+    selected, 
+    markerEnd, 
+    sourceX, 
+    sourceY, 
+    targetX, 
+    targetY, 
+    sourcePosition, 
     targetPosition,
-    curvature: 0.5, // Smoother curve for vertical connections
-  });
+    source,
+    target 
+}: EdgeProps) => {
+  const { setEdges } = useReactFlow();
+  const [isHovered, setIsHovered] = useState(false);
+
+  // Use Bezier for Tool nodes (Top/Bottom handles)
+  const isToolConnection = sourcePosition === Position.Top || sourcePosition === Position.Bottom || 
+                           targetPosition === Position.Top || targetPosition === Position.Bottom;
+
+  const [edgePath, labelX, labelY] = isToolConnection
+    ? getBezierPath({ sourceX, sourceY, sourcePosition, targetX, targetY, targetPosition })
+    : getSmoothStepPath({ sourceX, sourceY, sourcePosition, targetX, targetY, targetPosition, borderRadius: 12 });
+
+
+  const isActive = isHovered || selected;
 
   const onEdgeClick = (evt: React.MouseEvent) => {
     evt.stopPropagation();
     setEdges((edges) => edges.filter((edge) => edge.id !== id));
   };
 
+  const onAddNodeClick = (evt: React.MouseEvent) => {
+    evt.stopPropagation();
+    const event = new CustomEvent('add-node-between', { 
+        detail: { 
+            edgeId: id,
+            sourceId: source,
+            targetId: target,
+            position: { x: labelX, y: labelY }
+        } 
+    });
+    window.dispatchEvent(event);
+  };
+
   return (
     <>
-      <BaseEdge 
-        id={id} 
-        path={edgePath} 
-        style={{
-          ...style,
-          stroke: selected ? "#6366f1" : "var(--color-ring)",
-          strokeWidth: selected ? 3 : 2,
-          transition: "all 0.2s ease",
-          animation: "dashdraw 0.8s linear infinite",
-          strokeDasharray: 6,
-          opacity: selected ? 1 : 0.8,
-        }}
+      {/* Main edge line */}
+      <path
+        id={id}
+        d={edgePath}
+        fill="none"
+        stroke={isActive ? "#6366f1" : "#cbd5e1"}
+        strokeWidth={isActive ? 3 : 2}
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        className="transition-all duration-150"
         markerEnd={markerEnd}
       />
+
+      {/* Invisible interaction path for better hover detection */}
+      <path
+        d={edgePath}
+        fill="none"
+        stroke="transparent"
+        strokeWidth={16}
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        style={{ cursor: "pointer", pointerEvents: "stroke" }}
+        onMouseEnter={() => setIsHovered(true)}
+        onMouseLeave={() => setIsHovered(false)}
+      />
+
       <EdgeLabelRenderer>
         <div
           style={{
@@ -83,18 +124,34 @@ const Animated = ({ id, style, selected, markerEnd, sourceX, sourceY, targetX, t
             transform: `translate(-50%, -50%) translate(${labelX}px,${labelY}px)`,
             pointerEvents: 'all',
           }}
-          className="nodrag nopan"
+          className="nodrag nopan flex items-center gap-1.5"
+          onMouseEnter={() => setIsHovered(true)}
+          onMouseLeave={() => setIsHovered(false)}
         >
+          {/* Add Node Button */}
           <button
             className={cn(
-              "w-6 h-6 bg-white border border-slate-200 text-slate-400 rounded-full cursor-pointer flex items-center justify-center transition-all shadow-sm hover:border-red-400 hover:text-red-500 hover:scale-110",
-              selected ? "opacity-100 scale-100" : "opacity-0 hover:opacity-100 scale-90"
+              "w-6 h-6 bg-white border border-slate-200 text-slate-500 rounded-full cursor-pointer flex items-center justify-center transition-all shadow-md hover:border-emerald-500 hover:text-emerald-500 hover:scale-110",
+              isActive ? "scale-100 opacity-100" : "scale-0 opacity-0"
+            )}
+            onClick={onAddNodeClick}
+            aria-label="Add Node"
+            title="Add Node Between"
+          >
+            <Plus size={12} strokeWidth={2.5} />
+          </button>
+
+          {/* Delete Edge Button */}
+          <button
+            className={cn(
+              "w-6 h-6 bg-white border border-slate-200 text-slate-500 rounded-full cursor-pointer flex items-center justify-center transition-all shadow-md hover:border-red-500 hover:text-red-500 hover:scale-110",
+              isActive ? "scale-100 opacity-100" : "scale-0 opacity-0"
             )}
             onClick={onEdgeClick}
             aria-label="Delete Edge"
             title="Delete Connection"
           >
-            <X size={12} />
+            <X size={12} strokeWidth={2.5} />
           </button>
         </div>
       </EdgeLabelRenderer>
@@ -106,4 +163,3 @@ export const Edge = {
   Temporary,
   Animated,
 };
-

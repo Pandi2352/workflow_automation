@@ -405,9 +405,26 @@ export const WorkflowDesigner: React.FC = () => {
          }
     };
 
+    const [insertMode, setInsertMode] = useState<{ 
+        edgeId: string; 
+        sourceId: string; 
+        targetId: string; 
+        position: { x: number; y: number } 
+    } | null>(null);
+
+    // Listen for edge insertion requests
+    useEffect(() => {
+        const handleInsertRequest = (e: any) => {
+            setInsertMode(e.detail);
+            setIsDrawerOpen(true);
+        };
+        window.addEventListener('add-node-between', handleInsertRequest);
+        return () => window.removeEventListener('add-node-between', handleInsertRequest);
+    }, []);
+
     const handleAddNode = (type: string) => {
         const nodeId = `node_${Date.now()}`;
-        const baseLabel = type.replace('_', ' '); 
+        const baseLabel = type.split('_').map(word => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase()).join(' '); 
         let label = baseLabel;
         let counter = 1;
 
@@ -416,17 +433,57 @@ export const WorkflowDesigner: React.FC = () => {
             counter++;
         }
 
-        const newNode = {
-            id: nodeId,
-            type, 
-            position: { x: 100, y: 100 + nodes.length * 50 },
-            data: { label },
-            className: 'node-reveal',
-            style: { animationDelay: '0ms' },
-            nodeName: label
-        };
+        if (insertMode) {
+            // -- INSERTION LOGIC --
+            const newNode = {
+                id: nodeId,
+                type,
+                position: insertMode.position,
+                data: { label },
+                className: 'node-reveal',
+                style: { animationDelay: '0ms' },
+                nodeName: label
+            };
+
+            // 1. Remove old edge
+            const remainingEdges = edges.filter(e => e.id !== insertMode.edgeId);
+            
+            // 2. Create two new edges
+            const newEdges = [
+                ...remainingEdges,
+                {
+                    id: `edge_${insertMode.sourceId}_${nodeId}`,
+                    source: insertMode.sourceId,
+                    target: nodeId,
+                    type: 'animated',
+                    animated: true
+                },
+                {
+                    id: `edge_${nodeId}_${insertMode.targetId}`,
+                    source: nodeId,
+                    target: insertMode.targetId,
+                    type: 'animated',
+                    animated: true
+                }
+            ];
+
+            addNode(newNode);
+            setEdges(newEdges);
+            setInsertMode(null);
+        } else {
+            // -- REGULAR ADD LOGIC --
+            const newNode = {
+                id: nodeId,
+                type, 
+                position: { x: 100, y: 100 + nodes.length * 50 },
+                data: { label },
+                className: 'node-reveal',
+                style: { animationDelay: '0ms' },
+                nodeName: label
+            };
+            addNode(newNode);
+        }
         
-        addNode(newNode);
         setIsDrawerOpen(false);
     };
 
