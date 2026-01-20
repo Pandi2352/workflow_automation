@@ -14,10 +14,10 @@ import { NodeConfigPanel as TesseractOCRConfigPanel } from './tesseract-ocr/Node
 import { NodeConfigPanel as CodeConfigPanel } from './code/NodeConfigPanel';
 import { NodeConfigPanel as OutlookConfigPanel } from './trigger/outlook/NodeConfigPanel';
 
-import { NodeConfigPanel as RSSConfigPanel } from './trigger/rss/NodeConfigPanel';
+import { NodeConfigPanel as RSSConfigPanel } from './tools/rss/NodeConfigPanel';
 import { NodeConfigPanel as AIAgentConfigPanel } from './ai-agent/NodeConfigPanel';
 import { NodeConfigPanel as GeminiModelConfigPanel } from './ai-models/NodeConfigPanel';
-import { NodeConfigPanel as GoogleSearchToolConfigPanel } from './ai-models/GoogleSearchToolConfigPanel';
+import { NodeConfigPanel as GoogleSearchToolConfigPanel } from './tools/google-search/GoogleSearchToolConfigPanel';
 
 export const NODE_CONFIG_PANELS: Record<string, React.FC<any>> = {
     ONEDRIVE: OneDriveConfigPanel,

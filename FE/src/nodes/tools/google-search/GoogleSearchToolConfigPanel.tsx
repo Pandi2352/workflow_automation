@@ -1,8 +1,8 @@
 
 import React, { useState, useEffect } from 'react';
-import { useWorkflowStore } from '../../store/workflowStore';
+import { useWorkflowStore } from '../../../store/workflowStore';
 import { X, Search, Globe, Settings2, Sliders } from 'lucide-react';
-import { NodeHelpButton } from '../../common/NodeHelpButton';
+import { NodeHelpButton } from '../../../common/NodeHelpButton';
 
 export const NodeConfigPanel: React.FC = () => {
     const { updateNodeData, deleteNode, selectedNode, setSelectedNode } = useWorkflowStore();

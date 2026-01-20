@@ -14,10 +14,10 @@ import { SummarizeNode } from './summarize/SummarizeNode';
 import { TesseractOCRNode } from './tesseract-ocr/TesseractOCRNode';
 import { CodeNode } from './code/CodeNode';
 import { OutlookNode } from './trigger/outlook/OutlookNode';
-import { RSSNode } from './trigger/rss/RSSNode';
+import { RSSNode } from './tools/rss/RSSNode';
 import { AIAgentNode } from './ai-agent/AIAgentNode';
 import { GeminiModelNode } from './ai-models/GeminiModelNode';
-import { GoogleSearchToolNode } from './ai-models/GoogleSearchToolNode';
+import { GoogleSearchToolNode } from './tools/google-search/GoogleSearchToolNode';
 import { WebhookNode } from './trigger/webhook/WebhookNode';
 
 export const NODE_TYPES = {
