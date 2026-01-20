@@ -472,10 +472,15 @@ export const WorkflowDesigner: React.FC = () => {
             setInsertMode(null);
         } else {
             // -- REGULAR ADD LOGIC --
+            // Place nodes in a slightly diagonal cascade starting from a more central area
+            const nodeOffset = nodes.length % 10;
             const newNode = {
                 id: nodeId,
                 type, 
-                position: { x: 100, y: 100 + nodes.length * 50 },
+                position: { 
+                    x: 250 + nodeOffset * 40, 
+                    y: 150 + nodeOffset * 40 
+                },
                 data: { label },
                 className: 'node-reveal',
                 style: { animationDelay: '0ms' },

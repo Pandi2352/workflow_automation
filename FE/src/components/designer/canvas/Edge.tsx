@@ -45,7 +45,6 @@ const Temporary = ({
 
 const Animated = ({ 
     id, 
-    style, 
     selected, 
     markerEnd, 
     sourceX, 
@@ -100,7 +99,9 @@ const Animated = ({
         strokeWidth={isActive ? 3 : 2}
         strokeLinecap="round"
         strokeLinejoin="round"
-        className="transition-all duration-150"
+        style={{
+            transition: 'stroke 0.2s, stroke-width 0.2s', // Only animate colors/width, NOT the path shape 'd'
+        }}
         markerEnd={markerEnd}
       />
 
