@@ -3,7 +3,7 @@ import { memo } from 'react';
 import { type NodeProps } from '@xyflow/react';
 import { Globe } from 'lucide-react';
 import { useWorkflowStore } from '../../../store/workflowStore';
-import { ToolNodeBase } from '../base/ToolNodeBase';
+import { ToolNodeBase } from '../common/ToolNodeBase';
 
 export const GoogleSearchToolNode = memo(({ id, data, isConnectable, selected }: NodeProps) => {
     const { currentExecution } = useWorkflowStore();

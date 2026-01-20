@@ -5,8 +5,6 @@ import type { SampleWorkflow, CreateWorkflowPayload, WorkflowExportBundle } from
 export const workflowService = {
     getAll: async (): Promise<SampleWorkflow[]> => {
         const response = await axiosInstance.get(API_ENDPOINTS.WORKFLOWS.LIST);
-        // Handle paginated response structure: { data: [...], pagination: ... }
-        // If the API returns the array directly, utilize it. If nested in 'data', use that.
         return Array.isArray(response.data) ? response.data : (response.data.data || []);
     },
 
@@ -114,6 +112,15 @@ export const workflowService = {
             prompt,
             currentNodes,
             currentEdges
+        });
+        return response.data;
+    },
+
+    executeNodeTest: async (nodeType: string, nodeData: any, inputs: any[] = []): Promise<any> => {
+        const response = await axiosInstance.post('/sample-workflows/nodes/test', {
+            nodeType,
+            nodeData,
+            inputs
         });
         return response.data;
     }

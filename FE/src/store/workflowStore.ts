@@ -16,6 +16,7 @@ import type {
 } from '@xyflow/react';
 import { axiosInstance } from '../api/axiosConfig';
 import { API_ENDPOINTS } from '../api/endpoints';
+import { workflowService } from '../services/api/workflows';
 
 interface WorkflowHistoryState {
     nodes: Node[];
@@ -88,6 +89,7 @@ interface WorkflowState {
     // Helpers
     deleteNode: (id: string) => void;
     duplicateNode: (id: string) => void;
+    executeNode: (id: string) => Promise<void>;
 }
 
 const MAX_HISTORY = 20;
@@ -342,6 +344,41 @@ export const useWorkflowStore = create<WorkflowState>()((set, get) => ({
             selectedNode: null,
             isDirty: true
         }));
+    },
+
+    executeNode: async (id: string) => {
+        const { nodes, updateNodeData, showToast } = get();
+        const node = nodes.find(n => n.id === id);
+        if (!node) return;
+
+        try {
+            // 1. Set status to RUNNING
+            updateNodeData(id, { executionStatus: 'RUNNING' });
+            showToast(`Executing ${node.data?.label || node.type}...`, 'info');
+
+            // 2. Call backend
+            const result = await workflowService.executeNodeTest(
+                node.type as string,
+                node.data?.config || {},
+                [] // Mock inputs for single node test
+            );
+
+            // 3. Update status to SUCCESS
+            updateNodeData(id, {
+                executionStatus: 'SUCCESS',
+                lastOutput: result
+            });
+            showToast(`${node.data?.label || node.type} executed successfully`, 'success');
+
+        } catch (error: any) {
+            console.error('Node execution failed', error);
+            // 4. Update status to FAILED
+            updateNodeData(id, {
+                executionStatus: 'FAILED',
+                lastError: error.response?.data?.message || error.message
+            });
+            showToast(`Execution failed: ${node.data?.label || node.type}`, 'error', error.response?.data?.message);
+        }
     }
 }));
 

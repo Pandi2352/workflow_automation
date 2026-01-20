@@ -1,7 +1,6 @@
 import { Handle, Position } from '@xyflow/react';
 import { cn } from '../../../lib/utils';
-import { Play, Power, Trash2, Copy } from 'lucide-react';
-import { useWorkflowStore } from '../../../store/workflowStore';
+import { NodeHoverToolbar } from './NodeHoverToolbar';
 
 type ExecutionStatus = 'RUNNING' | 'SUCCESS' | 'FAILED' | undefined;
 
@@ -79,44 +78,12 @@ export const ToolNodeBase = ({
     const accentStyle = ACCENTS[accent] || ACCENTS.amber;
     const isRunning = executionStatus === 'RUNNING';
     const isSuccess = executionStatus === 'SUCCESS';
-    const { deleteNode, duplicateNode } = useWorkflowStore();
-
     return (
         <div className={cn(
             "group relative flex flex-col items-center justify-center transition-all duration-300",
             selected ? "scale-105" : "hover:scale-102"
         )}>
-            {/* Hover Toolbar (Stable interaction) */}
-            <div className="absolute -top-8 left-1/2 -translate-x-1/2 flex items-center gap-3 px-2.5 pt-1 pb-5 bg-transparent opacity-0 group-hover:opacity-100 pointer-events-none group-hover:pointer-events-auto z-50 transition-all duration-200">
-                <div className="flex items-center gap-3 px-2.5 py-1 bg-gray-80">
-                    <button 
-                        className="text-slate-500 hover:text-emerald-600 transition-colors cursor-pointer"
-                        title="Execute Node"
-                    >
-                        <Play size={11} fill="currentColor" />
-                    </button>
-                    <button 
-                        className="text-slate-500 hover:text-amber-600 transition-colors cursor-pointer"
-                        title="Deactivate Node"
-                    >
-                        <Power size={11} />
-                    </button>
-                    <button 
-                        onClick={(e) => { e.stopPropagation(); deleteNode(id); }}
-                        className="text-slate-500 hover:text-red-500 transition-colors cursor-pointer"
-                        title="Delete Node"
-                    >
-                        <Trash2 size={11} />
-                    </button>
-                    <button 
-                        onClick={(e) => { e.stopPropagation(); duplicateNode(id); }}
-                        className="text-slate-500 hover:text-indigo-500 transition-colors cursor-pointer"
-                        title="Duplicate Node"
-                    >
-                        <Copy size={11} />
-                    </button>
-                </div>
-            </div>
+            <NodeHoverToolbar id={id} />
 
             <div className={cn(
                 "w-20 h-20 rounded-full bg-white border-2 flex flex-col items-center justify-center shadow-lg transition-all duration-300 relative overflow-hidden",
