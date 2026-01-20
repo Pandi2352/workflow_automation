@@ -1,5 +1,7 @@
 import { Handle, Position } from '@xyflow/react';
 import { cn } from '../../../lib/utils';
+import { Play, Power, Trash2, Copy } from 'lucide-react';
+import { useWorkflowStore } from '../../../store/workflowStore';
 
 type ExecutionStatus = 'RUNNING' | 'SUCCESS' | 'FAILED' | undefined;
 
@@ -52,6 +54,7 @@ const ACCENTS: Record<string, AccentStyle> = {
 };
 
 export interface ToolNodeBaseProps {
+    id: string;
     label: string;
     badgeText: string;
     icon: React.ReactNode;
@@ -63,6 +66,7 @@ export interface ToolNodeBaseProps {
 }
 
 export const ToolNodeBase = ({
+    id,
     label,
     badgeText,
     icon,
@@ -75,12 +79,45 @@ export const ToolNodeBase = ({
     const accentStyle = ACCENTS[accent] || ACCENTS.amber;
     const isRunning = executionStatus === 'RUNNING';
     const isSuccess = executionStatus === 'SUCCESS';
+    const { deleteNode, duplicateNode } = useWorkflowStore();
 
     return (
         <div className={cn(
             "group relative flex flex-col items-center justify-center transition-all duration-300",
             selected ? "scale-105" : "hover:scale-102"
         )}>
+            {/* Hover Toolbar (Stable interaction) */}
+            <div className="absolute -top-8 left-1/2 -translate-x-1/2 flex items-center gap-3 px-2.5 pt-1 pb-5 bg-transparent opacity-0 group-hover:opacity-100 pointer-events-none group-hover:pointer-events-auto z-50 transition-all duration-200">
+                <div className="flex items-center gap-3 px-2.5 py-1 bg-gray-80">
+                    <button 
+                        className="text-slate-500 hover:text-emerald-600 transition-colors cursor-pointer"
+                        title="Execute Node"
+                    >
+                        <Play size={11} fill="currentColor" />
+                    </button>
+                    <button 
+                        className="text-slate-500 hover:text-amber-600 transition-colors cursor-pointer"
+                        title="Deactivate Node"
+                    >
+                        <Power size={11} />
+                    </button>
+                    <button 
+                        onClick={(e) => { e.stopPropagation(); deleteNode(id); }}
+                        className="text-slate-500 hover:text-red-500 transition-colors cursor-pointer"
+                        title="Delete Node"
+                    >
+                        <Trash2 size={11} />
+                    </button>
+                    <button 
+                        onClick={(e) => { e.stopPropagation(); duplicateNode(id); }}
+                        className="text-slate-500 hover:text-indigo-500 transition-colors cursor-pointer"
+                        title="Duplicate Node"
+                    >
+                        <Copy size={11} />
+                    </button>
+                </div>
+            </div>
+
             <div className={cn(
                 "w-20 h-20 rounded-full bg-white border-2 flex flex-col items-center justify-center shadow-lg transition-all duration-300 relative overflow-hidden",
                 selected ? cn(accentStyle.border, accentStyle.shadow, accentStyle.ring, "ring-4") : cn("border-slate-200", accentStyle.hoverBorder, "shadow-slate-100")
@@ -98,6 +135,14 @@ export const ToolNodeBase = ({
                         {icon}
                     </div>
                 </div>
+
+                {isSuccess && (
+                     <div className="absolute bottom-3 left-1/2 -translate-x-1/2 text-emerald-500 z-20">
+                         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="4" strokeLinecap="round" strokeLinejoin="round" className="w-4 h-4">
+                             <polyline points="20 6 9 17 4 12" />
+                         </svg>
+                     </div>
+                )}
             </div>
 
             <div className="mt-3 text-center max-w-[140px]">

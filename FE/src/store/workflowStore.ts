@@ -87,6 +87,7 @@ interface WorkflowState {
 
     // Helpers
     deleteNode: (id: string) => void;
+    duplicateNode: (id: string) => void;
 }
 
 const MAX_HISTORY = 20;
@@ -140,16 +141,9 @@ export const useWorkflowStore = create<WorkflowState>()((set, get) => ({
         });
     },
 
-
     setIsDirty: (isDirty) => set({ isDirty }),
 
-    setNodes: (nodes) => {
-        // We typically don't want to undo a full setNodes (like loading)
-        // But if it's used for layouting, maybe we do? 
-        // For now, let's assume programmatic setNodes might trigger history if desired, 
-        // but typically applyNodeChanges is where the action is.
-        set({ nodes });
-    },
+    setNodes: (nodes) => set({ nodes }),
     setEdges: (edges) => set({ edges }),
     setSelectedNode: (selectedNode) => set({ selectedNode }),
 
@@ -193,11 +187,6 @@ export const useWorkflowStore = create<WorkflowState>()((set, get) => ({
     },
 
     updateNodeData: (id: string, data: any) => {
-        // This can be frequent (typing), debouncing history might be needed in real world.
-        // For now, simpler is better. Maybe don't history track every keystroke?
-        // Let's track it for now to be safe.
-        // get().pushToHistory(); 
-
         const { nodes, selectedNode } = get();
         const updatedNodes = nodes.map((node) => {
             if (node.id === id) {
@@ -206,7 +195,6 @@ export const useWorkflowStore = create<WorkflowState>()((set, get) => ({
             return node;
         });
 
-        // Also update selectedNode if it refers to the same node
         let updatedSelectedNode = selectedNode;
         if (selectedNode && selectedNode.id === id) {
             updatedSelectedNode = { ...selectedNode, data: { ...selectedNode.data, ...data } };
@@ -218,11 +206,9 @@ export const useWorkflowStore = create<WorkflowState>()((set, get) => ({
         });
     },
 
-    // UI State
     activeTab: 'editor',
     setActiveTab: (tab) => set({ activeTab: tab }),
 
-    // Workflow Metadata
     createWorkflow: async (navigate) => {
         try {
             const response = await axiosInstance.post(API_ENDPOINTS.WORKFLOWS.CREATE, {
@@ -267,23 +253,19 @@ export const useWorkflowStore = create<WorkflowState>()((set, get) => ({
         }
     },
 
-    // Toast State
     toast: { message: '', variant: 'success', isVisible: false },
     showToast: (message, variant = 'success', description) => set({
         toast: { message, variant, description, isVisible: true }
     }),
     hideToast: () => set((state) => ({ toast: { ...state.toast, isVisible: false } })),
 
-    // Execution State
     currentExecution: null,
     isExecuting: false,
     setCurrentExecution: (execution) => set({ currentExecution: execution }),
 
-    // Execution Trigger (to request execution from components)
     executionTrigger: 0,
     triggerWorkflowExecution: () => set({ executionTrigger: Date.now() }),
 
-    // Reset State
     resetWorkflowStore: () => {
         set({
             nodes: [],
@@ -303,11 +285,9 @@ export const useWorkflowStore = create<WorkflowState>()((set, get) => ({
         });
     },
 
-    // Display options
     showMinimap: true,
     toggleMinimap: () => set((state) => ({ showMinimap: !state.showMinimap })),
 
-    // Deletion helper
     deleteNode: (id: string) => {
         get().pushToHistory();
         const { nodes, edges } = get();
@@ -316,5 +296,53 @@ export const useWorkflowStore = create<WorkflowState>()((set, get) => ({
             edges: edges.filter(e => e.source !== id && e.target !== id),
             isDirty: true
         });
+    },
+
+    duplicateNode: (id: string) => {
+        const { nodes } = get();
+        const nodeToDuplicate = nodes.find(n => n.id === id);
+        if (!nodeToDuplicate) return;
+
+        get().pushToHistory();
+
+        const newNodeId = `${nodeToDuplicate.type}_${Date.now()}`;
+
+        // Deep clone data to avoid reference sharing
+        const newData = JSON.parse(JSON.stringify(nodeToDuplicate.data || {}));
+
+        if (newData.label) {
+            let baseLabel = newData.label as string;
+            baseLabel = baseLabel.replace(/ copy( \d+)?$/, '');
+
+            let newLabel = `${baseLabel} copy`;
+            let counter = 1;
+            while (nodes.some(n => n.data?.label === newLabel)) {
+                newLabel = `${baseLabel} copy ${counter}`;
+                counter++;
+            }
+            newData.label = newLabel;
+        }
+
+        const newNode: Node = {
+            ...nodeToDuplicate,
+            id: newNodeId,
+            position: {
+                x: nodeToDuplicate.position.x + 40,
+                y: nodeToDuplicate.position.y + 40
+            },
+            data: newData,
+            selected: false,
+        };
+
+        set((state) => ({
+            nodes: [
+                ...state.nodes.map(n => ({ ...n, selected: false })),
+                newNode
+            ],
+            selectedNode: null,
+            isDirty: true
+        }));
     }
 }));
+
+

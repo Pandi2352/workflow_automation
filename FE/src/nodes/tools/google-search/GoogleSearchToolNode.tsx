@@ -11,6 +11,7 @@ export const GoogleSearchToolNode = memo(({ id, data, isConnectable, selected }:
 
     return (
         <ToolNodeBase
+            id={id}
             label={String(data.label || 'Search Tool')}
             badgeText="GOOGLE_SEARCH"
             icon={<Globe size={22} />}

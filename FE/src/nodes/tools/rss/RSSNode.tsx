@@ -13,6 +13,7 @@ export const RSSNode = memo(({ id, data, isConnectable, selected }: NodeProps) =
 
     return (
         <ToolNodeBase
+            id={id}
             label={String(data.label || 'RSS Feed')}
             badgeText="RSS"
             detailText={hostname}
