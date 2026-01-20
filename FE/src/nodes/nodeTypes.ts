@@ -1,11 +1,11 @@
 import { GenericNode } from './GenericNode';
-import { GoogleDriveNode } from './google-drive/GoogleDriveNode';
-import { OneDriveNode } from './onedrive/OneDriveNode';
-import { GmailNode } from './gmail/GmailNode';
-import { ScheduleNode } from './schedule/ScheduleNode';
+import { GoogleDriveNode } from './trigger/google-drive/GoogleDriveNode';
+import { OneDriveNode } from './trigger/onedrive/OneDriveNode';
+import { GmailNode } from './trigger/gmail/GmailNode';
+import { ScheduleNode } from './trigger/schedule/ScheduleNode';
 import { OCRNode } from './ocr/OCRNode';
 import { SmartExtractionNode } from './smart-extraction/SmartExtractionNode';
-import FileUploadNode from './file-upload/FileUploadNode';
+import FileUploadNode from './trigger/file-upload/FileUploadNode';
 import { HttpNode } from './http-request/HttpNode';
 import { IfElseNode } from './if-else/IfElseNode';
 import { ParsingNode } from './parsing/ParsingNode';
@@ -13,11 +13,12 @@ import { MongoDBNode } from './mongodb/MongoDBNode';
 import { SummarizeNode } from './summarize/SummarizeNode';
 import { TesseractOCRNode } from './tesseract-ocr/TesseractOCRNode';
 import { CodeNode } from './code/CodeNode';
-import { OutlookNode } from './outlook/OutlookNode';
-import { RSSNode } from './rss/RSSNode';
+import { OutlookNode } from './trigger/outlook/OutlookNode';
+import { RSSNode } from './trigger/rss/RSSNode';
 import { AIAgentNode } from './ai-agent/AIAgentNode';
 import { GeminiModelNode } from './ai-models/GeminiModelNode';
 import { GoogleSearchToolNode } from './ai-models/GoogleSearchToolNode';
+import { WebhookNode } from './trigger/webhook/WebhookNode';
 
 export const NODE_TYPES = {
     GOOGLE_DRIVE: GoogleDriveNode,
@@ -45,9 +46,10 @@ export const NODE_TYPES = {
     gemini_model: GeminiModelNode,
     GOOGLE_SEARCH_TOOL: GoogleSearchToolNode,
     google_search_tool: GoogleSearchToolNode,
+    WEBHOOK: WebhookNode,
+    webhook: WebhookNode,
     default: GenericNode,
     input: GenericNode,
-    webhook: GenericNode,
     api: GenericNode,
     transform: GenericNode,
     output: GenericNode,

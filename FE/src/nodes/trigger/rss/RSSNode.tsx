@@ -1,8 +1,8 @@
 import { memo } from 'react';
 import { Handle, Position, type NodeProps } from '@xyflow/react';
 import { Rss, Radio, Wifi } from 'lucide-react';
-import { cn } from '../../lib/utils';
-import { useWorkflowStore } from '../../store/workflowStore';
+import { cn } from '../../../lib/utils';
+import { useWorkflowStore } from '../../../store/workflowStore';
 
 export const RSSNode = memo(({ id, data, isConnectable, selected }: NodeProps) => {
     const { currentExecution } = useWorkflowStore();
@@ -84,3 +84,4 @@ export const RSSNode = memo(({ id, data, isConnectable, selected }: NodeProps) =
 });
 
 export default RSSNode;
+

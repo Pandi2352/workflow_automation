@@ -1,10 +1,11 @@
 import React, { useEffect, useState } from 'react';
 import { RefreshCw } from 'lucide-react';
-import { axiosInstance } from '../../api/axiosConfig';
-import { API_ENDPOINTS } from '../../api/endpoints';
-import { useWorkflowStore } from '../../store/workflowStore';
+import { axiosInstance } from '../../../api/axiosConfig';
+import { API_ENDPOINTS } from '../../../api/endpoints';
+import { useWorkflowStore } from '../../../store/workflowStore';
 
-// Internal Folder Selector Component (Mirrors GoogleDriveConfig but for OneDrive)
+
+// Internal Folder Selector Component
 const FolderSelectorField = ({ credentialId, value, onFolderSelect }: any) => {
     const [folders, setFolders] = useState<any[]>([]);
     const [loading, setLoading] = useState(false);
@@ -15,8 +16,7 @@ const FolderSelectorField = ({ credentialId, value, onFolderSelect }: any) => {
         setLoading(true);
         setError('');
         
-        // Using ONEDRIVE endpoint (Make sure backend OneDriveController exposes this)
-        axiosInstance.get(API_ENDPOINTS.ONEDRIVE.LIST, {
+        axiosInstance.get(API_ENDPOINTS.GOOGLE_DRIVE.LIST, {
             params: { type: 'folders', credentialId }
         })
         .then(res => {
@@ -25,16 +25,8 @@ const FolderSelectorField = ({ credentialId, value, onFolderSelect }: any) => {
         })
         .catch(err => {
             console.error('Failed to fetch folders', err);
-            const msg = err.response?.data?.message || 'Failed to load folders';
-            setError(msg);
+            setError('Failed to load folders');
             setLoading(false);
-            
-            // If 404 (Not Found), it means the parent folder might be invalid. 
-            // We might want to clear the selection or just show the error.
-            if (err.response?.status === 404) {
-                 // Optional: Auto-clear invalid selection? 
-                 // For now, showing the error is safer.
-            }
         });
     };
 
@@ -58,14 +50,14 @@ const FolderSelectorField = ({ credentialId, value, onFolderSelect }: any) => {
         <div className="mb-5">
             <label className="block text-sm font-semibold text-slate-700 mb-1.5 flex justify-between">
                 <span>Folder</span>
-                {loading && <span className="text-xs text-blue-500 animate-pulse">Loading...</span>}
+                {loading && <span className="text-xs text-indigo-500 animate-pulse">Loading...</span>}
             </label>
             <div className="relative">
                 <select
                     value={value || ''}
                     onChange={handleChange}
                     disabled={!credentialId || loading}
-                    className="w-full bg-slate-50 border border-slate-300 rounded-lg p-2.5 text-sm text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent disabled:opacity-60 transition-all"
+                    className="w-full bg-slate-50 border border-slate-300 rounded-lg p-2.5 text-sm text-slate-900 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent disabled:opacity-60 transition-all"
                 >
                     <option value="">{loading ? 'Loading folders...' : (credentialId ? 'Select a specific folder...' : 'Select Credential First')}</option>
                     {folders.map((f: any) => (
@@ -75,7 +67,7 @@ const FolderSelectorField = ({ credentialId, value, onFolderSelect }: any) => {
                 {credentialId && !loading && (
                     <button 
                         onClick={fetchFolders}
-                        className="absolute right-2 top-1/2 -translate-y-1/2 text-slate-400 hover:text-blue-600 p-1"
+                        className="absolute right-2 top-1/2 -translate-y-1/2 text-slate-400 hover:text-indigo-600 p-1"
                         title="Refresh Folders"
                     >
                          <RefreshCw size={14} />
@@ -87,15 +79,22 @@ const FolderSelectorField = ({ credentialId, value, onFolderSelect }: any) => {
     );
 };
 
-export const OneDriveConfig = ({ selectedNode }: { selectedNode: any }) => {
+export const GoogleDriveConfig = ({ selectedNode }: { selectedNode: any }) => {
     const { updateNodeData, credentials } = useWorkflowStore();
     const config = selectedNode.data?.config || {};
+    const operation = config.operation || 'fetch_files';
+
+    const handleUpdate = (key: string, value: any) => {
+         updateNodeData(selectedNode.id, {
+            config: { ...config, [key]: value }
+         });
+    };
 
     return (
         <div className="space-y-6">
             {/* Credential Selector */}
             <div className="mb-5">
-                <label className="block text-sm font-semibold text-slate-700 mb-1.5">Microsoft Account</label>
+                <label className="block text-sm font-semibold text-slate-700 mb-1.5">Google Account</label>
                 <div className="relative flex gap-2">
                     <div className="relative flex-1">
                         <select
@@ -108,57 +107,89 @@ export const OneDriveConfig = ({ selectedNode }: { selectedNode: any }) => {
                                     const left = (window.screen.width - width) / 2;
                                     const top = (window.screen.height - height) / 2;
                                     window.open(
-                                        'http://localhost:4000/api/auth/microsoft',
-                                        'Microsoft Auth',
+                                        'http://localhost:4000/api/auth/google',
+                                        'Google Auth',
                                         `width=${width},height=${height},top=${top},left=${left}`
                                     );
                                 } else {
-                                    const newConfig = { 
-                                        ...config, 
-                                        credentialId: val,
-                                        operation: 'list_files' 
-                                    };
-                                    if (val !== config.credentialId) {
-                                        newConfig.folderId = null;
-                                        newConfig.folderId_name = null;
-                                    }
-                                    updateNodeData(selectedNode.id, { config: newConfig });
+                                    handleUpdate('credentialId', val);
                                 }
                             }}
-                            className="w-full bg-slate-50 border border-slate-300 rounded-lg p-2.5 text-sm text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent appearance-none"
+                            className="w-full bg-slate-50 border border-slate-300 rounded-lg p-2.5 text-sm text-slate-900 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent appearance-none"
                         >
                             <option value="">-- Select --</option>
-                            {credentials?.filter((c: any) => c.provider === 'microsoft').map((cred: any) => (
+                            {credentials?.filter((c: any) => c.provider === 'google').map((cred: any) => (
                                 <option key={cred._id} value={cred._id}>
                                     {cred.name || cred.metadata?.email || 'Unnamed Credential'}
                                 </option>
                             ))}
                             <option disabled>────────────────</option>
-                            <option value="__new__" className="text-blue-600 font-medium">+ Connect New Account</option>
+                            <option value="__new__" className="text-indigo-600 font-medium">+ Connect New Account</option>
                         </select>
                     </div>
                 </div>
             </div>
 
-            {/* Folder Selector (Always shown if Credential Selected) */}
-            {config.credentialId && (
+            {/* Operation Selector */}
+            <div className="mb-5">
+                <label className="block text-sm font-semibold text-slate-700 mb-1.5">Operation</label>
+                <select
+                    value={operation}
+                    onChange={(e) => handleUpdate('operation', e.target.value)}
+                    className="w-full bg-slate-50 border border-slate-300 rounded-lg p-2.5 text-sm text-slate-900 focus:outline-none focus:ring-2 focus:ring-indigo-500 transition-all"
+                >
+                    <option value="fetch_files">Fetch Files (List)</option>
+                    <option value="fetch_folders">Fetch Folders</option>
+                    <option value="upload_file">Upload File</option>
+                </select>
+            </div>
+
+            {/* Source Folder Selector (For Fetch Operations) */}
+            {config.credentialId && (operation === 'fetch_files' || operation === 'fetch_folders') && (
                 <div className="animate-in fade-in slide-in-from-top-2 duration-300">
                      <FolderSelectorField 
                         credentialId={config.credentialId}
                         value={config.folderId}
                         onFolderSelect={(id: string, name: string) => {
-                            updateNodeData(selectedNode.id, {
+                             updateNodeData(selectedNode.id, {
                                 config: { ...config, folderId: id, folderId_name: name }
                             });
                         }}
                     />
                     <p className="text-xs text-slate-500 mt-2 flex items-center gap-1">
-                        <span className="inline-block w-1.5 h-1.5 rounded-full bg-blue-500"></span>
-                        Files from the selected folder will be outputted as a list.
+                        <span className="inline-block w-1.5 h-1.5 rounded-full bg-indigo-500"></span>
+                        {operation === 'fetch_files' ? 'Files from this folder will be listed.' : 'Subfolders will be listed.'}
                     </p>
+                </div>
+            )}
+
+            {/* Upload Configuration */}
+            {config.credentialId && operation === 'upload_file' && (
+                <div className="space-y-5 animate-in fade-in slide-in-from-top-2 duration-300">
+                    <div>
+                        <label className="block text-sm font-semibold text-slate-700 mb-1.5">Target Folder</label>
+                        <FolderSelectorField 
+                            credentialId={config.credentialId}
+                            value={config.targetFolderId}
+                            onFolderSelect={(id: string, _name: string) => {
+                                handleUpdate('targetFolderId', id);
+                            }}
+                        />
+                    </div>
+                    <div>
+                        <label className="block text-sm font-semibold text-slate-700 mb-1.5">Target Filename (Optional)</label>
+                        <input
+                            type="text"
+                            value={config.fileName || ''}
+                            onChange={(e) => handleUpdate('fileName', e.target.value)}
+                            className="w-full bg-slate-50 border border-slate-300 rounded-lg p-2.5 text-sm text-slate-900 focus:outline-none focus:ring-2 focus:ring-indigo-500 transition-all"
+                            placeholder="e.g. invoice_final.pdf"
+                        />
+                         <p className="text-xs text-slate-400 mt-1">If empty, uses original filename.</p>
+                    </div>
                 </div>
             )}
         </div>
     );
-
 };
+

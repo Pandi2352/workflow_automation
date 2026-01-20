@@ -1,11 +1,11 @@
 import React, { useEffect, useState } from 'react';
-import { useWorkflowStore } from '../../store/workflowStore';
+import { useWorkflowStore } from '../../../store/workflowStore';
 import { X, Clock, Settings, Zap, History, Trash2, RefreshCw } from 'lucide-react';
 import { ScheduleConfig } from './ScheduleConfig';
-import { axiosInstance } from '../../api/axiosConfig';
-import { NodeHelpButton } from '../../common/NodeHelpButton';
-import { cn } from '../../lib/utils';
-import { DataTreeViewer } from '../../common/DataTreeViewer';
+import { axiosInstance } from '../../../api/axiosConfig';
+import { NodeHelpButton } from '../../../common/NodeHelpButton';
+import { cn } from '../../../lib/utils';
+import { DataTreeViewer } from '../../../common/DataTreeViewer';
 
 export const NodeConfigPanel: React.FC<{ nodeExecutionData?: any }> = ({ nodeExecutionData }) => {
     const { selectedNode, updateNodeData, setSelectedNode, fetchNodeDefinitions, deleteNode } = useWorkflowStore();
@@ -246,3 +246,4 @@ export const NodeConfigPanel: React.FC<{ nodeExecutionData?: any }> = ({ nodeExe
         </div>
     );
 };
+

@@ -1,37 +1,27 @@
 import { memo } from 'react';
 import { Handle, Position, type NodeProps } from '@xyflow/react';
-import { Zap, Trash2, Play, HardDrive } from 'lucide-react';
-import { useWorkflowStore } from '../../store/workflowStore';
-import { axiosInstance } from '../../api/axiosConfig';
-import googleDriveIcon from '../../assets/nodeIcons/google-drive-svgrepo-com.svg';
+import { Zap, Trash2, Play, Mail } from 'lucide-react';
+import { useWorkflowStore } from '../../../store/workflowStore';
+import { axiosInstance } from '../../../api/axiosConfig';
+import { TriggerNodeBase } from '../base/TriggerNodeBase';
 
-interface GoogleDriveNodeData extends Record<string, unknown> {
-    label?: string;
-    description?: string;
-    executionStatus?: string;
-}
-
-const GoogleDriveLogo = () => (
-    <img src={googleDriveIcon} alt="Google Drive" className="w-full h-full object-contain" />
-);
-
-export const GoogleDriveNode = memo(({ id, data, isConnectable, selected }: NodeProps) => {
-    const driveData = data as GoogleDriveNodeData;
+export const OutlookNode = memo(({ id, data, isConnectable, selected }: NodeProps) => {
+    const nodeData = data as any;
     const { deleteNode, showToast, currentExecution } = useWorkflowStore();
 
     // Find execution status
-    const nodeStatus = driveData.executionStatus || currentExecution?.nodeExecutions?.find((ex: any) => ex.nodeId === id)?.status;
+    const nodeStatus = nodeData.executionStatus || currentExecution?.nodeExecutions?.find((ex: any) => ex.nodeId === id)?.status;
     const isRunning = nodeStatus === 'RUNNING';
     const isSuccess = nodeStatus === 'SUCCESS';
     const isFailed = nodeStatus === 'FAILED';
 
     const handleTestNode = async (e: React.MouseEvent) => {
         e.stopPropagation();
-        showToast('Testing node...', 'info');
+        showToast('Testing Outlook node...', 'info');
         try {
             await axiosInstance.post('/sample-workflows/nodes/test', {
-                nodeType: 'GOOGLE_DRIVE',
-                nodeData: data.config || {},
+                nodeType: 'OUTLOOK',
+                nodeData: nodeData.config || {},
                 inputs: [] 
             });
             showToast('Node test successful', 'success');
@@ -41,11 +31,35 @@ export const GoogleDriveNode = memo(({ id, data, isConnectable, selected }: Node
     };
 
     const getStatusColor = () => {
-        if (isRunning) return 'border-blue-400 shadow-[0_0_15px_rgba(96,165,250,0.5)]';
+        if (isRunning) return 'border-blue-400 shadow-[0_0_15px_rgba(59,130,246,0.5)]';
         if (isSuccess) return 'border-green-400 shadow-[0_0_15px_rgba(74,222,128,0.3)]';
         if (isFailed) return 'border-red-400 shadow-[0_0_15px_rgba(248,113,113,0.3)]';
-        return selected ? 'border-blue-500 ring-2 ring-blue-100 shadow-lg' : 'border-slate-200 hover:border-blue-400 shadow-sm';
+        return selected ? 'border-indigo-500 ring-2 ring-indigo-100 shadow-lg' : 'border-slate-200 hover:border-indigo-400 shadow-sm';
     };
+
+    const mode = nodeData.config?.mode || 'action';
+    const isTrigger = mode === 'trigger';
+
+    let displayLabel = nodeData.label || (isTrigger ? 'Watch Outlook' : 'Fetch Outlook');
+    if (isTrigger && nodeData.config?.query) {
+        const q = nodeData.config.query;
+        displayLabel = `Watch ${q.length > 10 ? q.slice(0, 10) + '...' : q}`;
+    }
+
+    if (isTrigger) {
+        return (
+            <TriggerNodeBase
+                label={nodeData.label || 'Outlook Trigger'}
+                badgeText="OUTLOOK"
+                detailText={nodeData.config?.query || 'New email'}
+                icon={<Mail size={28} />}
+                accent="indigo"
+                selected={selected}
+                isConnectable={isConnectable}
+                executionStatus={nodeStatus}
+            />
+        );
+    }
 
     return (
         <div className={`relative group min-w-[200px] bg-white rounded-xl border-2 transition-all duration-300 ${getStatusColor()}`}>
@@ -55,7 +69,7 @@ export const GoogleDriveNode = memo(({ id, data, isConnectable, selected }: Node
                  <div className="flex items-center gap-1">
                     <button 
                         onClick={handleTestNode}
-                        className="p-1 text-slate-500 hover:text-blue-600 hover:bg-blue-50 rounded-full transition-colors cursor-pointer"
+                        className="p-1 text-slate-500 hover:text-indigo-600 hover:bg-indigo-50 rounded-full transition-colors cursor-pointer"
                         title="Test Node"
                     >
                         <Play size={14} />
@@ -71,15 +85,15 @@ export const GoogleDriveNode = memo(({ id, data, isConnectable, selected }: Node
             </div>
 
             {/* Header */}
-            <div className="flex items-center justify-between px-3 py-2 bg-gradient-to-r from-blue-50 to-white border-b border-blue-100/50 rounded-t-[10px]">
+            <div className="flex items-center justify-between px-3 py-2 bg-gradient-to-r from-indigo-50 to-white border-b border-indigo-100/50 rounded-t-[10px]">
                 <div className="flex items-center gap-2">
-                    <div className="w-6 h-6 shrink-0">
-                        <GoogleDriveLogo />
+                    <div className="w-6 h-6 shrink-0 flex items-center justify-center bg-indigo-600 rounded text-white font-bold text-[10px]">
+                        O
                     </div>
                     <div>
-                        <span className="block text-[10px] font-bold text-slate-800 uppercase tracking-tight leading-none mb-0.5">GOOGLE DRIVE</span>
-                        <span className="text-[8px] font-bold text-blue-500 uppercase tracking-tighter flex items-center gap-0.5">
-                            <Zap size={8} fill="currentColor" /> TRIGGER
+                        <span className="block text-[10px] font-bold text-slate-800 uppercase tracking-tight leading-none mb-0.5">OUTLOOK</span>
+                        <span className="text-[8px] font-bold text-indigo-500 uppercase tracking-tighter flex items-center gap-0.5">
+                            <Zap size={8} fill="currentColor" /> {isTrigger ? 'TRIGGER' : 'ACTION'}
                         </span>
                     </div>
                 </div>
@@ -88,12 +102,12 @@ export const GoogleDriveNode = memo(({ id, data, isConnectable, selected }: Node
             {/* Body Content */}
             <div className="p-3 bg-white space-y-3">
                  <div className="bg-slate-50 p-2 rounded-lg border border-slate-100">
-                    <span className="block text-xs font-bold text-slate-900 leading-tight truncate px-1" title={driveData.label || 'New File'}>
-                        {driveData.label || 'New File'}
+                    <span className="block text-xs font-bold text-slate-900 leading-tight truncate px-1" title={displayLabel}>
+                        {displayLabel}
                     </span>
                     <div className="flex items-center gap-1 mt-1 px-1">
-                        <HardDrive size={10} className="text-slate-400" />
-                        <span className="text-[10px] text-slate-400 font-medium">Cloud Workspace</span>
+                        <Mail size={10} className="text-slate-400" />
+                        <span className="text-[10px] text-slate-400 font-medium">Microsoft 365</span>
                     </div>
                  </div>
             </div>
@@ -113,15 +127,22 @@ export const GoogleDriveNode = memo(({ id, data, isConnectable, selected }: Node
 
              {/* Loading Overlay */}
              {isRunning && (
-                <div className="absolute inset-0 bg-blue-50/10 backdrop-blur-[0.5px] rounded-xl animate-pulse pointer-events-none" />
+                <div className="absolute inset-0 bg-indigo-50/10 backdrop-blur-[0.5px] rounded-xl animate-pulse pointer-events-none" />
             )}
 
             <Handle 
                 type="source" 
                 position={Position.Right} 
                 isConnectable={isConnectable}
-                className="!w-2 !h-4 !bg-slate-400 !border-2 !border-white !rounded-sm transition-all hover:!bg-blue-500 shadow-sm" 
+                className="!w-2 !h-4 !bg-slate-400 !border-2 !border-white !rounded-sm transition-all hover:!bg-indigo-500 shadow-sm" 
+            />
+            <Handle 
+                type="target" 
+                position={Position.Left} 
+                isConnectable={isConnectable}
+                className="!w-2 !h-4 !bg-slate-400 !border-2 !border-white !rounded-sm transition-all hover:!bg-indigo-500 shadow-sm" 
             />
         </div>
     );
 });
+

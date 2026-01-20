@@ -1,9 +1,9 @@
 import React, { useEffect, useState } from 'react';
-import { useWorkflowStore } from '../../store/workflowStore';
+import { useWorkflowStore } from '../../../store/workflowStore';
 import { X, RefreshCw, Zap } from 'lucide-react';
 import { OneDriveConfig } from './OneDriveConfig';
-import { axiosInstance } from '../../api/axiosConfig';
-import { SchemaDrivenConfig } from '../../components/designer/panels/SchemaDrivenConfig';
+import { axiosInstance } from '../../../api/axiosConfig';
+import { SchemaDrivenConfig } from '../../../components/designer/panels/SchemaDrivenConfig';
 
 // --- Config Switcher Map ---
 const NODE_CONFIGS: Record<string, React.FC<any>> = {
@@ -181,3 +181,4 @@ export const NodeConfigPanel: React.FC<{ nodeExecutionData?: any }> = ({ nodeExe
         </div>
     );
 };
+

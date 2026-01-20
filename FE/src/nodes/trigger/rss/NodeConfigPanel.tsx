@@ -1,11 +1,11 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { useWorkflowStore } from '../../store/workflowStore';
+import { useWorkflowStore } from '../../../store/workflowStore';
 import { X, Plus, RefreshCw, Trash2, Settings, Zap, History, Sparkles, Rss } from 'lucide-react';
-import { axiosInstance } from '../../api/axiosConfig';
-import { DataTreeViewer } from '../../common/DataTreeViewer';
-import { NodeDataSidebar } from '../../components/designer/panels/NodeDataSidebar';
-import { cn } from '../../lib/utils';
-import { NodeHelpButton } from '../../common/NodeHelpButton';
+import { axiosInstance } from '../../../api/axiosConfig';
+import { DataTreeViewer } from '../../../common/DataTreeViewer';
+import { NodeDataSidebar } from '../../../components/designer/panels/NodeDataSidebar';
+import { cn } from '../../../lib/utils';
+import { NodeHelpButton } from '../../../common/NodeHelpButton';
 
 export const NodeConfigPanel: React.FC<{ nodeExecutionData?: any }> = ({ nodeExecutionData }) => {
     const { updateNodeData, nodes, edges, currentExecution, deleteNode, selectedNode, setSelectedNode } = useWorkflowStore();
@@ -432,3 +432,4 @@ export const NodeConfigPanel: React.FC<{ nodeExecutionData?: any }> = ({ nodeExe
 };
 
 export default NodeConfigPanel;
+

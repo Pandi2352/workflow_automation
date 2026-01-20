@@ -1,10 +1,10 @@
 import { memo } from 'react';
 import { Handle, Position, type NodeProps } from '@xyflow/react';
 import { Zap, Trash2, Play, Cloud } from 'lucide-react';
-import { useWorkflowStore } from '../../store/workflowStore';
-import { axiosInstance } from '../../api/axiosConfig';
+import { useWorkflowStore } from '../../../store/workflowStore';
+import { axiosInstance } from '../../../api/axiosConfig';
 
-import oneDriveIcon from '../../assets/nodeIcons/ms-onedrive-svgrepo-com.svg';
+import oneDriveIcon from '../../../assets/nodeIcons/ms-onedrive-svgrepo-com.svg';
 
 interface OneDriveNodeData extends Record<string, unknown> {
     label?: string;
@@ -126,3 +126,4 @@ export const OneDriveNode = memo(({ id, data, isConnectable, selected }: NodePro
         </div>
     );
 });
+

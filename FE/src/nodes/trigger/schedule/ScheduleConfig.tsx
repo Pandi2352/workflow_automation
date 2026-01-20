@@ -1,5 +1,5 @@
 import { useEffect } from 'react';
-import { useWorkflowStore } from '../../store/workflowStore';
+import { useWorkflowStore } from '../../../store/workflowStore';
 
 export const ScheduleConfig = ({ selectedNode }: { selectedNode: any }) => {
     const { updateNodeData } = useWorkflowStore();
@@ -120,3 +120,4 @@ export const ScheduleConfig = ({ selectedNode }: { selectedNode: any }) => {
         </div>
     );
 };
+

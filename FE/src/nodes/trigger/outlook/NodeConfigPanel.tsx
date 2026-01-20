@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { useWorkflowStore } from '../../store/workflowStore';
+import { useWorkflowStore } from '../../../store/workflowStore';
 import { OutlookConfig } from './OutlookConfig';
 import { 
     X, 
@@ -13,8 +13,8 @@ import {
     FileText,
     Activity
 } from 'lucide-react';
-import { axiosInstance } from '../../api/axiosConfig';
-import { NodeHelpButton } from '../../common/NodeHelpButton';
+import { axiosInstance } from '../../../api/axiosConfig';
+import { NodeHelpButton } from '../../../common/NodeHelpButton';
 
 export const NodeConfigPanel = ({ nodeExecutionData }: { nodeExecutionData?: any }) => {
     const { selectedNode, setSelectedNode, showToast } = useWorkflowStore();
@@ -172,3 +172,4 @@ export const NodeConfigPanel = ({ nodeExecutionData }: { nodeExecutionData?: any
         </div>
     );
 };
+

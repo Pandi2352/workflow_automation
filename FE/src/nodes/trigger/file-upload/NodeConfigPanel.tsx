@@ -2,9 +2,9 @@
 import React, { useState } from 'react';
 import { Upload, File as FileIcon, X, CheckCircle, Trash2, FileText } from 'lucide-react';
 import axios from 'axios';
-import { useWorkflowStore } from '../../store/workflowStore';
-import JsonViewer from '../../common/JsonViewer';
-import { NodeHelpButton } from '../../common/NodeHelpButton';
+import { useWorkflowStore } from '../../../store/workflowStore';
+import JsonViewer from '../../../common/JsonViewer';
+import { NodeHelpButton } from '../../../common/NodeHelpButton';
 
 interface FileUploadConfigPanelProps {
     data?: any;
@@ -195,3 +195,4 @@ const FileUploadConfigPanel: React.FC<FileUploadConfigPanelProps> = ({ data, onC
 };
 
 export default FileUploadConfigPanel;
+
