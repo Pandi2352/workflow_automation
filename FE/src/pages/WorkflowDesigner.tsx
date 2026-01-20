@@ -20,6 +20,7 @@ import { UnsavedChangesModal } from '../components/modals/UnsavedChangesModal';
 import { ImportExportModal } from '../components/designer/panels/ImportExportModal';
 import { WORKFLOW_SCHEMA_VERSION, SUPPORTED_WORKFLOW_SCHEMA_VERSIONS } from '../constants/workflowSchema';
 import type { WorkflowExportBundle } from '../types/workflow.types';
+import { CanvasLoader } from '../components/designer/canvas/CanvasLoader';
 
 
 export const WorkflowDesigner: React.FC = () => {
@@ -34,6 +35,7 @@ export const WorkflowDesigner: React.FC = () => {
     const [importJson, setImportJson] = useState('');
     const [importName, setImportName] = useState('');
     const [isImporting, setIsImporting] = useState(false);
+    const [isLoading, setIsLoading] = useState(false);
 
     const navigate = useNavigate();
     const { 
@@ -137,6 +139,7 @@ export const WorkflowDesigner: React.FC = () => {
     }, [id]);
 
     const loadWorkflow = async (workflowId: string) => {
+        setIsLoading(true);
         try {
             const workflow = await workflowService.getById(workflowId);
             if (workflow) {
@@ -182,6 +185,8 @@ export const WorkflowDesigner: React.FC = () => {
         } catch (err) {
             console.error('Failed to load workflow', err);
             showToast('Failed to load workflow', 'error');
+        } finally {
+            setIsLoading(false);
         }
     };
 
@@ -521,6 +526,8 @@ export const WorkflowDesigner: React.FC = () => {
                             onToggleDrawer={() => setIsDrawerOpen(prev => !prev)} 
                             executionData={currentExecution}
                         />
+
+                        {isLoading && <CanvasLoader />}
 
                         {/* Top Left Controls */}
                         <div className="absolute top-4 left-4 z-30 flex flex-col gap-2">
