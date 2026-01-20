@@ -16,16 +16,16 @@ export const NODE_DOCS = [
         example: 'Extracting "Total Amount", "Vendor Name", and "Due Date" from a scanned PDF invoice.'
     },
     {
-        id: 'ocr-surya',
-        name: 'OCR (Surya-AI)',
+        id: 'ocr',
+        name: 'OCR Processing',
         category: 'ai',
         icon: Binary,
-        purpose: 'High-accuracy neural OCR for complex layouts.',
-        usage: 'Pass a image/PDF path. Surya provides line-by-line text and layout coordinates.',
-        features: ['Table detection', 'Multi-language', 'PDF support'],
-        howItWorks: 'Surya is a line-level neural OCR that excels in document layout analysis. It processes images through a deep learning model that identifies text regions, reading order, and table structures across 90+ languages.',
-        whyUseIt: 'Use this when standard Tesseract OCR fails or when you need to preserve the visual context of the document (like items in a specific table column).',
-        example: 'Reading a dense academic paper with multi-column layouts and mathematical formulas.'
+        purpose: 'AI-driven OCR for document text extraction.',
+        usage: 'Pass an image/PDF file. Returns normalized text for downstream nodes.',
+        features: ['PDF support', 'Configurable models', 'Structured output'],
+        howItWorks: 'This node uses a configured OCR-capable model to extract text from images or PDFs, normalizing the output for later parsing or summarization.',
+        whyUseIt: 'Use it as the first step when your workflow starts with scanned documents or images.',
+        example: 'Extracting text from a scanned invoice to feed Smart Extraction.'
     },
     {
         id: 'summarize',
@@ -139,7 +139,7 @@ export const NODE_DOCS = [
 
 export const getDocForNode = (nodeType: string) => {
     const typeMapping: Record<string, string> = {
-        'OCR': 'ocr-surya',
+        'OCR': 'ocr',
         'CODE': 'code-node',
         'SUMMARIZE': 'summarize',
         'SMART_EXTRACTION': 'smart-extraction',

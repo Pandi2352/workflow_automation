@@ -1,5 +1,5 @@
 import React, { useState, useMemo } from 'react';
-import { Search, X, ChevronRight, Zap, Split, ArrowUpRight, Clock, FileText, Database, Cpu, BrainCircuit, Upload, Earth, Type, Terminal, Mail, Rss, Sparkles, Globe } from 'lucide-react';
+import { Search, X, ChevronRight, Zap, Split, ArrowUpRight, Clock, FileText, Database, Cpu, BrainCircuit, Upload, Type, Terminal, Mail, Rss, Sparkles, Globe } from 'lucide-react';
 import googleDriveIcon from '../../assets/nodeIcons/google-drive-svgrepo-com.svg';
 import oneDriveIcon from '../../assets/nodeIcons/ms-onedrive-svgrepo-com.svg';
 import gmailIcon from '../../assets/nodeIcons/gmail-icon-logo-svgrepo-com.svg';
@@ -44,7 +44,6 @@ const availableNodes: NodeType[] = [
 
     // AI / ML
     { type: 'OCR', label: 'OCR Processing', description: 'Extract text using Gemini AI', icon: FileText, color: 'text-indigo-600', category: 'ACTION' },
-    { type: 'SURYA_OCR', label: 'Surya OCR', description: 'High-quality layout-preserved OCR', icon: Zap, color: 'text-orange-500', category: 'ACTION' },
     { type: 'TESSERACT_OCR', label: 'Tesseract OCR', description: 'Open-source standard OCR', icon: Type, color: 'text-blue-500', category: 'ACTION' },
     { type: 'PARSING', label: 'AI Parsing', description: 'Extract structured data', icon: Cpu, color: 'text-indigo-600', category: 'ACTION' },
     { type: 'SUMMARIZE', label: 'Summarize', description: 'Generate text summaries', icon: FileText, color: 'text-violet-600', category: 'ACTION' },
@@ -54,14 +53,12 @@ const availableNodes: NodeType[] = [
     { type: 'GEMINI_MODEL', label: 'Gemini Model', description: 'Google Gemini Chat Model', icon: Cpu, color: 'text-blue-400', category: 'ACTION' },
     { type: 'GOOGLE_SEARCH_TOOL', label: 'Google Search Tool', description: 'Give web search capability to AI Agents', icon: Globe, color: 'text-amber-500', category: 'ACTION' },
     { type: 'MONGODB', label: 'MongoDB', description: 'Store data for review', icon: Database, color: 'text-green-600', category: 'ACTION' },
-    { type: 'BROWSER_SCRAPER', label: 'Web Scraper', description: 'Fetch and extract data from URLs', icon: Earth, color: 'text-indigo-500', category: 'ACTION' },
     
     // Export
     { type: 'HTTP_REQUEST', label: 'HTTP Request', description: 'Send data to external API', icon: ArrowUpRight, color: 'text-cyan-500', category: 'EXPORT' },
     
     // Logic/Data
     { type: 'CODE', label: 'Code Execution', description: 'Run custom Javascript / Python', icon: Terminal, color: 'text-indigo-600', category: 'CONDITIONAL' },
-    { type: 'DATA_MAPPER', label: 'Data Mapper', description: 'Transform data between nodes', icon: Split, color: 'text-pink-500', category: 'CONDITIONAL' },
 ];
 
 const categoryLabels: Record<NodeCategory, string> = {

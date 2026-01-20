@@ -501,7 +501,7 @@ export const DocumentationPage: React.FC = () => {
                                     <div className="space-y-2 leading-relaxed">
                                         <p className="text-slate-500 italic">// Dynamic Condition</p>
                                         <p className="text-indigo-400">if <span className="text-slate-300">(</span> <span className="text-emerald-400">{'{{Gmail.subject}}'}</span>.includes<span className="text-slate-300">(</span><span className="text-amber-300">"Invoice"</span><span className="text-slate-300">) ) {'{'}</span></p>
-                                        <p className="pl-4 text-slate-300">return <span className="text-emerald-400">{'{{SuryaOCR.analysis}}'}</span>;</p>
+                                        <p className="pl-4 text-slate-300">return <span className="text-emerald-400">{'{{OCR.text}}'}</span>;</p>
                                         <p className="text-slate-300">{'}'}</p>
                                     </div>
                                 </div>

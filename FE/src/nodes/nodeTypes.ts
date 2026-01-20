@@ -11,9 +11,6 @@ import { IfElseNode } from './if-else/IfElseNode';
 import { ParsingNode } from './parsing/ParsingNode';
 import { MongoDBNode } from './mongodb/MongoDBNode';
 import { SummarizeNode } from './summarize/SummarizeNode';
-import { DataMapperNode } from './data-mapper/DataMapperNode';
-import { ScraperNode } from './scraper/ScraperNode';
-import { SuryaOCRNode } from './surya-ocr/SuryaOCRNode';
 import { TesseractOCRNode } from './tesseract-ocr/TesseractOCRNode';
 import { CodeNode } from './code/CodeNode';
 import { OutlookNode } from './outlook/OutlookNode';
@@ -33,14 +30,11 @@ export const NODE_TYPES = {
     smart_extraction: SmartExtractionNode,
     FILE_UPLOAD: FileUploadNode,
     file_upload: FileUploadNode,
-    BROWSER_SCRAPER: ScraperNode,
     HTTP_REQUEST: HttpNode,
     IF_ELSE: IfElseNode,
     MONGODB: MongoDBNode,
     PARSING: ParsingNode,
     SUMMARIZE: SummarizeNode,
-    DATA_MAPPER: DataMapperNode,
-    SURYA_OCR: SuryaOCRNode,
     TESSERACT_OCR: TesseractOCRNode,
     CODE: CodeNode,
     OUTLOOK: OutlookNode,
