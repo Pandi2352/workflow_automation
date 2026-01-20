@@ -533,7 +533,7 @@ export const WorkflowDesigner: React.FC = () => {
                         <div className="absolute top-4 left-4 z-30 flex flex-col gap-2">
                              <button 
                  onClick={() => setIsAiModalOpen(true)}
-                 className="w-12 h-12 p-0 rounded-lg shadow-lg hover:shadow-xl hover:scale-105 flex items-center justify-center bg-gradient-to-br from-indigo-500 to-purple-600 text-white cursor-pointer transition-all border border-white/20"
+                 className="w-12 h-12 p-0  hover:shadow-xl hover:scale-105 flex items-center justify-center bg-gradient-to-br from-indigo-500 to-purple-600 text-white cursor-pointer transition-all border border-white/20"
                  title="AI Workflow Architect"
              >
                  <Sparkles size={22} />
@@ -541,7 +541,7 @@ export const WorkflowDesigner: React.FC = () => {
 
             <button 
                  onClick={() => setIsTemplatesDrawerOpen(true)}
-                 className="w-12 h-12 p-0 rounded-lg shadow-md hover:text-indigo-600 hover:border-indigo-600 flex items-center justify-center bg-white cursor-pointer border border-gray-200"
+                 className="w-12 h-12 p-0 hover:text-indigo-600 hover:border-indigo-600 flex items-center justify-center bg-white cursor-pointer border border-gray-200"
                  title="Pre-built Templates"
              >
                  <FileText size={22} className='text-gray-500' />
@@ -549,7 +549,7 @@ export const WorkflowDesigner: React.FC = () => {
 
              <button 
                  onClick={() => setIsDrawerOpen(true)}
-                                className="w-12 h-12 p-0 rounded-lg shadow-md hover:text-[#10b981] hover:border-[#10b981] flex items-center justify-center bg-white cursor-pointer border border-gray-200"
+                                className="w-12 h-12 p-0 hover:text-[#10b981] hover:border-[#10b981] flex items-center justify-center bg-white cursor-pointer border border-gray-200"
                                 title="Add Node"
                             >
                                 <Plus size={22} className='text-gray-500' />

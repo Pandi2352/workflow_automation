@@ -28,7 +28,7 @@ export const Controls: React.FC<ControlsProps> = ({ children }) => {
 
     return (
         <Panel position="bottom-left">
-            <div className="flex flex-col gap-1 p-1 bg-white/90 dark:bg-black/90 rounded-md border border-slate-200 dark:border-slate-800 shadow-sm backdrop-blur-sm">
+            <div className="flex flex-col gap-1 p-1 bg-white/90 dark:bg-black/90 border border-slate-200 dark:border-slate-800">
                 <Button
                     className="bg-transparent hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-600 dark:text-slate-400 border-none shadow-none"
                     onClick={handleZoomIn}
