@@ -5,7 +5,7 @@ import { axiosInstance } from '../../api/axiosConfig';
 import { GeminiCredentialModal } from '../../components/credentials/GeminiCredentialModal';
 import { cn } from '../../lib/utils';
 import { DataTreeViewer } from '../../common/DataTreeViewer';
-import { NodeDataSidebar } from '../../components/designer/NodeDataSidebar';
+import { NodeDataSidebar } from '../../components/designer/panels/NodeDataSidebar';
 import { NodeHelpButton } from '../../common/NodeHelpButton';
 
 export const NodeConfigPanel: React.FC<{ nodeExecutionData?: any }> = ({ nodeExecutionData }) => {

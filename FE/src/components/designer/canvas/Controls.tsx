@@ -2,8 +2,8 @@
 
 import { useReactFlow } from "@xyflow/react";
 import { ZoomIn, ZoomOut, Maximize2, MapPin, MapPinOff } from "lucide-react";
-import { Button } from "../../common/Button";
-import { useWorkflowStore } from "../../store/workflowStore";
+import { Button } from "../../../common/Button";
+import { useWorkflowStore } from "../../../store/workflowStore";
 import { Panel } from "@xyflow/react";
 
 interface ControlsProps {
@@ -75,3 +75,4 @@ export const Controls: React.FC<ControlsProps> = ({ children }) => {
         </Panel>
     );
 };
+

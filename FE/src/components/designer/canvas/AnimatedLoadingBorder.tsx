@@ -1,6 +1,6 @@
 "use client";
 
-import { cn } from "../../utils/classNames";
+import { cn } from "../../../utils/classNames";
 
 interface AnimatedBorderProps {
   className?: string;
@@ -77,3 +77,4 @@ export const AnimatedBorder = ({ className }: AnimatedBorderProps) => {
     </>
   );
 };
+

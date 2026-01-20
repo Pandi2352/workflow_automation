@@ -2,7 +2,7 @@ import React, { useEffect, useState, useMemo } from 'react';
 import { useWorkflowStore } from '../../store/workflowStore';
 import { Database, X, Zap, RefreshCw, Server, Table, ArrowRight, TableProperties, CheckCircle2 } from 'lucide-react';
 import { axiosInstance } from '../../api/axiosConfig';
-import { NodeDataSidebar } from '../../components/designer/NodeDataSidebar';
+import { NodeDataSidebar } from '../../components/designer/panels/NodeDataSidebar';
 import { DataTreeViewer } from '../../common/DataTreeViewer';
 
 export const NodeConfigPanel: React.FC<{ nodeExecutionData?: any }> = ({ nodeExecutionData }) => {

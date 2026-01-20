@@ -3,7 +3,7 @@ import { useWorkflowStore } from '../../store/workflowStore';
 import { X, RefreshCw, Zap } from 'lucide-react';
 import { OneDriveConfig } from './OneDriveConfig';
 import { axiosInstance } from '../../api/axiosConfig';
-import { SchemaDrivenConfig } from '../../components/designer/SchemaDrivenConfig';
+import { SchemaDrivenConfig } from '../../components/designer/panels/SchemaDrivenConfig';
 
 // --- Config Switcher Map ---
 const NODE_CONFIGS: Record<string, React.FC<any>> = {

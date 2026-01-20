@@ -28,3 +28,4 @@ export const Canvas = ({ children, ...props }: CanvasProps) => {
     </ReactFlow>
   );
 };
+

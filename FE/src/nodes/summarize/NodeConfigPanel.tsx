@@ -3,7 +3,7 @@ import React, { useState, useEffect, useMemo } from 'react';
 import { useWorkflowStore } from '../../store/workflowStore';
 import { X, AlignLeft, Zap, Key, Box, Type, Database, Plus, RefreshCw } from 'lucide-react';
 import { axiosInstance } from '../../api/axiosConfig';
-import { NodeDataSidebar } from '../../components/designer/NodeDataSidebar';
+import { NodeDataSidebar } from '../../components/designer/panels/NodeDataSidebar';
 import JsonViewer from '../../common/JsonViewer';
 import { NodeHelpButton } from '../../common/NodeHelpButton';
 import { GeminiCredentialModal } from '../../components/credentials/GeminiCredentialModal';

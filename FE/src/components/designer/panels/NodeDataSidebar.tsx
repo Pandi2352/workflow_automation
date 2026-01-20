@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Search } from 'lucide-react';
-import { DataTreeViewer } from '../../common/DataTreeViewer';
+import { DataTreeViewer } from '../../../common/DataTreeViewer';
 
 interface NodeDataSidebarProps {
     availableNodes: {
@@ -82,3 +82,4 @@ export const NodeDataSidebar: React.FC<NodeDataSidebarProps> = ({ availableNodes
         </div>
     );
 };
+

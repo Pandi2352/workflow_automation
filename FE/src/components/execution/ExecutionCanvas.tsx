@@ -3,7 +3,7 @@ import React, { useMemo, useCallback, useRef } from 'react';
 import {
   ReactFlowProvider,
 } from '@xyflow/react';
-import { FlowCanvas } from '../designer/FlowCanvas';
+import { FlowCanvas } from '../designer/canvas/FlowCanvas';
 import { useWorkflowStore } from '../../store/workflowStore';
 import { NODE_TYPES } from '../../nodes/nodeTypes';
 

@@ -1,6 +1,6 @@
 import React from 'react';
-import { Modal } from '../../common/Modal';
-import { Button } from '../../common/Button';
+import { Modal } from '../../../common/Modal';
+import { Button } from '../../../common/Button';
 
 interface ImportExportModalProps {
     isOpen: boolean;
@@ -92,3 +92,4 @@ export const ImportExportModal: React.FC<ImportExportModalProps> = ({
         </Modal>
     );
 };
+

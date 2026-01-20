@@ -4,7 +4,7 @@ import { useWorkflowStore } from '../../store/workflowStore';
 import { X, Code, Database, Plus, RefreshCw, Terminal, Trash2, Settings, Zap, History, Sparkles, Bot, Send, BrainCircuit, Key, Box } from 'lucide-react';
 import { axiosInstance } from '../../api/axiosConfig';
 import { DataTreeViewer } from '../../common/DataTreeViewer';
-import { NodeDataSidebar } from '../../components/designer/NodeDataSidebar';
+import { NodeDataSidebar } from '../../components/designer/panels/NodeDataSidebar';
 import { cn } from '../../lib/utils';
 import { NodeHelpButton } from '../../common/NodeHelpButton';
 // @ts-ignore

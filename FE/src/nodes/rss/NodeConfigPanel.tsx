@@ -3,7 +3,7 @@ import { useWorkflowStore } from '../../store/workflowStore';
 import { X, Plus, RefreshCw, Trash2, Settings, Zap, History, Sparkles, Rss } from 'lucide-react';
 import { axiosInstance } from '../../api/axiosConfig';
 import { DataTreeViewer } from '../../common/DataTreeViewer';
-import { NodeDataSidebar } from '../../components/designer/NodeDataSidebar';
+import { NodeDataSidebar } from '../../components/designer/panels/NodeDataSidebar';
 import { cn } from '../../lib/utils';
 import { NodeHelpButton } from '../../common/NodeHelpButton';
 

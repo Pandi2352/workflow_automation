@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { useWorkflowStore } from '../../store/workflowStore';
 import { X, Globe, Key, Database, Play, CheckCircle2, AlertCircle, Plus, Trash2, ArrowUpRight, RefreshCw } from 'lucide-react';
-import { NodeDataSidebar } from '../../components/designer/NodeDataSidebar';
+import { NodeDataSidebar } from '../../components/designer/panels/NodeDataSidebar';
 import { axiosInstance } from '../../api/axiosConfig';
 import { DataTreeViewer } from '../../common/DataTreeViewer';
 import { NodeHelpButton } from '../../common/NodeHelpButton';

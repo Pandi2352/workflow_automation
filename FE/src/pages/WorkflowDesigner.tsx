@@ -1,23 +1,23 @@
 import React, { useEffect, useState } from 'react';
 import { useParams, useNavigate, useBlocker } from 'react-router-dom';
 import { Zap, Plus, Sparkles, FileText } from 'lucide-react';
-import { NodeDrawer } from '../components/designer/NodeDrawer';
-import { AIChatDrawer } from '../components/designer/AIChatDrawer';
-import { TemplatesDrawer } from '../components/designer/TemplatesDrawer';
+import { NodeDrawer } from '../components/designer/panels/NodeDrawer';
+import { AIChatDrawer } from '../components/designer/panels/AIChatDrawer';
+import { TemplatesDrawer } from '../components/designer/panels/TemplatesDrawer';
 
 import { NODE_CONFIG_PANELS } from '../nodes/nodeConfigPanels';
 
-import { DesignerHeader } from '../components/designer/DesignerHeader';
-import { CreateWorkflowSelector } from '../components/designer/CreateWorkflowSelector';
+import { DesignerHeader } from '../components/designer/panels/DesignerHeader';
+import { CreateWorkflowSelector } from '../components/designer/panels/CreateWorkflowSelector';
 import { ExecutionModeView } from '../components/execution/ExecutionModeView';
 import { useWorkflowStore } from '../store/workflowStore';
 import { workflowService } from '../services/api/workflows';
-import { WorkflowMetadataModal } from '../components/designer/WorkflowMetadataModal';
+import { WorkflowMetadataModal } from '../components/designer/panels/WorkflowMetadataModal';
 import { Button } from '../common/Button';
 import { Toast } from '../common/Toast';
-import { WorkflowCanvas } from '../components/designer/WorkflowCanvas';
+import { WorkflowCanvas } from '../components/designer/canvas/WorkflowCanvas';
 import { UnsavedChangesModal } from '../components/modals/UnsavedChangesModal';
-import { ImportExportModal } from '../components/designer/ImportExportModal';
+import { ImportExportModal } from '../components/designer/panels/ImportExportModal';
 import { WORKFLOW_SCHEMA_VERSION, SUPPORTED_WORKFLOW_SCHEMA_VERSIONS } from '../constants/workflowSchema';
 import type { WorkflowExportBundle } from '../types/workflow.types';
 

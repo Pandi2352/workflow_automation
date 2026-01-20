@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { X, Sparkles, Loader2, ArrowRight } from 'lucide-react';
-import { Button } from '../../common/Button';
-import { workflowService } from '../../services/api/workflows';
+import { Button } from '../../../common/Button';
+import { workflowService } from '../../../services/api/workflows';
 
 interface WorkflowGeneratorModalProps {
     isOpen: boolean;
@@ -146,3 +146,4 @@ export const WorkflowGeneratorModal: React.FC<WorkflowGeneratorModalProps> = ({
         </div>
     );
 };
+

@@ -4,18 +4,18 @@ import {
   useReactFlow,
   ReactFlowProvider,
  } from '@xyflow/react';
-import { useWorkflowStore } from '../../store/workflowStore';
+import { useWorkflowStore } from '../../../store/workflowStore';
 import { Plus, LayoutGrid, RotateCcw, RotateCw } from 'lucide-react';
 import { Controls } from './Controls'; // Import custom Controls
 import { FlowCanvas } from './FlowCanvas';
 import { Connection } from './Connection'; // Import custom Connection
-import { Button } from '../../common/Button';
+import { Button } from '../../../common/Button';
 
-import { NODE_TYPES } from '../../nodes/nodeTypes';
+import { NODE_TYPES } from '../../../nodes/nodeTypes';
 
 import { Edge } from './Edge';
 import { CollaborativeCursors } from './CollaborativeCursors';
-import { getLayoutedElements } from '../../utils/layoutUtils';
+import { getLayoutedElements } from '../../../utils/layoutUtils';
 
 // Initial logic for drop
 let id = 0;
@@ -234,3 +234,4 @@ export const WorkflowCanvas: React.FC<WorkflowCanvasProps> = (props) => {
     </ReactFlowProvider>
   );
 };
+

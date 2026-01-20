@@ -1,7 +1,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { X, Send, Sparkles, User, Bot, Loader2 } from 'lucide-react';
-import { workflowService } from '../../services/api/workflows';
-import { useWorkflowStore } from '../../store/workflowStore';
+import { workflowService } from '../../../services/api/workflows';
+import { useWorkflowStore } from '../../../store/workflowStore';
 
 interface Message {
     id: string;
@@ -223,3 +223,4 @@ export const AIChatDrawer: React.FC<AIChatDrawerProps> = ({ isOpen, onClose }) =
         </div>
     );
 };
+

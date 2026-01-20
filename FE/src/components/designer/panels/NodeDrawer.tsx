@@ -1,10 +1,10 @@
 import React, { useState, useMemo } from 'react';
 import { Search, X, ChevronRight, Zap, Split, ArrowUpRight, Clock, FileText, Database, Cpu, BrainCircuit, Upload, Type, Terminal, Mail, Rss, Sparkles, Globe } from 'lucide-react';
-import googleDriveIcon from '../../assets/nodeIcons/google-drive-svgrepo-com.svg';
-import oneDriveIcon from '../../assets/nodeIcons/ms-onedrive-svgrepo-com.svg';
-import gmailIcon from '../../assets/nodeIcons/gmail-icon-logo-svgrepo-com.svg';
-import { Input } from '../../common/Input';
-import { Button } from '../../common/Button';
+import googleDriveIcon from '../../../assets/nodeIcons/google-drive-svgrepo-com.svg';
+import oneDriveIcon from '../../../assets/nodeIcons/ms-onedrive-svgrepo-com.svg';
+import gmailIcon from '../../../assets/nodeIcons/gmail-icon-logo-svgrepo-com.svg';
+import { Input } from '../../../common/Input';
+import { Button } from '../../../common/Button';
 
 interface NodeDrawerProps {
     isOpen: boolean;
@@ -211,3 +211,4 @@ export const NodeDrawer: React.FC<NodeDrawerProps> = ({ isOpen, onClose, onNodeS
         </>
     );
 };
+

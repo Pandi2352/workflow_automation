@@ -1,7 +1,7 @@
 import React from 'react';
 import { X, FileText, ArrowRight, CheckCircle2 } from 'lucide-react';
-import { useWorkflowStore } from '../../store/workflowStore';
-import { WORKFLOW_TEMPLATES, type WorkflowTemplate } from '../../data/workflowTemplates';
+import { useWorkflowStore } from '../../../store/workflowStore';
+import { WORKFLOW_TEMPLATES, type WorkflowTemplate } from '../../../data/workflowTemplates';
 
 interface TemplatesDrawerProps {
     isOpen: boolean;
@@ -81,3 +81,4 @@ export const TemplatesDrawer: React.FC<TemplatesDrawerProps> = ({ isOpen, onClos
         </div>
     );
 };
+

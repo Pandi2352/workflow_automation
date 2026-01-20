@@ -26,3 +26,4 @@ export const Connection: ConnectionLineComponent = ({
     />
   </g>
 );
+

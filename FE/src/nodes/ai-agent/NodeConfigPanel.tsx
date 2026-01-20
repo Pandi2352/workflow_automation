@@ -4,7 +4,7 @@ import { useWorkflowStore } from '../../store/workflowStore';
 import { X, RefreshCw, Trash2, Zap, Bot, MessageSquare, Sparkles, Box, Terminal } from 'lucide-react';
 import { axiosInstance } from '../../api/axiosConfig';
 import { DataTreeViewer } from '../../common/DataTreeViewer';
-import { NodeDataSidebar } from '../../components/designer/NodeDataSidebar';
+import { NodeDataSidebar } from '../../components/designer/panels/NodeDataSidebar';
 import { cn } from '../../lib/utils';
 import { NodeHelpButton } from '../../common/NodeHelpButton';
 

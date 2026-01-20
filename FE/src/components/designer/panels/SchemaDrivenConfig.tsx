@@ -1,5 +1,5 @@
 import React, { memo, useMemo } from 'react';
-import { useWorkflowStore } from '../../store/workflowStore';
+import { useWorkflowStore } from '../../../store/workflowStore';
 
 interface SchemaDrivenConfigProps {
     selectedNode: any;
@@ -173,3 +173,4 @@ export const SchemaDrivenConfig: React.FC<SchemaDrivenConfigProps> = memo(({ sel
         </>
     );
 });
+

@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { useWorkflowStore } from '../../store/workflowStore';
 import { Cpu, AlertTriangle, X } from 'lucide-react';
-import { NodeDataSidebar } from '../../components/designer/NodeDataSidebar';
+import { NodeDataSidebar } from '../../components/designer/panels/NodeDataSidebar';
 
 interface NodeConfigPanelProps {
     nodeExecutionData?: {

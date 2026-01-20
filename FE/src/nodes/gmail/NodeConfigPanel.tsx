@@ -6,7 +6,7 @@ import { axiosInstance } from '../../api/axiosConfig';
 import { Button } from '../../common/Button';
 import { cn } from '../../lib/utils';
 import { NodeHelpButton } from '../../common/NodeHelpButton';
-import { SchemaDrivenConfig } from '../../components/designer/SchemaDrivenConfig';
+import { SchemaDrivenConfig } from '../../components/designer/panels/SchemaDrivenConfig';
 
 // --- Config Switcher Map ---
 const NODE_CONFIGS: Record<string, React.FC<any>> = {

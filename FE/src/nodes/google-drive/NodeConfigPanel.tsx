@@ -4,7 +4,7 @@ import { X, RefreshCw, Zap } from 'lucide-react';
 import { GoogleDriveConfig } from './GoogleDriveConfig';
 import { axiosInstance } from '../../api/axiosConfig';
 import { NodeHelpButton } from '../../common/NodeHelpButton';
-import { SchemaDrivenConfig } from '../../components/designer/SchemaDrivenConfig';
+import { SchemaDrivenConfig } from '../../components/designer/panels/SchemaDrivenConfig';
 
 // --- Config Switcher Map ---
 const NODE_CONFIGS: Record<string, React.FC<any>> = {

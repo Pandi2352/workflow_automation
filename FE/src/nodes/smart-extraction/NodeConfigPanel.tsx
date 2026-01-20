@@ -3,7 +3,7 @@ import React, { useState, useEffect, useMemo } from 'react';
 import { useWorkflowStore } from '../../store/workflowStore';
 import { X, BrainCircuit, Zap, Key, Database, Plus, RefreshCw, TableProperties } from 'lucide-react';
 import { axiosInstance } from '../../api/axiosConfig';
-import { NodeDataSidebar } from '../../components/designer/NodeDataSidebar';
+import { NodeDataSidebar } from '../../components/designer/panels/NodeDataSidebar';
 import { GeminiCredentialModal } from '../../components/credentials/GeminiCredentialModal';
 
 import { SchemaBuilderModal } from './SchemaBuilderModal';

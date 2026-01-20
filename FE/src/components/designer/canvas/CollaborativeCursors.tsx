@@ -1,5 +1,5 @@
 import React, { useEffect, useState, useRef } from 'react';
-import { useSocket } from '../../context/SocketContext';
+import { useSocket } from '../../../context/SocketContext';
 import { useReactFlow } from '@xyflow/react';
 import { MousePointer2 } from 'lucide-react';
 
@@ -109,3 +109,4 @@ export const CollaborativeCursors: React.FC<{ workflowId: string }> = ({ workflo
         </div>
     );
 };
+

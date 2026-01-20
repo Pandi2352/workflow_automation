@@ -2,7 +2,7 @@ import React from 'react';
 import { MiniMap } from '@xyflow/react';
 import { Canvas } from './Canvas';
 import { Controls } from './Controls';
-import { useWorkflowStore } from '../../store/workflowStore';
+import { useWorkflowStore } from '../../../store/workflowStore';
 
 interface FlowCanvasProps {
     nodes: any[];
@@ -105,3 +105,4 @@ export const FlowCanvas: React.FC<FlowCanvasProps> = ({
         </Canvas>
     );
 };
+
