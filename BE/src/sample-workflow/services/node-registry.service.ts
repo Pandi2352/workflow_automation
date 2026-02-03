@@ -24,6 +24,7 @@ import { RSSNode } from '../nodes/rss.node';
 import { AIAgentNode } from '../nodes/ai-agent.node';
 import { GeminiModelNode } from '../nodes/gemini-model.node';
 import { GoogleSearchToolNode } from '../nodes/google-search-tool.node';
+import { EmailTemplateNodeStrategy } from '../nodes/email-template.node';
 
 import { SmartExtractionNodeStrategy } from '../nodes/smart-extraction.node';
 import { FileUploadNodeStrategy } from '../nodes/file-upload.node';
@@ -95,6 +96,7 @@ export class NodeRegistryService {
         this.nodeInstances.set(SampleNodeType.AI_AGENT, new AIAgentNode(this.ocrService));
         this.nodeInstances.set(SampleNodeType.GEMINI_MODEL, new GeminiModelNode());
         this.nodeInstances.set(SampleNodeType.GOOGLE_SEARCH_TOOL, new GoogleSearchToolNode());
+        this.nodeInstances.set(SampleNodeType.EMAIL_TEMPLATE, new EmailTemplateNodeStrategy(this.ocrService));
 
         // Register node definitions
         this.nodeDefinitions.set(SampleNodeType.BROWSER_SCRAPER, {
@@ -428,6 +430,32 @@ export class NodeRegistryService {
                     type: 'string',
                     description: 'Custom Prompt (Optional)',
                     default: ''
+                }
+            }
+        });
+
+        this.nodeDefinitions.set(SampleNodeType.EMAIL_TEMPLATE, {
+            type: SampleNodeType.EMAIL_TEMPLATE,
+            name: 'Email Template (AI)',
+            description: 'Generate AI-powered email templates (Subject & Body)',
+            category: 'AI / Machine Learning',
+            inputs: 1,
+            outputs: 1,
+            configSchema: {
+                userPrompt: {
+                    type: 'string',
+                    description: 'Instructions for the email content',
+                    default: 'Write a professional follow-up email'
+                },
+                inputText: {
+                    type: 'string',
+                    description: 'Data from previous nodes (use {{NodeName.path}})',
+                    default: ''
+                },
+                modelName: {
+                    type: 'select',
+                    options: ['gemini-1.5-flash', 'gemini-1.5-pro'],
+                    default: 'gemini-1.5-flash'
                 }
             }
         });

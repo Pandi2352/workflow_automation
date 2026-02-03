@@ -22,5 +22,6 @@ export enum SampleNodeType {
     AI_AGENT = 'AI_AGENT',
     GEMINI_MODEL = 'GEMINI_MODEL',
     GOOGLE_SEARCH_TOOL = 'GOOGLE_SEARCH_TOOL',
+    EMAIL_TEMPLATE = 'EMAIL_TEMPLATE',
 }
 // Force recompile

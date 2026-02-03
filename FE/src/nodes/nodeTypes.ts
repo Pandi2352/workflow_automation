@@ -18,6 +18,7 @@ import { RSSNode } from './tools/rss/RSSNode';
 import { AIAgentNode } from './ai-agent/AIAgentNode';
 import { GeminiModelNode } from './ai-models/GeminiModelNode';
 import { GoogleSearchToolNode } from './tools/google-search/GoogleSearchToolNode';
+import { EmailTemplateNode } from './ai-agent/EmailTemplateNode';
 import { WebhookNode } from './trigger/webhook/WebhookNode';
 
 export const NODE_TYPES = {
@@ -46,6 +47,8 @@ export const NODE_TYPES = {
     gemini_model: GeminiModelNode,
     GOOGLE_SEARCH_TOOL: GoogleSearchToolNode,
     google_search_tool: GoogleSearchToolNode,
+    EMAIL_TEMPLATE: EmailTemplateNode,
+    email_template: EmailTemplateNode,
     WEBHOOK: WebhookNode,
     webhook: WebhookNode,
     default: GenericNode,

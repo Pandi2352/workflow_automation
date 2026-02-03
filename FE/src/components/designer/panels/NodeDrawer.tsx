@@ -43,6 +43,7 @@ const availableNodes: NodeType[] = [
     { type: 'SUMMARIZE', label: 'Summarize', description: 'Generate text summaries', icon: FileText, color: 'text-slate-400', category: 'ACTION' },
     { type: 'SMART_EXTRACTION', label: 'Smart Extract', description: 'Extract specific data points', icon: BrainCircuit, color: 'text-slate-400', category: 'ACTION' },
     { type: 'AI_AGENT', label: 'AI Agent', description: 'Autonomous agent that can use tools', icon: Sparkles, color: 'text-slate-400', category: 'ACTION' },
+    { type: 'EMAIL_TEMPLATE', label: 'Email Template', description: 'Generate AI subject and body', icon: Mail, color: 'text-slate-400', category: 'ACTION' },
     { type: 'GEMINI_MODEL', label: 'Gemini Model', description: 'Google Gemini Chat Model', icon: Cpu, color: 'text-slate-400', category: 'ACTION' },
     { type: 'GOOGLE_SEARCH_TOOL', label: 'Google Search Tool', description: 'Give web search capability to AI Agents', icon: Globe, color: 'text-slate-400', category: 'ACTION' },
     { type: 'MONGODB', label: 'MongoDB', description: 'Store data for review', icon: Database, color: 'text-slate-400', category: 'ACTION' },

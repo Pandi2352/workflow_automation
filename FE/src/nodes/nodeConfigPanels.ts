@@ -13,6 +13,7 @@ import { NodeConfigPanel as HttpNodeConfigPanel } from './http-request/NodeConfi
 import { NodeConfigPanel as TesseractOCRConfigPanel } from './tesseract-ocr/NodeConfigPanel';
 import { NodeConfigPanel as CodeConfigPanel } from './code/NodeConfigPanel';
 import { NodeConfigPanel as OutlookConfigPanel } from './trigger/outlook/NodeConfigPanel';
+import { NodeConfigPanel as EmailTemplateConfigPanel } from './ai-agent/email-template/NodeConfigPanel';
 
 import { NodeConfigPanel as RSSConfigPanel } from './tools/rss/NodeConfigPanel';
 import { NodeConfigPanel as AIAgentConfigPanel } from './ai-agent/NodeConfigPanel';
@@ -42,4 +43,6 @@ export const NODE_CONFIG_PANELS: Record<string, React.FC<any>> = {
     gemini_model: GeminiModelConfigPanel,
     GOOGLE_SEARCH_TOOL: GoogleSearchToolConfigPanel,
     google_search_tool: GoogleSearchToolConfigPanel,
+    EMAIL_TEMPLATE: EmailTemplateConfigPanel,
+    email_template: EmailTemplateConfigPanel,
 };
