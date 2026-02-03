@@ -24,6 +24,7 @@ export const ScheduleNode = memo(({ id, data, isConnectable, selected }: NodePro
 
     return (
         <TriggerNodeBase
+            id={id}
             label={String(data.label || 'Scheduler')}
             badgeText={label}
             icon={<Clock size={32} className={isRunning ? "animate-spin-slow" : ""} />}

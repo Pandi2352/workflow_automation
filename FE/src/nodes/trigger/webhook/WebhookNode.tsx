@@ -12,11 +12,12 @@ interface WebhookNodeData extends Record<string, unknown> {
     };
 }
 
-export const WebhookNode = memo(({ data, isConnectable, selected }: NodeProps) => {
+export const WebhookNode = memo(({ id, data, isConnectable, selected }: NodeProps) => {
     const nodeData = data as WebhookNodeData;
 
     return (
         <TriggerNodeBase
+            id={id}
             label={nodeData.label || 'Webhook'}
             badgeText="WEBHOOK"
             detailText={nodeData.config?.path}
@@ -30,4 +31,3 @@ export const WebhookNode = memo(({ data, isConnectable, selected }: NodeProps) =
 });
 
 export default WebhookNode;
-

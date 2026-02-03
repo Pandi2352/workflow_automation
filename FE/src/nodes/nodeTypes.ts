@@ -19,7 +19,9 @@ import { AIAgentNode } from './ai-agent/AIAgentNode';
 import { GeminiModelNode } from './ai-models/GeminiModelNode';
 import { GoogleSearchToolNode } from './tools/google-search/GoogleSearchToolNode';
 import { EmailTemplateNode } from './ai-agent/EmailTemplateNode';
-import { WebhookNode } from './trigger/webhook/WebhookNode';
+import { BrowserScraperNode } from './browser-scraper/BrowserScraperNode';
+import { DataMapperNode } from './data-mapper/DataMapperNode';
+import { SuryaOCRNode } from './surya-ocr/SuryaOCRNode';
 
 export const NODE_TYPES = {
     GOOGLE_DRIVE: GoogleDriveNode,
@@ -38,6 +40,8 @@ export const NODE_TYPES = {
     PARSING: ParsingNode,
     SUMMARIZE: SummarizeNode,
     TESSERACT_OCR: TesseractOCRNode,
+    SURYA_OCR: SuryaOCRNode,
+    surya_ocr: SuryaOCRNode,
     CODE: CodeNode,
     OUTLOOK: OutlookNode,
     RSS: RSSNode,
@@ -49,8 +53,10 @@ export const NODE_TYPES = {
     google_search_tool: GoogleSearchToolNode,
     EMAIL_TEMPLATE: EmailTemplateNode,
     email_template: EmailTemplateNode,
-    WEBHOOK: WebhookNode,
-    webhook: WebhookNode,
+    BROWSER_SCRAPER: BrowserScraperNode,
+    browser_scraper: BrowserScraperNode,
+    DATA_MAPPER: DataMapperNode,
+    data_mapper: DataMapperNode,
     default: GenericNode,
     input: GenericNode,
     api: GenericNode,

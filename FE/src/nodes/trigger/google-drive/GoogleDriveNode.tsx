@@ -18,6 +18,7 @@ export const GoogleDriveNode = memo(({ id, data, isConnectable, selected }: Node
 
     return (
         <TriggerNodeBase
+            id={id}
             label={driveData.label || 'New Drive Files'}
             badgeText="GOOGLE DRIVE"
             detailText="Cloud Workspace"

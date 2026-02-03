@@ -1,5 +1,5 @@
 import React, { useState, useMemo } from 'react';
-import { Search, X, ChevronRight, Zap, Split, ArrowUpRight, Clock, FileText, Database, Cpu, BrainCircuit, Upload, Type, Terminal, Mail, Rss, Sparkles, Globe } from 'lucide-react';
+import { Search, X, ChevronRight, Split, ArrowUpRight, Clock, FileText, Database, Cpu, BrainCircuit, Upload, Type, Terminal, Mail, Rss, Sparkles, Globe } from 'lucide-react';
 import googleDriveIcon from '../../../assets/nodeIcons/google-drive-svgrepo-com.svg';
 import oneDriveIcon from '../../../assets/nodeIcons/ms-onedrive-svgrepo-com.svg';
 import gmailIcon from '../../../assets/nodeIcons/gmail-icon-logo-svgrepo-com.svg';
@@ -24,7 +24,6 @@ interface NodeType {
 
 const availableNodes: NodeType[] = [
     // Triggers
-    { type: 'WEBHOOK', label: 'Webhook', description: 'Start workflow via HTTP request', icon: Zap, color: 'text-slate-400', category: 'TRIGGER' },
     { type: 'RSS', label: 'RSS Feed', description: 'Fetch items from an RSS feed', icon: Rss, color: 'text-slate-400', category: 'TRIGGER' },
     { type: 'SCHEDULE', label: 'Schedule', description: 'Run workflow on a schedule', icon: Clock, color: 'text-slate-400', category: 'TRIGGER' },
     { type: 'GMAIL', label: 'Gmail', description: 'Fetch emails from Gmail', icon: ({size}: any) => <img src={gmailIcon} style={{width: size, height: size, filter: 'grayscale(100%)', opacity: 0.6}} />, color: 'text-slate-400', category: 'TRIGGER' },
@@ -35,11 +34,14 @@ const availableNodes: NodeType[] = [
 
     // Logic/Conditional
     { type: 'IF_ELSE', label: 'If / Else', description: 'Branch workflow based on conditions', icon: Split, color: 'text-slate-400', category: 'CONDITIONAL' },
+    { type: 'DATA_MAPPER', label: 'Data Mapper', description: 'Transform and map structured data', icon: Split, color: 'text-slate-400', category: 'CONDITIONAL' },
 
     // Actions
     { type: 'OCR', label: 'OCR Processing', description: 'Extract text using Gemini AI', icon: FileText, color: 'text-slate-400', category: 'ACTION' },
     { type: 'TESSERACT_OCR', label: 'Tesseract OCR', description: 'Open-source standard OCR', icon: Type, color: 'text-slate-400', category: 'ACTION' },
+    { type: 'SURYA_OCR', label: 'Surya OCR', description: 'Advanced multilingual OCR engine', icon: FileText, color: 'text-slate-400', category: 'ACTION' },
     { type: 'PARSING', label: 'AI Parsing', description: 'Extract structured data', icon: Cpu, color: 'text-slate-400', category: 'ACTION' },
+    { type: 'BROWSER_SCRAPER', label: 'Browser Scraper', description: 'Extract website content with AI', icon: Globe, color: 'text-slate-400', category: 'ACTION' },
     { type: 'SUMMARIZE', label: 'Summarize', description: 'Generate text summaries', icon: FileText, color: 'text-slate-400', category: 'ACTION' },
     { type: 'SMART_EXTRACTION', label: 'Smart Extract', description: 'Extract specific data points', icon: BrainCircuit, color: 'text-slate-400', category: 'ACTION' },
     { type: 'AI_AGENT', label: 'AI Agent', description: 'Autonomous agent that can use tools', icon: Sparkles, color: 'text-slate-400', category: 'ACTION' },

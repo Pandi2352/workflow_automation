@@ -4,6 +4,7 @@ import { Handle, Position, type NodeProps } from '@xyflow/react';
 import { BrainCircuit, Sparkles } from 'lucide-react';
 import { cn } from '../../lib/utils';
 import { useWorkflowStore } from '../../store/workflowStore';
+import { NodeActionToolbar } from '../common/NodeActionToolbar';
 
 export const GeminiModelNode = memo(({ id, data, isConnectable, selected }: NodeProps) => {
     const { currentExecution } = useWorkflowStore();
@@ -18,6 +19,11 @@ export const GeminiModelNode = memo(({ id, data, isConnectable, selected }: Node
             "group relative flex flex-col items-center justify-center transition-all duration-300",
             selected ? "scale-105" : "hover:scale-102"
         )}>
+            <NodeActionToolbar
+                nodeId={id}
+                nodeLabel={String(data.label || 'Gemini Model')}
+            />
+
             {/* Main Circular Body */}
             <div className={cn(
                 "w-24 h-24 rounded-full bg-white border-2 flex flex-col items-center justify-center shadow-lg transition-all duration-300 relative overflow-hidden",

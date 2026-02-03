@@ -13,6 +13,7 @@ export const OutlookNode = memo(({ id, data, isConnectable, selected }: NodeProp
 
     return (
         <TriggerNodeBase
+            id={id}
             label={displayLabel}
             badgeText="OUTLOOK"
             detailText={query || 'New email'}

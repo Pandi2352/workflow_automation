@@ -1,5 +1,6 @@
 import { Handle, Position } from '@xyflow/react';
 import { cn } from '../../../lib/utils';
+import { NodeActionToolbar } from '../../common/NodeActionToolbar';
 
 type ExecutionStatus = 'RUNNING' | 'SUCCESS' | 'FAILED' | undefined;
 
@@ -99,6 +100,7 @@ const ACCENTS: Record<string, AccentStyle> = {
 };
 
 export interface TriggerNodeBaseProps {
+    id: string;
     label: string;
     badgeText: string;
     icon: React.ReactNode;
@@ -110,6 +112,7 @@ export interface TriggerNodeBaseProps {
 }
 
 export const TriggerNodeBase = ({
+    id,
     label,
     badgeText,
     icon,
@@ -126,6 +129,10 @@ export const TriggerNodeBase = ({
 
     return (
         <div className="group relative flex flex-col items-center">
+            <NodeActionToolbar
+                nodeId={id}
+                nodeLabel={label}
+            />
             {/* Visual Box - Scale applied here only to keep handle coordinates stable */}
             <div className={cn(
                 "w-[98px] h-20 rounded-l-full rounded-r-[12px] bg-white border-2 flex items-center justify-center transition-all duration-300 relative",

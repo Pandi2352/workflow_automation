@@ -24,6 +24,7 @@ export const GmailNode = memo((props: NodeProps) => {
 
     return (
         <TriggerNodeBase
+            id={props.id}
             label={displayLabel}
             badgeText="GMAIL TRIGGER"
             detailText={nodeData.config?.query}

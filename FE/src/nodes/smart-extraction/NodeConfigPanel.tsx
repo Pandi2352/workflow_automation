@@ -120,9 +120,10 @@ export const NodeConfigPanel: React.FC<{ nodeExecutionData?: any }> = ({ nodeExe
     const [activeTab, setActiveTab] = useState<'config' | 'output' | 'logs'>('config');
 
     return (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm animate-in fade-in duration-200">
+        <div className="fixed inset-0 z-50 flex justify-end">
+            <div className="absolute inset-0 bg-black/20 animate-in fade-in duration-200" onClick={() => setSelectedNode(null)} />
             <div 
-                className="bg-white rounded-xl shadow-2xl w-[95vw] max-w-[1250px] h-[85vh] flex flex-col transform transition-all animate-in zoom-in-95 duration-200 overflow-hidden"
+                className="relative bg-white shadow-2xl w-[95vw] max-w-[1250px] h-full flex flex-col transform transition-all animate-in slide-in-from-right duration-300 overflow-hidden"
                 onClick={(e) => e.stopPropagation()}
             >
                  {/* Header */}

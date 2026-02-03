@@ -1,12 +1,15 @@
 import { memo } from 'react';
 import { Handle, Position, type NodeProps } from '@xyflow/react';
 import { GitFork } from 'lucide-react';
+import { NodeActionToolbar } from '../common/NodeActionToolbar';
 
 export const IfElseNode = memo((props: NodeProps) => {
     return (
         <div className={`relative group min-w-[200px] bg-white rounded-xl border-2 transition-all duration-300 shadow-sm hover:shadow-lg hover:-translate-y-1 ${
             props.selected ? 'border-orange-500 ring-4 ring-orange-500/10' : 'border-slate-200 hover:border-slate-300'
         }`}>
+            <NodeActionToolbar nodeId={props.id} nodeLabel={(props.data.label as string) || 'Decision'} />
+
             {/* Input Handle */}
             <Handle
                 type="target"

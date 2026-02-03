@@ -1,6 +1,6 @@
 import { Handle, Position } from '@xyflow/react';
 import { cn } from '../../../lib/utils';
-import { NodeHoverToolbar } from './NodeHoverToolbar';
+import { NodeActionToolbar } from '../../common/NodeActionToolbar';
 
 type ExecutionStatus = 'RUNNING' | 'SUCCESS' | 'FAILED' | undefined;
 
@@ -83,7 +83,7 @@ export const ToolNodeBase = ({
             "group relative flex flex-col items-center justify-center transition-all duration-300",
             selected ? "scale-105" : "hover:scale-102"
         )}>
-            <NodeHoverToolbar id={id} />
+            <NodeActionToolbar nodeId={id} nodeLabel={label} />
 
             <div className={cn(
                 "w-20 h-20 rounded-full bg-white border-2 flex flex-col items-center justify-center shadow-lg transition-all duration-300 relative overflow-hidden",
@@ -148,4 +148,3 @@ export const ToolNodeBase = ({
         </div>
     );
 };
-

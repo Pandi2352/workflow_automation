@@ -10,6 +10,7 @@ export const OneDriveNode = memo(({ id, data, isConnectable, selected }: NodePro
 
     return (
         <TriggerNodeBase
+            id={id}
             label={String(data.label || 'New OneDrive Files')}
             badgeText="ONEDRIVE"
             detailText="Microsoft 365"

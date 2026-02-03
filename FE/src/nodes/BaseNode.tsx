@@ -1,10 +1,11 @@
 import React, { memo } from 'react';
 import { type NodeProps } from '@xyflow/react';
-import { MoreVertical, Loader2, Trash2 } from 'lucide-react';
+import { MoreVertical, Loader2 } from 'lucide-react';
 import { useWorkflowStore } from '../store/workflowStore';
 import { cn } from '@/lib/utils';
 import { Handle, Position } from '@xyflow/react';
 import { AnimatedBorder } from '@/components/ui/animated-border';
+import { NodeActionToolbar } from './common/NodeActionToolbar';
 
 export interface BaseNodeProps extends Omit<NodeProps, 'selected' | 'isConnectable'> {
     label: string;
@@ -66,16 +67,11 @@ export const BaseNode = memo(({ id, data, isConnectable, selected, label, icon: 
                 />
             )}
 
-            {/* Top Toolbar - Actions */}
-            <div className="absolute bottom-full right-0 pb-1 flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-all duration-200 z-50 scale-95 group-hover:scale-100 pointer-events-none group-hover:pointer-events-auto">
-                 <button 
-                    onClick={handleDelete}
-                    className="p-1 text-slate-500 hover:text-red-600 hover:bg-red-50 transition-colors cursor-pointer"
-                    title="Delete Node"
-                >
-                    <Trash2 size={14} />
-                </button>
-            </div>
+            <NodeActionToolbar
+                nodeId={id}
+                nodeLabel={label}
+                onDelete={handleDelete}
+            />
 
             {/* Header */}
             <div className="flex flex-row items-center justify-between p-2 border-b border-slate-100/80 bg-slate-50/50 rounded-t-xl">

@@ -1,8 +1,8 @@
 import { memo } from 'react';
 import { Handle, Position, type NodeProps } from '@xyflow/react';
-import { Trash2, Play, Cpu, Type } from 'lucide-react';
+import { Cpu, Type } from 'lucide-react';
 import { useWorkflowStore } from '../../store/workflowStore';
-import { axiosInstance } from '../../api/axiosConfig';
+import { NodeActionToolbar } from '../common/NodeActionToolbar';
 
 interface OCRNodeData extends Record<string, unknown> {
     label?: string;
@@ -17,33 +17,13 @@ interface OCRNodeData extends Record<string, unknown> {
 
 export const TesseractOCRNode = memo(({ id, data, isConnectable, selected }: NodeProps) => {
     const nodeData = data as OCRNodeData;
-    const { deleteNode, showToast, currentExecution } = useWorkflowStore();
+    const { currentExecution } = useWorkflowStore();
 
     // Find execution status
     const nodeStatus = nodeData.executionStatus || currentExecution?.nodeExecutions?.find((ex: any) => ex.nodeId === id)?.status;
     const isRunning = nodeStatus === 'RUNNING';
     const isSuccess = nodeStatus === 'SUCCESS';
     const isFailed = nodeStatus === 'FAILED';
-
-    const handleTestNode = async (e: React.MouseEvent) => {
-        e.stopPropagation();
-        showToast('Testing Tesseract OCR...', 'info');
-        try {
-            await axiosInstance.post('/sample-workflows/nodes/test', {
-                nodeType: 'TESSERACT_OCR',
-                nodeData: nodeData.config || {},
-                inputs: [] 
-            });
-            showToast('Node test successful', 'success');
-        } catch (error: any) {
-            showToast('Node test failed', 'error', error.message);
-        }
-    };
-
-    const handleDelete = (e: React.MouseEvent) => {
-        e.stopPropagation();
-        deleteNode(id);
-    };
 
     const getStatusColor = () => {
         if (isRunning) return 'border-blue-400 shadow-[0_0_15px_rgba(96,165,250,0.5)]';
@@ -55,25 +35,7 @@ export const TesseractOCRNode = memo(({ id, data, isConnectable, selected }: Nod
     return (
         <div className={`relative group min-w-[200px] bg-white rounded-xl border-2 transition-all duration-300 ${getStatusColor()}`}>
             
-            {/* Top Toolbar - Actions */}
-            <div className="absolute bottom-full right-0 pb-1 flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-all duration-200 z-50 scale-95 group-hover:scale-100 pointer-events-none group-hover:pointer-events-auto">
-                 <div className="flex items-center gap-1">
-                    <button 
-                        onClick={handleTestNode}
-                        className="p-1 text-slate-500 hover:text-blue-600 hover:bg-blue-50 rounded-full transition-colors cursor-pointer"
-                        title="Test Node"
-                    >
-                        <Play size={14} />
-                    </button>
-                    <button 
-                        onClick={handleDelete}
-                        className="p-1 text-slate-500 hover:text-red-600 hover:bg-red-50 rounded-full transition-colors cursor-pointer"
-                        title="Delete Node"
-                    >
-                        <Trash2 size={14} />
-                    </button>
-                </div>
-            </div>
+            <NodeActionToolbar nodeId={id} nodeLabel={nodeData.label} />
 
             {/* Header Section */}
             <div className="flex items-center justify-between px-3 py-2 bg-gradient-to-r from-blue-50 to-white border-b border-blue-100/50 rounded-t-[10px]">

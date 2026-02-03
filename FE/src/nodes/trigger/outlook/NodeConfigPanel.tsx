@@ -37,9 +37,11 @@ export const NodeConfigPanel = ({ nodeExecutionData }: { nodeExecutionData?: any
     };
 
     return (
-        <div className="absolute top-4 right-4 bottom-4 w-[400px] bg-white rounded-2xl shadow-[0_10px_40px_rgba(0,0,0,0.1)] border border-slate-200 flex flex-col z-[100] animate-in slide-in-from-right duration-300">
+        <div className="fixed inset-0 z-50 flex justify-end">
+            <div className="absolute inset-0 bg-black/20 animate-in fade-in duration-200" onClick={() => setSelectedNode(null)} />
+            <div className="relative h-full w-[420px] bg-white shadow-[0_10px_40px_rgba(0,0,0,0.1)] border-l border-slate-200 flex flex-col z-[100] animate-in slide-in-from-right duration-300">
             {/* Header */}
-            <div className="px-6 py-5 border-b border-slate-100 flex items-center justify-between bg-white rounded-t-2xl sticky top-0 z-10">
+            <div className="px-6 py-5 border-b border-slate-100 flex items-center justify-between bg-white sticky top-0 z-10">
                 <div className="flex items-center gap-3">
                     <div className="w-10 h-10 bg-indigo-600 rounded-xl flex items-center justify-center text-white shadow-lg shadow-indigo-100">
                         <Mail size={20} />
@@ -158,7 +160,7 @@ export const NodeConfigPanel = ({ nodeExecutionData }: { nodeExecutionData?: any
             </div>
 
             {/* Footer Tip */}
-            <div className="p-4 bg-slate-50/50 border-t border-slate-100 rounded-b-2xl">
+            <div className="p-4 bg-slate-50/50 border-t border-slate-100">
                  <div className="flex gap-3">
                     <div className="w-8 h-8 rounded-lg bg-white flex items-center justify-center border border-slate-100 text-indigo-500 px-3">
                         <Search size={14} />

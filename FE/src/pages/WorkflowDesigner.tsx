@@ -6,6 +6,7 @@ import { AIChatDrawer } from '../components/designer/panels/AIChatDrawer';
 import { TemplatesDrawer } from '../components/designer/panels/TemplatesDrawer';
 
 import { NODE_CONFIG_PANELS } from '../nodes/nodeConfigPanels';
+import { SchemaNodeConfigPanel } from '../nodes/common/SchemaNodeConfigPanel';
 
 import { DesignerHeader } from '../components/designer/panels/DesignerHeader';
 import { CreateWorkflowSelector } from '../components/designer/panels/CreateWorkflowSelector';
@@ -569,39 +570,13 @@ export const WorkflowDesigner: React.FC = () => {
 
                         {/* Overlays */}
                         {selectedNode && (() => {
-                            if (selectedNode.type === 'FILE_UPLOAD') {
-                                const FileUploadPanel = NODE_CONFIG_PANELS.FILE_UPLOAD as any;
-                                return (
-                                    <FileUploadPanel
-                                        data={selectedNode.data}
-                                        onChange={(newData: any) => {
-                                            const updatedNodes = nodes.map((n) => {
-                                                if (n.id === selectedNode.id) {
-                                                    return { ...n, data: newData };
-                                                }
-                                                return n;
-                                            });
-                                            setNodes(updatedNodes);
-                                        }}
-                                    />
-                                );
-                            }
-
-                            const Panel = NODE_CONFIG_PANELS[selectedNode.type as any];
-                            if (Panel) {
-                                return (
-                                    <Panel
-                                        nodeExecutionData={currentExecution?.nodeExecutions?.find(
-                                            (ex: any) => ex.nodeId === selectedNode?.id
-                                        )}
-                                    />
-                                );
-                            }
-
+                            const Panel = NODE_CONFIG_PANELS[selectedNode.type as any] || SchemaNodeConfigPanel;
                             return (
-                                <div className="p-4 bg-white shadow rounded">
-                                    Configuration not available for {selectedNode.type}
-                                </div>
+                                <Panel
+                                    nodeExecutionData={currentExecution?.nodeExecutions?.find(
+                                        (ex: any) => ex.nodeId === selectedNode?.id
+                                    )}
+                                />
                             );
                         })()}
 

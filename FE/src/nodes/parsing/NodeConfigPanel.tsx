@@ -83,8 +83,9 @@ export const NodeConfigPanel: React.FC<NodeConfigPanelProps> = ({ nodeExecutionD
     if (!selectedNode) return null;
 
     return (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm animate-in fade-in duration-200">
-            <div className="bg-white rounded-xl shadow-2xl w-[1100px] h-[85vh] flex flex-col overflow-hidden" onClick={e => e.stopPropagation()}>
+        <div className="fixed inset-0 z-50 flex justify-end">
+            <div className="absolute inset-0 bg-black/20 animate-in fade-in duration-200" onClick={() => setSelectedNode(null)} />
+            <div className="relative bg-white shadow-2xl w-[1100px] h-full flex flex-col transform transition-all animate-in slide-in-from-right duration-300 overflow-hidden" onClick={e => e.stopPropagation()}>
                 
                 {/* Header */}
                 <div className="p-4 border-b border-gray-100 flex justify-between items-center bg-white shrink-0">

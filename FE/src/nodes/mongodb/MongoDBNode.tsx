@@ -1,7 +1,8 @@
 import { memo } from 'react';
 import { Handle, Position, type NodeProps } from '@xyflow/react';
-import { Database, Play, Trash2, Layout, DatabaseZap } from 'lucide-react';
+import { Database, Layout, DatabaseZap } from 'lucide-react';
 import { useWorkflowStore } from '../../store/workflowStore';
+import { NodeActionToolbar } from '../common/NodeActionToolbar';
 
 interface MongoDBNodeData extends Record<string, unknown> {
     label?: string;
@@ -16,7 +17,7 @@ interface MongoDBNodeData extends Record<string, unknown> {
 
 export const MongoDBNode = memo(({ id, data, selected }: NodeProps) => {
     const nodeData = data as MongoDBNodeData;
-    const { deleteNode, currentExecution } = useWorkflowStore();
+    const { currentExecution } = useWorkflowStore();
     
     // Find execution status for this node
     const nodeStatus = nodeData.executionStatus || currentExecution?.nodeExecutions?.find((ex: any) => ex.nodeId === id)?.status;
@@ -34,24 +35,7 @@ export const MongoDBNode = memo(({ id, data, selected }: NodeProps) => {
     return (
         <div className={`relative group min-w-[200px] bg-white rounded-xl border-2 transition-all duration-300 ${getStatusColor()}`}>
             
-            {/* Top Toolbar - Actions */}
-            <div className="absolute bottom-full right-0 pb-1 flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-all duration-200 z-50 scale-95 group-hover:scale-100 pointer-events-none group-hover:pointer-events-auto">
-                 <div className="flex items-center gap-1">
-                    <button 
-                        className="p-1 text-slate-500 hover:text-emerald-600 hover:bg-emerald-50 rounded-full transition-colors cursor-pointer"
-                        title="Test Node"
-                    >
-                        <Play size={14} />
-                    </button>
-                    <button 
-                        onClick={(e) => { e.stopPropagation(); deleteNode(id); }}
-                        className="p-1 text-slate-500 hover:text-red-600 hover:bg-red-50 rounded-full transition-colors cursor-pointer"
-                        title="Delete Node"
-                    >
-                        <Trash2 size={14} />
-                    </button>
-                </div>
-            </div>
+            <NodeActionToolbar nodeId={id} nodeLabel={nodeData.label} />
 
             {/* Header */}
             <div className="p-3 bg-gradient-to-r from-emerald-50 to-white border-b border-emerald-100/50 flex items-center gap-3 rounded-t-[10px]">

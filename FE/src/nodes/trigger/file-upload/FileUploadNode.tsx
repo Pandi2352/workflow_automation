@@ -15,12 +15,13 @@ interface FileUploadNodeData extends Record<string, unknown> {
     };
 }
 
-const FileUploadNode = memo(({ data, isConnectable, selected }: NodeProps) => {
+const FileUploadNode = memo(({ id, data, isConnectable, selected }: NodeProps) => {
     const nodeData = data as FileUploadNodeData;
     const fileName = nodeData.config?.file?.originalName;
 
     return (
         <TriggerNodeBase
+            id={id}
             label={nodeData.label || 'File Upload'}
             badgeText="FILE UPLOAD"
             detailText={fileName || 'No file uploaded'}

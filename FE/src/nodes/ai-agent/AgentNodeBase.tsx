@@ -1,8 +1,9 @@
 import React, { memo } from 'react';
 import { Handle, Position, type NodeProps } from '@xyflow/react';
-import { Bot, Check, Trash2 } from 'lucide-react';
+import { Bot, Check } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useWorkflowStore } from '../../store/workflowStore';
+import { NodeActionToolbar } from '../common/NodeActionToolbar';
 
 export interface AgentNodeBaseProps extends NodeProps {
     label: string;
@@ -41,15 +42,11 @@ export const AgentNodeBase = memo(({ id, data, isConnectable, selected, label, i
                 className="!w-2.5 !h-2.5 !bg-white !border-2 !border-emerald-500 !-right-[3px] transition-all hover:scale-125 hover:!bg-emerald-50"
             />
 
-            {/* Toolbar */}
-            <div className="absolute -top-7 right-0 flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-all scale-90 group-hover:scale-100">
-                <button 
-                    onClick={handleDelete}
-                    className="p-1 bg-gray-80 border border-slate-200 text-slate-400 hover:text-red-500 hover:border-red-200 transition-all"
-                >
-                    <Trash2 size={12} />
-                </button>
-            </div>
+            <NodeActionToolbar
+                nodeId={id}
+                nodeLabel={label}
+                onDelete={handleDelete}
+            />
 
             {/* Main Content */}
             <div className="px-3 py-3 flex items-center gap-3">

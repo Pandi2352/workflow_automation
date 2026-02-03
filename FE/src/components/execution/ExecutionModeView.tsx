@@ -7,6 +7,7 @@ import { ExecutionCanvas } from './ExecutionCanvas';
 import { useWorkflowStore } from '../../store/workflowStore';
 import { FileText, X } from 'lucide-react';
 import { NODE_CONFIG_PANELS } from '../../nodes/nodeConfigPanels';
+import { SchemaNodeConfigPanel } from '../../nodes/common/SchemaNodeConfigPanel';
 import { workflowService } from '../../services/api/workflows';
 
 export const ExecutionModeView: React.FC = () => {
@@ -219,9 +220,8 @@ export const ExecutionModeView: React.FC = () => {
                     {selectedNode && (
                         <>
                             {(() => {
-                                const Panel = NODE_CONFIG_PANELS[selectedNode.type];
-                                if (Panel) return <Panel nodeExecutionData={selectedNodeData} />;
-                                return <div className="p-4 bg-white shadow rounded">Configuration not available for {selectedNode.type}</div>;
+                                const Panel = NODE_CONFIG_PANELS[selectedNode.type] || SchemaNodeConfigPanel;
+                                return <Panel nodeExecutionData={selectedNodeData} />;
                             })()}
                         </>
                     )}
